@@ -38,18 +38,10 @@ void * tilek_worker(void * args_) {
   pthread_exit(NULL);
 }
 
-size_t num_threads;
-pthread_t * threads;
-struct tilek_worker_args_t * threads_args;
-
 void klt_user_schedule(
   struct klt_kernel_t * kernel, struct klt_subkernel_desc_t * subkernel,
   struct klt_loop_context_t * klt_loop_context, struct klt_data_context_t * klt_data_context
 ) {
-  assert(num_threads == 0);
-  assert(threads == 0);
-  assert(threads_args == 0);
-
   void ** local_param = NULL;
   void ** local_data = NULL;
   {
@@ -62,9 +54,9 @@ void klt_user_schedule(
       local_data[i] = kernel->data[subkernel->data_ids[i]].ptr;
   }
 
-  num_threads = kernel->config->num_threads;
-  threads = (pthread_t *)malloc(num_threads * sizeof(pthread_t));
-  threads_args = (struct tilek_worker_args_t *)malloc(num_threads * sizeof(struct tilek_worker_args_t));
+  size_t num_threads = kernel->config->num_threads;
+  pthread_t * threads = (pthread_t *)malloc(num_threads * sizeof(pthread_t));
+  struct tilek_worker_args_t * threads_args = (struct tilek_worker_args_t *)malloc(num_threads * sizeof(struct tilek_worker_args_t));
 
   pthread_attr_t threads_attr;
   pthread_attr_init(&threads_attr);
@@ -88,7 +80,7 @@ void klt_user_schedule(
     threads_args[tid].klt_loop_context = klt_loop_context;
     threads_args[tid].klt_data_context = klt_data_context;
     
-    rc = pthread_create(&threads[tid], &threads_attr, tilek_worker, &threads_args[tid]);
+    rc = pthread_create(&(threads[tid]), &threads_attr, tilek_worker, &(threads_args[tid]));
     assert(!rc);
   }
 
@@ -108,9 +100,8 @@ void klt_user_schedule(
     timer_delta = (timer_stop.tv_sec - timer_start.tv_sec) * 1000 - timer_delta;
   printf("%d", timer_delta);
 
-  free(threads_args); threads_args = 0;
-  free(threads); threads = 0;
-  num_threads = 0;
+  free(threads_args);
+  free(threads);
 }
 
 void klt_user_wait(struct klt_kernel_t * kernel) { }

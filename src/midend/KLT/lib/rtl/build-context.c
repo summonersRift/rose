@@ -14,16 +14,62 @@ struct klt_kernel_t;
 
 extern int klt_user_get_tile_length(struct klt_kernel_t * kernel, unsigned long kind, unsigned long param);
 
+void klt_solve_one_loop(struct klt_loop_desc_t * loop_desc, struct klt_loop_context_t * loop_ctx, struct klt_kernel_t * kernel, int loop_it) {
+  int loop_idx = loop_desc[loop_it].idx;
+
+  int length = klt_get_loop_upper(loop_ctx, loop_idx) - klt_get_loop_lower(loop_ctx, loop_idx) + 1;
+  int stride = klt_get_loop_stride(loop_ctx, loop_idx);
+
+  int tile_it = 0;
+  while (tile_it < loop_desc[loop_it].num_tiles && loop_desc[loop_it].tile_desc[tile_it].kind != e_tile_dynamic) {
+    int tile_idx = loop_desc[loop_it].tile_desc[tile_it].idx;
+    klt_set_tile_length(loop_ctx, tile_idx, length);
+    if (loop_desc[loop_it].tile_desc[tile_it].kind == e_tile_static)
+      length /= loop_desc[loop_it].tile_desc[tile_it].param;
+    else
+      length /= klt_user_get_tile_length(kernel, loop_desc[loop_it].tile_desc[tile_it].kind, loop_desc[loop_it].tile_desc[tile_it].param);
+    klt_set_tile_stride(loop_ctx, tile_idx, length);
+    tile_it++;
+  }
+  int dyn_tile = tile_it;
+  tile_it = loop_desc[loop_it].num_tiles - 1;
+  while (tile_it >= 0 && loop_desc[loop_it].tile_desc[tile_it].kind != e_tile_dynamic) {
+    int tile_idx = loop_desc[loop_it].tile_desc[tile_it].idx;
+    klt_set_tile_stride(loop_ctx, tile_idx, stride);
+    if (loop_desc[loop_it].tile_desc[tile_it].kind == e_tile_static)
+      stride *= loop_desc[loop_it].tile_desc[tile_it].param;
+    else
+      stride *= klt_user_get_tile_length(kernel, loop_desc[loop_it].tile_desc[tile_it].kind, loop_desc[loop_it].tile_desc[tile_it].param);
+    klt_set_tile_length(loop_ctx, tile_idx, stride);
+    tile_it--;
+  }
+  assert((tile_it == dyn_tile && loop_desc[loop_it].tile_desc[tile_it].kind == e_tile_dynamic) || (tile_it == 0 && dyn_tile == loop_desc[loop_it].num_tiles));
+  if (loop_desc[loop_it].tile_desc[tile_it].kind == e_tile_dynamic) {
+    int tile_idx = loop_desc[loop_it].tile_desc[tile_it].idx;
+    klt_set_tile_length(loop_ctx, tile_idx, length);
+    klt_set_tile_stride(loop_ctx, tile_idx, stride);
+  }
+}
+
 void klt_solve_loop_context(int num_loops, struct klt_loop_desc_t * loop_desc, struct klt_loop_context_t * loop_ctx, struct klt_kernel_t * kernel) {
+  int loop_it, tile_it;
+
+  for (loop_it = 0; loop_it < num_loops; loop_it++)
+    if (loop_desc[loop_it].num_tiles > 0)
+      klt_solve_one_loop(loop_desc, loop_ctx, kernel, loop_it);
+}
+
+/*void klt_solve_loop_context(int num_loops, struct klt_loop_desc_t * loop_desc, struct klt_loop_context_t * loop_ctx, struct klt_kernel_t * kernel) {
   int loop_it, tile_it;
 
   for (loop_it = 0; loop_it < num_loops; loop_it++) {
     if (loop_desc[loop_it].num_tiles == 0) continue;
 
-    const int loop_idx = loop_desc[loop_it].idx;
+    int loop_idx = loop_desc[loop_it].idx;
 
     int length = klt_get_loop_upper(loop_ctx, loop_idx) - klt_get_loop_lower(loop_ctx, loop_idx) + 1; // Length of the loop
-    int last_tile = loop_desc[loop_it].tile_desc[loop_desc[loop_it].num_tiles-1].idx; // Stride of the loop
+    int last_tile = loop_desc[loop_it].tile_desc[loop_desc[loop_it].num_tiles-1].idx;
+
     klt_set_tile_stride(loop_ctx, last_tile, klt_get_loop_stride(loop_ctx, loop_idx));
 
     int dyn_tile = loop_desc[loop_it].num_tiles;
@@ -105,7 +151,7 @@ void klt_solve_loop_context(int num_loops, struct klt_loop_desc_t * loop_desc, s
       else klt_set_tile_stride(loop_ctx, tile_idx, stride);
     }
   }
-}
+}*/
 
 void dump_loop_ctx(struct klt_loop_context_t * loop_ctx) {
   int i;

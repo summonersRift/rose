@@ -74,23 +74,14 @@ check-test_2: test_2
 #########################################
 
 make-sgemm: $(srcdir)/../make-benchmark.sh $(wildcard sgemm_*.c)
+#	$(srcdir)/../make-benchmark.sh sgemm 1 8 $(TILEK) "$(ROSE_FLAGS)" "-O0 -g -I$(TILEK_INC) -DTILEK_THREADS" "$(LD_FLAGS)" $(srcdir)
 	$(srcdir)/../make-benchmark.sh sgemm 1 8 $(TILEK) "$(ROSE_FLAGS)" "-O3 -I$(TILEK_INC) -DTILEK_THREADS" "$(LD_FLAGS)" $(srcdir)
 
-eval-sgemm: $(srcdir)/../eval-benchmark.sh make-sgemm
-	> sgemm.csv
-	$(srcdir)/../eval-benchmark.sh sgemm 1 8  512  512  512 4  >> sgemm.csv
-	$(srcdir)/../eval-benchmark.sh sgemm 1 8  512  512  512 8  >> sgemm.csv
-	$(srcdir)/../eval-benchmark.sh sgemm 1 8  512  512  512 16 >> sgemm.csv
-	$(srcdir)/../eval-benchmark.sh sgemm 1 8 1024 1024 1024 4  >> sgemm.csv
-	$(srcdir)/../eval-benchmark.sh sgemm 1 8 1024 1024 1024 8  >> sgemm.csv
-	$(srcdir)/../eval-benchmark.sh sgemm 1 8 1024 1024 1024 16 >> sgemm.csv
-	$(srcdir)/../eval-benchmark.sh sgemm 1 8 2048 2048 2048 4  >> sgemm.csv
-	$(srcdir)/../eval-benchmark.sh sgemm 1 8 2048 2048 2048 8  >> sgemm.csv
-	$(srcdir)/../eval-benchmark.sh sgemm 1 8 2048 2048 2048 16 >> sgemm.csv
-	$(srcdir)/../eval-benchmark.sh sgemm 1 8 4096 4096 4096 4  >> sgemm.csv
-	$(srcdir)/../eval-benchmark.sh sgemm 1 8 4096 4096 4096 8  >> sgemm.csv
-	$(srcdir)/../eval-benchmark.sh sgemm 1 8 4096 4096 4096 16 >> sgemm.csv
+eval-sgemm: $(srcdir)/../all-square-benchmark.sh $(srcdir)/../eval-benchmark.sh make-sgemm
+	$(srcdir)/../all-square-benchmark.sh sgemm 1 8 "128 192 256 384 512 768 1024" "1 2 4 8 16" 5 $(srcdir) > sgemm.csv
 
+plot-sgemm:
+	$(srcdir)/../plot-benchmark.sh sgemm "128 192 256 384 512 768 1024" "1 2 4 8 16" $(srcdir)
 #########################################
 
 $(builddir)/$(TILEK_REL_PATH)/lib/libTileK-RTL-threads.la:

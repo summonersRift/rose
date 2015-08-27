@@ -7,16 +7,18 @@ n=$4
 m=$5
 p=$6
 nthreads=$7
+eval=$8
 
 set -e
 
-echo -n "$n,$m,$p,$nthreads"
-for version in $(seq $first $last)
-do
-  input=$tag\_$version
+for i in $(seq 1 $eval); do
+  echo -n "$n,$m,$p,$nthreads"
+  for version in $(seq $first $last); do
+    input=$tag\_$version
 
-  echo -n ","
-  ./$input $n $m $p $nthreads
+    echo -n ","
+    ./$input $n $m $p $nthreads
+  done
+  echo
 done
-echo
 
