@@ -5985,6 +5985,10 @@ BUILD_UNARY_DEF(ConjugateOp)
 BUILD_UNARY_DEF(VarArgStartOneOperandOp)
 BUILD_UNARY_DEF(VarArgEndOp)
 
+#ifdef ROSE_BUILD_MATLAB_LANGUAGE_SUPPORT
+  BUILD_UNARY_DEF(MatrixTransposeOp)
+#endif 
+
 #undef BUILD_UNARY_DEF
 
 SgCastExp * SageBuilder::buildCastExp(SgExpression *  operand_i,
@@ -6193,6 +6197,17 @@ BUILD_BINARY_DEF(XorAssignOp)
 
 BUILD_BINARY_DEF(VarArgCopyOp)
 BUILD_BINARY_DEF(VarArgStartOp)
+
+#ifdef ROSE_BUILD_MATLAB_LANGUAGE_SUPPORT
+  BUILD_BINARY_DEF(PowerOp);
+  BUILD_BINARY_DEF(ElementwisePowerOp);
+  BUILD_BINARY_DEF(ElementwiseMultiplyOp);
+  BUILD_BINARY_DEF(ElementwiseDivideOp);
+  BUILD_BINARY_DEF(LeftDivideOp);
+  BUILD_BINARY_DEF(ElementwiseLeftDivideOp);
+  BUILD_BINARY_DEF(ElementwiseAddOp);
+  BUILD_BINARY_DEF(ElementwiseSubtractOp);
+#endif  
 
 #undef BUILD_BINARY_DEF
 
@@ -8110,6 +8125,22 @@ SgDoWhileStmt * SageBuilder::buildDoWhileStmt_nfi(SgStatement *  body, SgStateme
   return result;
 }
 
+#ifdef ROSE_BUILD_MATLAB_LANGUAGE_SUPPORT
+SgMatlabForStatement* SageBuilder::buildMatlabForStatement(SgExpression* loop_index, SgExpression* loop_range, SgBasicBlock* loop_body)
+{
+  SgMatlabForStatement* result = new SgMatlabForStatement(loop_index, loop_range, loop_body);
+  SageInterface::setOneSourcePositionForTransformation(result);
+
+  ROSE_ASSERT(result != NULL);
+
+  loop_index->set_parent(result);
+  loop_range->set_parent(result);
+  loop_body->set_parent(result);
+  return result;
+}
+
+#endif
+
 SgBreakStmt * SageBuilder::buildBreakStmt()
 {
   SgBreakStmt* result = new SgBreakStmt();
@@ -9911,6 +9942,68 @@ SgTypeImaginary* SageBuilder::buildImaginaryType(SgType* base_type /*=NULL*/)
    ROSE_ASSERT(result!=NULL);
    return result;
  }
+
+#ifdef ROSE_BUILD_MATLAB_LANGUAGE_SUPPORT
+//! Build a Matrix Type for Matlab
+SgTypeMatrix* SageBuilder::buildMatrixType()
+{
+  SgTypeMatrix *result = new SgTypeMatrix();
+  ROSE_ASSERT(result != NULL);
+  return result;
+}
+
+SgTypeTuple* SageBuilder::buildTupleType(SgType *t1, SgType *t2, SgType *t3, SgType *t4, SgType *t5, SgType *t6, SgType *t7, SgType *t8, SgType *t9, SgType *t10)
+{
+  SgTypeTuple *result = new SgTypeTuple();
+  ROSE_ASSERT(result != NULL);
+
+  if(t1) result->append_type(t1);
+  if(t2) result->append_type(t2);
+  if(t3) result->append_type(t3);
+  if(t4) result->append_type(t4);
+  if(t5) result->append_type(t5);
+  if(t6) result->append_type(t6);
+  if(t7) result->append_type(t7);
+  if(t8) result->append_type(t8);
+  if(t9) result->append_type(t9);
+  if(t10) result->append_type(t10);
+
+  SageInterface::setOneSourcePositionForTransformation(result);
+
+  return result;
+}
+
+SgRangeExp* SageBuilder::buildRangeExp(SgExpression *start)
+{
+  SgRangeExp *result = new SgRangeExp();
+  SageInterface::setOneSourcePositionForTransformation(result);
+  ROSE_ASSERT(result != NULL);
+  
+  result->append(start);
+  return result;
+}
+
+SgMatrixExp* SageBuilder::buildMatrixExp(SgExprListExp *firstRow)
+{
+  SgMatrixExp *result = new SgMatrixExp();
+  SageInterface::setOneSourcePositionForTransformation(result);
+  
+  result->append_expression(firstRow);
+  ROSE_ASSERT(result != NULL);
+  
+  return result;
+}
+
+SgMagicColonExp* SageBuilder::buildMagicColonExp()
+{
+  SgMagicColonExp *result = new SgMagicColonExp();
+  SageInterface::setOneSourcePositionForTransformation(result);
+
+  ROSE_ASSERT(result != NULL);
+
+  return result;
+}
+#endif
 
 //! Build a const/volatile type qualifier
 SgConstVolatileModifier * SageBuilder::buildConstVolatileModifier (SgConstVolatileModifier::cv_modifier_enum mtype/*=SgConstVolatileModifier::e_unknown*/)
