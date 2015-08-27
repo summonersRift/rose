@@ -74,6 +74,11 @@ void klt_user_schedule(
   int rc;
   int tid;
 
+  struct timespec timer_start;
+  struct timespec timer_stop;
+
+  clock_gettime(CLOCK_REALTIME, &timer_start);
+
   for (tid = 0; tid < num_threads; tid++) {
     threads_args[tid].tid = tid;
     threads_args[tid].kernel = kernel;
@@ -93,6 +98,15 @@ void klt_user_schedule(
     rc = pthread_join(threads[tid], &status);
     assert(!rc);
   }
+
+  clock_gettime(CLOCK_REALTIME, &timer_stop);
+
+  long timer_delta = (timer_stop.tv_nsec - timer_start.tv_nsec) / 1000000;
+  if (timer_delta > 0)
+    timer_delta += (timer_stop.tv_sec - timer_start.tv_sec) * 1000;
+  else
+    timer_delta = (timer_stop.tv_sec - timer_start.tv_sec) * 1000 - timer_delta;
+  printf("%d", timer_delta);
 
   free(threads_args); threads_args = 0;
   free(threads); threads = 0;

@@ -118,6 +118,9 @@ typename Frontend<language_tpl>::directive_t * Frontend<language_tpl>::parse(std
   while ((clause = parseClause(directive_str)) != NULL) {
 //  std::cerr << "(2) (a) directive_str = " << directive_str << std::endl;
     bool res = Directives::parseClauseParameters(directive_str, directive_node, clause);
+    if (!res) {
+      std::cerr << "[Error] (DLX::Frontend<" << language_t::language_label << ">::directive_t) parseClauseParameters return false! (directive_str=\"" << directive_str << "\")" << std::endl;
+    }
     assert(res);
 //  std::cerr << "(2) (b) directive_str = " << directive_str << std::endl;
     directive->clause_list.push_back(clause);

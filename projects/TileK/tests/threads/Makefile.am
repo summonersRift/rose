@@ -24,7 +24,7 @@ CHECK_TARGET=check-test_1 check-test_2
 check-local: $(CHECK_TARGET) 
 
 clean-local:
-	rm -f rose_*.c *-kernel.c *-static.c *.o
+	rm -f rose_*.c *-kernel.c *-static.c *.o *.dot sgemm_*
 	rm -f test_1 test_2
 
 #########################################
@@ -65,11 +65,31 @@ test_2-kernel.o: test_2-kernel.c
 test_2-static.o: test_2-static.c
 	gcc $(C_FLAGS) -c test_2-static.c -o test_2-static.o
 
-test_2: rose_test_2.o test_2-kernel.o test_2-static.o $(TILEK_RTL) $(KLT_RTL)
+test_2: rose_test_2.o test_2-kernel.o test_2-static.o $(TILEK_RTL) $(KLT_RTL)2000
 	libtool --mode=link gcc rose_test_2.o test_2-kernel.o test_2-static.o $(LD_FLAGS) -o test_2
 
 check-test_2: test_2
 	./test_2
+
+#########################################
+
+make-sgemm: $(srcdir)/../make-benchmark.sh $(wildcard sgemm_*.c)
+	$(srcdir)/../make-benchmark.sh sgemm 1 8 $(TILEK) "$(ROSE_FLAGS)" "-O3 -I$(TILEK_INC) -DTILEK_THREADS" "$(LD_FLAGS)" $(srcdir)
+
+eval-sgemm: $(srcdir)/../eval-benchmark.sh make-sgemm
+	> sgemm.csv
+	$(srcdir)/../eval-benchmark.sh sgemm 1 8  512  512  512 4  >> sgemm.csv
+	$(srcdir)/../eval-benchmark.sh sgemm 1 8  512  512  512 8  >> sgemm.csv
+	$(srcdir)/../eval-benchmark.sh sgemm 1 8  512  512  512 16 >> sgemm.csv
+	$(srcdir)/../eval-benchmark.sh sgemm 1 8 1024 1024 1024 4  >> sgemm.csv
+	$(srcdir)/../eval-benchmark.sh sgemm 1 8 1024 1024 1024 8  >> sgemm.csv
+	$(srcdir)/../eval-benchmark.sh sgemm 1 8 1024 1024 1024 16 >> sgemm.csv
+	$(srcdir)/../eval-benchmark.sh sgemm 1 8 2048 2048 2048 4  >> sgemm.csv
+	$(srcdir)/../eval-benchmark.sh sgemm 1 8 2048 2048 2048 8  >> sgemm.csv
+	$(srcdir)/../eval-benchmark.sh sgemm 1 8 2048 2048 2048 16 >> sgemm.csv
+	$(srcdir)/../eval-benchmark.sh sgemm 1 8 4096 4096 4096 4  >> sgemm.csv
+	$(srcdir)/../eval-benchmark.sh sgemm 1 8 4096 4096 4096 8  >> sgemm.csv
+	$(srcdir)/../eval-benchmark.sh sgemm 1 8 4096 4096 4096 16 >> sgemm.csv
 
 #########################################
 
