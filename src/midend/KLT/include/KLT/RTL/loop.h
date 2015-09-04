@@ -2,6 +2,8 @@
 #ifndef __KLT_RTL_LOOP_H__
 #define __KLT_RTL_LOOP_H__
 
+#include "KLT/RTL/definition.h"
+
 struct klt_loop_container_t {
   int num_loops;
   int num_tiles;

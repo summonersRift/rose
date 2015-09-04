@@ -1,4 +1,5 @@
 
+#include "KLT/RTL/memory.h"
 #include "KLT/RTL/kernel.h"
 #include "KLT/RTL/loop.h"
 #include "KLT/RTL/tile.h"
@@ -37,8 +38,10 @@ struct klt_kernel_t * klt_build_kernel(int idx) {
   res->config = klt_user_build_config(desc);
 
   int i;
-  for (i = 0; i < desc->data.num_data; i++)
+  for (i = 0; i < desc->data.num_data; i++) {
+    res->data[i].num_sections = desc->data.ndims_data[i];
     res->data[i].sections = (struct klt_data_section_t *)malloc(desc->data.ndims_data[i] * sizeof(struct klt_data_section_t));
+  }
 
   return res;
 }

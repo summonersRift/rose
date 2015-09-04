@@ -23,6 +23,13 @@ struct klt_data_container_t;
 struct klt_data_section_t;
 struct klt_data_t;
 
+// Memory
+struct klt_memory_location_t;
+struct klt_allocation_t;
+
+// Data Environment
+struct klt_data_environment_t;
+
 // Interface
 extern struct klt_kernel_t * klt_build_kernel(int idx);
 extern void klt_execute_kernel(struct klt_kernel_t * kernel);

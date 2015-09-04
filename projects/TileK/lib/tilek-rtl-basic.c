@@ -6,6 +6,7 @@
 #include "KLT/RTL/tile.h"
 #include "KLT/RTL/data.h"
 #include "KLT/RTL/context.h"
+#include "KLT/RTL/memory.h"
 
 #include <stdlib.h>
 #include <string.h>
@@ -40,4 +41,8 @@ void klt_user_wait(struct klt_kernel_t * kernel) { /* NOP */ }
 int klt_user_get_tile_length(struct klt_kernel_t * kernel, unsigned long kind, unsigned long param) {
   assert(0);
 }
+
+struct klt_allocation_t * klt_user_allocate_data_on_device(struct klt_data_t * data, struct klt_memloc_t * memloc) { assert(0); }
+
+void klt_user_free_data_on_device(struct klt_data_t * data, struct klt_memloc_t * memloc, struct klt_allocation_t * alloc) { assert(0); }
 

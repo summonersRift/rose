@@ -35,9 +35,9 @@ struct klt_version_desc_t versions_k0[1] = {
   {1, subkernels_k0_v0, version_selector_k0_v0}
 };
 
-int sizeof_param_k0[2] = {sizeof(int), sizeof(float)};
-int sizeof_data_k0[1] = {sizeof(float)};
-int ndims_data_k0[1] = {1};
+size_t sizeof_param_k0[2] = {sizeof(int), sizeof(float)};
+size_t sizeof_data_k0[1] = {sizeof(float)};
+size_t ndims_data_k0[1] = {1};
 
 struct klt_loop_desc_t loop_desc_k0[1] = {
   {0, 0, 0}

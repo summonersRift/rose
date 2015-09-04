@@ -2,6 +2,8 @@
 #ifndef __KLT_RTL_KERNEL_H__
 #define __KLT_RTL_KERNEL_H__
 
+#include "KLT/RTL/definition.h"
+
 #include "KLT/RTL/loop.h"
 #include "KLT/RTL/data.h"
 

@@ -6,6 +6,7 @@
 #include "KLT/RTL/tile.h"
 #include "KLT/RTL/data.h"
 #include "KLT/RTL/context.h"
+#include "KLT/RTL/memory.h"
 
 #include <stdlib.h>
 #include <string.h>

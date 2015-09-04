@@ -1,9 +1,9 @@
 
 ###################################################################################################
 
-check: check-test_1 check-test_2
+check: check-test_1 check-test_2 check-test_11 check-test_12
 
-clean: clean-test_1 clean-test_2
+clean: clean-test_1 clean-test_2 clean-test_11 clean-test_12
 
 ###################################################################################################
 
@@ -55,11 +55,33 @@ clean-test_2:
 
 ###################################################################################################
 
+test_11: test_11.o kernel_1.o static_1.o $(TILEK_RTL) $(KLT_RTL)
+	libtool --mode=link gcc test_11.o kernel_1.o static_1.o $(LD_FLAGS) -o test_11
+
+check-test_11: test_11
+	./test_11
+
+clean-test_11:
+	rm -f test_11.o kernel_11.o static_11.o test_11
+
+###################################################################################################
+
+test_12: test_12.o kernel_2.o static_2.o $(TILEK_RTL) $(KLT_RTL)
+	libtool --mode=link gcc test_12.o kernel_2.o static_2.o $(LD_FLAGS) -o test_12
+
+check-test_12: test_12
+	./test_12
+
+clean-test_12:
+	rm -f test_12.o kernel_12.o static_12.o test_12
+
+###################################################################################################
+
 $(top_builddir)/$(KLT_REL_PATH)/lib/rtl/libKLT-RTL.la:
 	make -C $(top_builddir)/$(KLT_REL_PATH)/lib/rtl libKLT-RTL.la
 
-$(builddir)/$(TILEK_REL_PATH)/lib/libTileK-RTL.la:
-	make -C $(builddir)/$(TILEK_REL_PATH)/lib libTileK-RTL.la
+$(builddir)/$(TILEK_REL_PATH)/lib/libTileK-RTL-basic.la:
+	make -C $(builddir)/$(TILEK_REL_PATH)/lib libTileK-RTL-basic.la
 
 ###################################################################################################
 

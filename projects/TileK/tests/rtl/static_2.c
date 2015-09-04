@@ -63,9 +63,9 @@ struct klt_version_desc_t versions_k0[1] = {
   {2, subkernels_k0_v0, version_selector_k0_v0}
 };
 
-int sizeof_param_k0[6] = {sizeof(int), sizeof(int), sizeof(int), sizeof(int), sizeof(float), sizeof(float)};
-int sizeof_data_k0[5] = {sizeof(float), sizeof(float), sizeof(float), sizeof(float), sizeof(float)};
-int ndims_data_k0[5] = {2, 2, 2, 2, 2};
+size_t sizeof_param_k0[6] = {sizeof(int), sizeof(int), sizeof(int), sizeof(int), sizeof(float), sizeof(float)};
+size_t sizeof_data_k0[5] = {sizeof(float), sizeof(float), sizeof(float), sizeof(float), sizeof(float)};
+size_t ndims_data_k0[5] = {2, 2, 2, 2, 2};
 
 struct klt_loop_desc_t loop_desc_k0[4] = {
   {0, 0, 0},
@@ -81,3 +81,4 @@ struct klt_kernel_desc_t klt_kernel_desc[1] = {
     1, versions_k0
   }
 };
+
