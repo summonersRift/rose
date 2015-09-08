@@ -14,14 +14,28 @@
 
 namespace DLX {
 
-namespace Frontend {
+template <> 
+template <> 
+bool Frontend<TileK::language_t>::findAssociatedNodes<TileK::language_t::e_construct_dataenv>(
+  SgLocatedNode * directive_node,
+  Directives::construct_t<TileK::language_t, TileK::language_t::e_construct_dataenv> * construct
+) {
+  SgPragmaDeclaration * pragma_decl = isSgPragmaDeclaration(directive_node);
+  assert(pragma_decl != NULL);
+
+  construct->assoc_nodes.parent_scope = isSgScopeStatement(pragma_decl->get_parent());
+  assert(construct->assoc_nodes.parent_scope != NULL);
+  construct->assoc_nodes.dataenv_region = isSgScopeStatement(SageInterface::getNextStatement(pragma_decl));
+  assert(construct->assoc_nodes.dataenv_region != NULL);
+
+  return true;
+}
 
 template <> 
 template <> 
 bool Frontend<TileK::language_t>::findAssociatedNodes<TileK::language_t::e_construct_kernel>(
   SgLocatedNode * directive_node,
-  Directives::construct_t<TileK::language_t, TileK::language_t::e_construct_kernel> * construct,
-  const std::map<SgLocatedNode *, directive_t *> & translation_map
+  Directives::construct_t<TileK::language_t, TileK::language_t::e_construct_kernel> * construct
 ) {
   SgPragmaDeclaration * pragma_decl = isSgPragmaDeclaration(directive_node);
   assert(pragma_decl != NULL);
@@ -38,8 +52,7 @@ template <>
 template <> 
 bool Frontend<TileK::language_t>::findAssociatedNodes<TileK::language_t::e_construct_loop>(
   SgLocatedNode * directive_node,
-  Directives::construct_t<TileK::language_t, TileK::language_t::e_construct_loop> * construct,
-  const std::map<SgLocatedNode *, directive_t *> & translation_map
+  Directives::construct_t<TileK::language_t, TileK::language_t::e_construct_loop> * construct
 ) {
   SgPragmaDeclaration * pragma_decl = isSgPragmaDeclaration(directive_node);
   assert(pragma_decl != NULL);
@@ -52,94 +65,162 @@ bool Frontend<TileK::language_t>::findAssociatedNodes<TileK::language_t::e_const
   return true;
 }
 
+bool parse_enum_mode(enum mode_e & mode) {
+  if (!Parser::consume("mode")) return false;
+  Parser::skip_whitespace();
+  if (!Parser::consume(':')) return false;
+  Parser::skip_whitespace();
+  if (Parser::consume("rw"))
+    mode = e_read_write;
+  else if (Parser::consume("r"))
+    mode = e_read_mode;
+  else if (Parser::consume("w"))
+    mode = e_write_mode;
+  else {
+    std::cerr << "[Error] (parse_enum_mode) Unknown read/write mode!" << std::endl;
+    assert(false);
+  }
+  return true;
+}
+
+bool parse_enum_liveness(enum liveness_e & live) {
+  if (!Parser::consume("live")) return false;
+  Parser::skip_whitespace();
+  if (!Parser::consume(':')) return false;
+  Parser::skip_whitespace();
+  if (Parser::consume("not"))
+    live = e_live_not;
+  else if (Parser::consume("inout"))
+    live = e_live_inout;
+  else if (Parser::consume("in"))
+    live = e_live_in;
+  else if (Parser::consume("out"))
+    live = e_live_out;
+  else {
+    std::cerr << "[Error] (parse_enum_liveness) Unknown liveness!" << std::endl;
+    assert(false);
+  }
+  return true;
+}
+
+bool parse_device_id(SgExpression * & id) {
+  if (!Parser::consume("device")) return false;
+  Parser::skip_whitespace();
+  if (!Parser::consume(':')) return false;
+  Parser::skip_whitespace();
+  if (!Parser::parse<SgExpression *>(id)) {
+    std::cerr << "[Error] (parse_device_id) Expect a constant positive integer!" << std::endl;
+    assert(false);
+  }
+  return true;
+}
+
+template <>
+template <>
+bool Frontend<TileK::language_t>::parseClauseParameters<TileK::language_t::e_clause_alloc>(
+  Directives::clause_t<TileK::language_t, TileK::language_t::e_clause_alloc> * clause
+) {
+  if (!Parser::consume('(')) return false;
+  Parser::skip_whitespace();
+  if (!Parser::parse(clause->parameters.data_section)) return false;
+  Parser::skip_whitespace();
+  clause->parameters.mode = e_mode_unknown;
+  clause->parameters.liveness = e_live_unknown;
+  clause->parameters.device_id = NULL;
+  while (Parser::consume(',')) {
+    Parser::skip_whitespace();
+    if (!parse_enum_mode    (clause->parameters.mode)      &&
+        !parse_enum_liveness(clause->parameters.liveness)  &&
+        !parse_device_id    (clause->parameters.device_id)
+    ) return false;
+    Parser::skip_whitespace();
+  }
+  if (!Parser::consume(')')) return false;
+  
+  return true;
+}
+
 template <>
 template <>
 bool Frontend<TileK::language_t>::parseClauseParameters<TileK::language_t::e_clause_data>(
-  std::string & directive_str,
-  SgLocatedNode * directive_node,
   Directives::clause_t<TileK::language_t, TileK::language_t::e_clause_data> * clause
 ) {
-  DLX::Frontend::Parser parser(directive_str, directive_node);
-
-  if (!parser.parse_list(clause->parameters.data_sections, '(', ')', ',')) return false;
-
-  directive_str = parser.getDirectiveString(); return true;
+  if (!Parser::consume('(')) return false;
+  Parser::skip_whitespace();
+  if (!Parser::parse(clause->parameters.data_section)) return false;
+  Parser::skip_whitespace();
+  clause->parameters.mode = e_mode_unknown;
+  clause->parameters.liveness = e_live_unknown;
+  while (Parser::consume(',')) {
+    Parser::skip_whitespace();
+    if (!parse_enum_mode    (clause->parameters.mode)     &&
+        !parse_enum_liveness(clause->parameters.liveness)
+    ) return false;
+    Parser::skip_whitespace();
+  }
+  if (!Parser::consume(')')) return false;
+  
+  return true;
 }
 
 template <>
 template <>
 bool Frontend<TileK::language_t>::parseClauseParameters<TileK::language_t::e_clause_tile>(
-  std::string & directive_str,
-  SgLocatedNode * directive_node,
   Directives::clause_t<TileK::language_t, TileK::language_t::e_clause_tile> * clause
 ) {
-  DLX::Frontend::Parser parser(directive_str, directive_node);
-  if (parser.consume('[')) {
-    parser.skip_whitespace();
-    if (!parser.parse<size_t>(clause->parameters.order)) return false;
-    parser.skip_whitespace();
-    if (!parser.consume(']')) return false;
-  }
-  else clause->parameters.order = -1;
+  if (!Parser::one<size_t>(clause->parameters.order, '[', ']'))
+    clause->parameters.order = 0;
 
-  if (!parser.consume('(')) return false;
-  parser.skip_whitespace();
-  if (parser.consume("dynamic")) {
+  if (!Parser::consume('(')) return false;
+  Parser::skip_whitespace();
+  if (Parser::consume("dynamic")) {
     clause->parameters.kind = Directives::generic_clause_t<TileK::language_t>::parameters_t<TileK::language_t::e_clause_tile>::e_dynamic_tile;
     clause->parameters.param = NULL;
   }
-  else if (parser.consume("static")) {
+  else if (Parser::consume("static")) {
     clause->parameters.kind = Directives::generic_clause_t<TileK::language_t>::parameters_t<TileK::language_t::e_clause_tile>::e_static_tile;
-    parser.skip_whitespace();
-    if (!parser.consume(',')) return false;
-    parser.skip_whitespace();
-    if (!parser.parse<SgExpression *>(clause->parameters.param)) return false;
+    Parser::skip_whitespace();
+    if (!Parser::consume(',')) return false;
+    Parser::skip_whitespace();
+    if (!Parser::parse<SgExpression *>(clause->parameters.param)) return false;
   }
 #ifdef TILEK_THREADS
-  else if (parser.consume("thread")) {
+  else if (Parser::consume("thread")) {
     clause->parameters.kind = Directives::generic_clause_t<TileK::language_t>::parameters_t<TileK::language_t::e_clause_tile>::e_thread_tile;
     clause->parameters.param = NULL;
   }
 #endif
 #ifdef TILEK_ACCELERATOR
-  else if (parser.consume("gang")) {
+  else if (Parser::consume("gang")) {
     clause->parameters.kind = Directives::generic_clause_t<TileK::language_t>::parameters_t<TileK::language_t::e_clause_tile>::e_gang_tile;
-    parser.skip_whitespace();
-    if (!parser.consume(',')) return false;
-    parser.skip_whitespace();
-    if (!parser.parse<SgExpression *>(clause->parameters.param)) return false;
+    Parser::skip_whitespace();
+    if (!Parser::consume(',')) return false;
+    Parser::skip_whitespace();
+    if (!Parser::parse<SgExpression *>(clause->parameters.param)) return false;
   }
-  else if (parser.consume("worker")) {
+  else if (Parser::consume("worker")) {
     clause->parameters.kind = Directives::generic_clause_t<TileK::language_t>::parameters_t<TileK::language_t::e_clause_tile>::e_worker_tile;
-    parser.skip_whitespace();
-    if (!parser.consume(',')) return false;
-    parser.skip_whitespace();
-    if (!parser.parse<SgExpression *>(clause->parameters.param)) return false;
+    Parser::skip_whitespace();
+    if (!Parser::consume(',')) return false;
+    Parser::skip_whitespace();
+    if (!Parser::parse<SgExpression *>(clause->parameters.param)) return false;
   }
 #endif
   else return false;
 
-  parser.skip_whitespace();
-  if (!parser.consume(')')) return false;
+  Parser::skip_whitespace();
+  if (!Parser::consume(')')) return false;
 
-  directive_str = parser.getDirectiveString(); return true;
+  return true;
 }
 
 #ifdef TILEK_THREADS
 template <>
 template <>
 bool Frontend<TileK::language_t>::parseClauseParameters<TileK::language_t::e_clause_num_threads>(
-  std::string & directive_str,
-  SgLocatedNode * directive_node,
   Directives::clause_t<TileK::language_t, TileK::language_t::e_clause_num_threads> * clause
 ) {
-  DLX::Frontend::Parser parser(directive_str, directive_node);
-
-  if (!parser.consume('('))                                          return false;
-  if (!parser.parse<SgExpression *>(clause->parameters.num_threads)) return false;
-  if (!parser.consume(')'))                                          return false;
-
-  directive_str = parser.getDirectiveString(); return true;
+  return Parser::one<SgExpression *>(clause->parameters.num_threads, '(', ')');
 }
 #endif
 
@@ -147,49 +228,21 @@ bool Frontend<TileK::language_t>::parseClauseParameters<TileK::language_t::e_cla
 template <>
 template <>
 bool Frontend<TileK::language_t>::parseClauseParameters<TileK::language_t::e_clause_num_gangs>(
-  std::string & directive_str,
-  SgLocatedNode * directive_node,
   Directives::clause_t<TileK::language_t, TileK::language_t::e_clause_num_gangs> * clause
 ) {
-  DLX::Frontend::Parser parser(directive_str, directive_node);
-
-  if (parser.consume('[')) {
-    parser.skip_whitespace();
-    if (!parser.parse<size_t>(clause->parameters.gang_id)) return false;
-    parser.skip_whitespace();
-    if (!parser.consume(']')) return false;
-  }
-  else clause->parameters.gang_id = 1;
-
-  if (!parser.consume('('))                                return false;
-  if (!parser.parse<SgExpression *>(clause->parameters.num_gangs)) return false;
-  if (!parser.consume(')'))                                return false;
-
-  directive_str = parser.getDirectiveString(); return true;
+  if (!Parser::one<size_t>(clause->parameters.gang_id, '[', ']'))
+    clause->parameters.gang_id = 0;
+  return Parser::one<SgExpression *>(clause->parameters.num_gangs, '(', ')');
 }
 
 template <>
 template <>
 bool Frontend<TileK::language_t>::parseClauseParameters<TileK::language_t::e_clause_num_workers>(
-  std::string & directive_str,
-  SgLocatedNode * directive_node,
   Directives::clause_t<TileK::language_t, TileK::language_t::e_clause_num_workers> * clause
 ) {
-  DLX::Frontend::Parser parser(directive_str, directive_node);
-
-  if (parser.consume('[')) {
-    parser.skip_whitespace();
-    if (!parser.parse<size_t>(clause->parameters.worker_id)) return false;
-    parser.skip_whitespace();
-    if (!parser.consume(']')) return false;
-  }
-  else clause->parameters.worker_id = 1;
-
-  if (!parser.consume('('))                                  return false;
-  if (!parser.parse<SgExpression *>(clause->parameters.num_workers)) return false;
-  if (!parser.consume(')'))                                  return false;
-
-  directive_str = parser.getDirectiveString(); return true;
+  if (!Parser::one<size_t>(clause->parameters.worker_id, '[', ']'))
+    clause->parameters.worker_id = 0;
+  return Parser::one<SgExpression *>(clause->parameters.num_workers, '(', ')');
 }
 #endif
 
@@ -341,9 +394,7 @@ void lookup_loop_successors(
 }
 
 template <>
-bool Frontend<TileK::language_t>::build_graph(
-  const std::map<SgLocatedNode *, Directives::directive_t<TileK::language_t> *> & translation_map
-) {
+bool Frontend<TileK::language_t>::build_graph() {
   std::vector<Directives::directive_t<TileK::language_t> *>::const_iterator it_directive;
   for (it_directive = directives.begin(); it_directive != directives.end(); it_directive++) {
     switch ((*it_directive)->construct->kind) {
@@ -377,10 +428,6 @@ bool Frontend<TileK::language_t>::build_graph(
   }
 
   return true;
-}
-
-/** @} */
-
 }
 
 }

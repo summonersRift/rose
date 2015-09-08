@@ -121,7 +121,7 @@ struct klt_allocation_t * klt_get_data(struct klt_data_t * data, size_t device_i
 
 ///
 
-struct iklt_data_map_t * iklt_declare_data(struct klt_data_t * data) {
+struct iklt_data_map_t * klt_declare_data(struct klt_data_t * data) {
   klt_data_environment->num_data++;
   klt_data_environment->allocations = realloc(klt_data_environment->allocations, klt_data_environment->num_data * sizeof(struct iklt_data_map_t));
   assert(klt_data_environment->allocations != NULL);
@@ -138,16 +138,10 @@ struct iklt_data_map_t * iklt_declare_data(struct klt_data_t * data) {
   return data_map;
 }
 
-void klt_declare_data(struct klt_data_t * data) {
-  struct iklt_data_map_t * data_map = iklt_lookup_data(data);
-  if (data_map != NULL) return;
-  iklt_declare_data(data);
-}
-
 void klt_allocate_data(struct klt_data_t * data, size_t device_id) {
   struct iklt_data_map_t * data_map = iklt_lookup_data(data);
   if (data_map == NULL)
-    data_map = iklt_declare_data(data);
+    data_map = klt_declare_data(data);
 
   if (device_id == 0) {
     if (data->ptr == NULL) {

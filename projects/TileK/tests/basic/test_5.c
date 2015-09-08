@@ -34,7 +34,7 @@ void free_array(float ** a) {
 
 void kernel_0(int n, struct point_t * points, const struct operator_t op) {
   int p;
-  #pragma tilek kernel data(points[0:n])
+  #pragma tilek kernel data(points[0:n], mode:rw, live:inout)
   {
     #pragma tilek loop tile[0](dynamic)
     for (p = 0; p < n; p++) {
@@ -51,7 +51,8 @@ void kernel_0(int n, struct point_t * points, const struct operator_t op) {
 
 void kernel_1(int n, int m, struct point_t * points, const struct operator_t * operators) {
   int p, q;
-  #pragma tilek kernel data(points[0:n], operators[0:m])
+  #pragma tilek kernel data(points[0:n], mode:rw, live:inout) \
+                       data(operators[0:m], mode:r, live:in)
   {
     #pragma tilek loop tile[0](dynamic)
     for (p = 0; p < n; p++) {

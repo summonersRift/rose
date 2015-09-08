@@ -1,10 +1,3 @@
-/*!
- * 
- * \file DLX/Core/constructs.hpp
- *
- * \author Tristan Vanderbruggen
- *
- */
 
 #ifndef __DLX_DIRECTIVES_CONSTRUCT_HPP__
 #define __DLX_DIRECTIVES_CONSTRUCT_HPP__
@@ -17,11 +10,6 @@ class SgLocatedNode;
 namespace DLX {
 
 namespace Directives {
-
-/*!
- * \addtogroup grp_dlx_core_directives
- * @{
- */
 
 template <class language_tpl>
 struct directive_t;
@@ -83,8 +71,6 @@ void setConstructLabel(typename language_t::construct_kinds_e construct_kind, co
   else
     it->second = label;
 }
-
-/** @} */
 
 }
 

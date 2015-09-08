@@ -54,7 +54,7 @@ void free_array(float ** a) {
 
 void kernel_0(int n, int m, float ** A, float b) {
   int i, j;
-  #pragma tilek kernel data(A[0:n][0:m]) num_threads(8)
+  #pragma tilek kernel num_threads(8) data(A[0:n][0:m], mode:rw, live:inout)
   {
   #pragma tilek loop tile[0](thread) tile[1](dynamic)
   for (i = 0; i < n; i++)
@@ -66,7 +66,7 @@ void kernel_0(int n, int m, float ** A, float b) {
 
 void kernel_1(int n, int m, float ** A, float b) {
   int i, j;
-  #pragma tilek kernel data(A[0:n][0:m]) num_threads(8)
+  #pragma tilek kernel num_threads(8) data(A[0:n][0:m], mode:rw, live:inout)
   {
   #pragma tilek loop tile[0](dynamic) tile[1](thread)
   for (i = 0; i < n; i++)
@@ -78,7 +78,7 @@ void kernel_1(int n, int m, float ** A, float b) {
 
 void kernel_2(int n, int m, float ** A, float b) {
   int i, j;
-  #pragma tilek kernel data(A[0:n][0:m]) num_threads(8)
+  #pragma tilek kernel num_threads(8) data(A[0:n][0:m], mode:rw, live:inout)
   {
   #pragma tilek loop tile[0](dynamic)
   for (i = 0; i < n; i++)
@@ -90,7 +90,7 @@ void kernel_2(int n, int m, float ** A, float b) {
 
 void kernel_3(int n, int m, float ** A, float b) {
   int i, j;
-  #pragma tilek kernel data(A[0:n][0:m]) num_threads(8)
+  #pragma tilek kernel num_threads(8) data(A[0:n][0:m], mode:rw, live:inout)
   {
   #pragma tilek loop tile[0](dynamic)
   for (i = 0; i < n; i++)

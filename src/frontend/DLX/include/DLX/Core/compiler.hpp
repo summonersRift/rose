@@ -27,7 +27,7 @@ namespace DLX {
 template <class language_tpl>
 class Compiler {
   protected:
-    Frontend::Frontend<language_tpl> frontend;
+    Frontend<language_tpl> frontend;
 
   public:
     Compiler() : frontend() {

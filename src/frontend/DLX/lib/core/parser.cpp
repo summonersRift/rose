@@ -13,69 +13,70 @@
 
 namespace DLX {
 
-namespace Frontend {
-
-/*!
- * \addtogroup grp_dlx_core_frontend
- * @{
- */
-
 inline bool whitespace(const char & c) {
   return (c == ' ');
 }
 
-void skip_whitespace(std::string & directive_str) {
-  while (whitespace(directive_str[0])) directive_str = directive_str.substr(1);
-}
-
-void skip_parenthesis(std::string & directive_str) {
-  assert(directive_str[0] == '(');
-  size_t count = 1;
-  size_t depth = 1;
-  while (depth > 0) {
-    if (directive_str[count] == '(') depth++;
-    else if (directive_str[count] == ')') depth--;
-    count++;
-    assert(count <= directive_str.size());
-  }
-  directive_str = directive_str.substr(count);
-}
-
-bool consume_label(std::string & directive_str, const std::string & label) {
-  skip_whitespace(directive_str);
-
-  if (directive_str.find(label) != 0) return false;
-
-  if ((directive_str.size() > label.size()) && !whitespace(directive_str[label.size()]) && (directive_str[label.size()] != '(') && (directive_str[label.size()] != '[')) return false;
-
-  directive_str = directive_str.substr(label.size());
-
-  skip_whitespace(directive_str);
-
-  return true;
-}
-
-bool Parser::s_singleton = true;
-
-Parser::Parser(std::string & directive_str, SgLocatedNode * directive_node) {
-  assert(s_singleton == true);
-  s_singleton = false;
-
-  AstFromString::c_sgnode = directive_node;
-  AstFromString::c_char = directive_str.c_str();
-}
+Parser::Parser() : cstr(NULL) {}
 
 Parser::~Parser() {
-  assert(s_singleton == false);
-  s_singleton = true;
+  if (cstr != NULL) {
+    AstFromString::c_char = NULL;
+    delete [] cstr;
+    cstr = NULL;
+  }
 }
 
+void Parser::get(std::string & str) {
+  assert(cstr != NULL);
+  assert(AstFromString::c_char != NULL);
 
-void Parser::skip_whitespace() const {
+  str = std::string(AstFromString::c_char);
+
+  AstFromString::c_char = NULL;
+  AstFromString::c_sgnode = NULL;
+  delete [] cstr;
+  cstr = NULL;
+}
+
+void Parser::set(std::string & str, SgNode * node) {
+  if (cstr != NULL) {
+    delete [] cstr;
+    cstr = NULL;
+    AstFromString::c_char = NULL;
+    AstFromString::c_sgnode = NULL;
+  }
+  assert(AstFromString::c_char == NULL);
+
+  cstr = new char [str.length()+1];
+  std::strcpy(cstr, str.c_str());
+
+  AstFromString::c_char = cstr;
+  AstFromString::c_sgnode = node;
+}
+
+/// Parsing
+
+void Parser::skip_whitespace() {
   AstFromString::afs_skip_whitespace();
 }
 
-bool Parser::consume(const char c) const {
+void Parser::skip_parenthesis() {
+  std::string str(AstFromString::c_char);
+
+  assert(str[0] == '(');
+  size_t count = 1;
+  size_t depth = 1;
+  while (depth > 0) {
+    if (str[count] == '(') depth++;
+    else if (str[count] == ')') depth--;
+    count++;
+    assert(count <= str.size());
+  }
+  AstFromString::c_char += count;
+}
+
+bool Parser::consume(const char c) {
   if (c == '\0') return true;
   if (AstFromString::c_char[0] == c) {
     AstFromString::c_char++;
@@ -84,7 +85,7 @@ bool Parser::consume(const char c) const {
   return false;
 }
 
-bool Parser::consume(const std::string & label) const {
+bool Parser::consume(const std::string & label) {
   std::string str(AstFromString::c_char);
   if (str.find(label) == 0) {
     AstFromString::c_char += label.length();
@@ -93,12 +94,8 @@ bool Parser::consume(const std::string & label) const {
   else return false;
 }
 
-std::string Parser::getDirectiveString() const {
-  return std::string(AstFromString::c_char);
-}
-
 template <>
-bool Parser::parse<size_t>(size_t & val) const {
+bool Parser::parse<size_t>(size_t & val) {
   skip_whitespace();
   int val_;
   if (!AstFromString::afs_match_integer_const(&val_)) 
@@ -110,7 +107,7 @@ bool Parser::parse<size_t>(size_t & val) const {
 }
 
 template <>
-bool Parser::parse<SgExpression *>(SgExpression * & expr) const {
+bool Parser::parse<SgExpression *>(SgExpression * & expr) {
   skip_whitespace();
   if (!AstFromString::afs_match_assignment_expression()) // AstFromString::afs_match_expression would match expression list too
      return false;
@@ -121,7 +118,7 @@ bool Parser::parse<SgExpression *>(SgExpression * & expr) const {
 }
 
 template <>
-bool Parser::parse<SgValueExp *>(SgValueExp * & expr) const {
+bool Parser::parse<SgValueExp *>(SgValueExp * & expr) {
   skip_whitespace();
   if (!AstFromString::afs_match_constant())
      return false;
@@ -132,7 +129,7 @@ bool Parser::parse<SgValueExp *>(SgValueExp * & expr) const {
 }
 
 template <>
-bool Parser::parse<std::string>(std::string & str) const {
+bool Parser::parse<std::string>(std::string & str) {
   if (!consume('"')) return false;
 
   const char * old_c_char = AstFromString::c_char;
@@ -151,7 +148,7 @@ bool Parser::parse<std::string>(std::string & str) const {
 }
 
 template <>
-bool Parser::parse<boost::filesystem::path>(boost::filesystem::path & file) const {
+bool Parser::parse<boost::filesystem::path>(boost::filesystem::path & file) {
 
   if (!consume('"')) return false;
 
@@ -171,7 +168,7 @@ bool Parser::parse<boost::filesystem::path>(boost::filesystem::path & file) cons
 }
 
 template <>
-bool Parser::parse<std::pair<SgExpression *, SgExpression *> >(std::pair<SgExpression *, SgExpression *> & pair) const {
+bool Parser::parse<std::pair<SgExpression *, SgExpression *> >(std::pair<SgExpression *, SgExpression *> & pair) {
   skip_whitespace();
   if (!parse<SgExpression *>(pair.first)) return false;
   skip_whitespace();
@@ -182,7 +179,7 @@ bool Parser::parse<std::pair<SgExpression *, SgExpression *> >(std::pair<SgExpre
 }
  
 template <>
-bool Parser::parse<SgVariableSymbol *>(SgVariableSymbol * & var_sym) const {
+bool Parser::parse<SgVariableSymbol *>(SgVariableSymbol * & var_sym) {
   skip_whitespace();
   if (!AstFromString::afs_match_identifier())
     return false;
@@ -197,7 +194,7 @@ bool Parser::parse<SgVariableSymbol *>(SgVariableSymbol * & var_sym) const {
 }
 
 template <>
-bool Parser::parse<int>(int & val) const {
+bool Parser::parse<int>(int & val) {
   skip_whitespace();
   if (!AstFromString::afs_match_integer_const(&val))
     return false;
@@ -207,17 +204,17 @@ bool Parser::parse<int>(int & val) const {
 }
 
 template <>
-bool Parser::parse<data_sections_t>(data_sections_t & data_sections) const {
-  return parse_pair<SgVariableSymbol *, section_list_t>(data_sections, '\0', '\0', '\0');
+bool Parser::parse<data_sections_t>(data_sections_t & data_sections) {
+  return pair<SgVariableSymbol *, section_list_t>(data_sections, '\0', '\0', '\0');
 }
  
 template <>
-bool Parser::parse<section_list_t>(section_list_t & section_list) const {
-  return parse_list<section_t>(section_list, '\0', '\0', '\0');
+bool Parser::parse<section_list_t>(section_list_t & section_list) {
+  return list<section_t>(section_list, '\0', '\0', '\0');
 }
  
 template <>
-bool Parser::parse<section_t>(section_t & section) const {
+bool Parser::parse<section_t>(section_t & section) {
   SgExpression * expr_1 = NULL;
   SgExpression * expr_2 = NULL;
   SgExpression * expr_3 = NULL;
@@ -257,10 +254,6 @@ bool Parser::parse<section_t>(section_t & section) const {
   section.stride = expr_3;
 
   return true;
-}
-
-/** @} */
-
 }
 
 }

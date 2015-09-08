@@ -57,7 +57,7 @@ class Compiler : public ::DLX::Compiler<language_tpl> {
     typedef std::map<SgForStatement *, size_t> loop_id_map_t;
     typedef std::pair<Kernel::kernel_t *, loop_id_map_t> extracted_kernel_t;
 
-    typedef ::DLX::Frontend::data_sections_t data_sections_t;
+    typedef ::DLX::data_sections_t data_sections_t;
     typedef KLT::Descriptor::data_t data_t;
 
     typedef typename language_tpl::directive_t directive_t;
@@ -146,7 +146,7 @@ KLT::Descriptor::data_t * Compiler<language_tpl, generator_tpl>::convertData(dat
   SgVariableSymbol * data_sym = data_section.first;
 
   SgType * base_type = data_sym->get_type();
-  std::vector< ::DLX::Frontend::section_t>::const_iterator it_section;
+  std::vector< ::DLX::section_t>::const_iterator it_section;
   for (it_section = data_section.second.begin(); it_section != data_section.second.end(); it_section++) {
          if (isSgPointerType(base_type)) base_type = ((SgPointerType *)base_type)->get_base_type();
     else if (isSgArrayType  (base_type)) base_type = ((SgArrayType   *)base_type)->get_base_type();
@@ -164,12 +164,8 @@ void Compiler<language_tpl, generator_tpl>::convertDataList(const std::vector<cl
   typename std::vector<typename language_tpl::clause_t *>::const_iterator it_clause;
   for (it_clause = clauses.begin(); it_clause != clauses.end(); it_clause++) {
     typename language_tpl::data_clause_t * data_clause = language_tpl::isDataClause(*it_clause);
-    if (data_clause != NULL) {
-      const std::vector< ::DLX::Frontend::data_sections_t> & data_sections = language_tpl::getDataSections(data_clause);
-      std::vector< ::DLX::Frontend::data_sections_t>::const_iterator it_data_sections;
-      for (it_data_sections = data_sections.begin(); it_data_sections != data_sections.end(); it_data_sections++)
-        data.push_back(convertData(data_clause, *it_data_sections));
-    }
+    if (data_clause != NULL)
+      data.push_back(convertData(data_clause, language_tpl::getDataSection(data_clause)));
   }
 }
 
@@ -446,7 +442,7 @@ void Compiler<language_tpl, generator_tpl>::compile(SgNode * node) {
   std::vector<SgPragmaDeclaration * >::iterator it_pragma_decl;
   for (it_pragma_decl = pragma_decls.begin(); it_pragma_decl != pragma_decls.end(); it_pragma_decl++) {
     std::string directive = (*it_pragma_decl)->get_pragma()->get_pragma();
-    if (::DLX::Frontend::consume_label(directive, language_tpl::language_label))
+    if (directive.find(language_tpl::language_label) == 0)
       SageInterface::removeStatement(*it_pragma_decl);
   }
 }

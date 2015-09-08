@@ -1,10 +1,3 @@
-/*!
- * 
- * \file DLX/Core/clauses.hpp
- *
- * \author Tristan Vanderbruggen
- *
- */
 
 #ifndef __DLX_DIRECTIVES_CLAUSE_HPP__
 #define __DLX_DIRECTIVES_CLAUSE_HPP__
@@ -16,11 +9,6 @@ class SgLocatedNode;
 namespace DLX {
 
 namespace Directives {
-
-/*!
- * \addtogroup grp_dlx_core_directives
- * @{
-*/
 
 template <class language_tpl, int kind_tpl>
 struct clause_t;
@@ -77,8 +65,6 @@ void addClauseLabel(typename language_t::clause_kinds_e clause_kind, const std::
 
   it->second.push_back(label);
 }
-
-/** @} */
 
 }
 

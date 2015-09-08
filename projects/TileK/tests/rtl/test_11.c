@@ -23,9 +23,9 @@ int main() {
     A[i] = i;
 
 #if ORIGINAL == 1
-  #pragma dataenv decl(A[0:n], live:io, mode:rw)
-//#pragma dataenv alloc(A[0:n], live:io, mode:rw, device:1)
-  #pragma kernel data(A[0:n], live:io, mode:rw)
+  #pragma dataenv alloc(A[0:n], mode:rw, live:io)
+//#pragma dataenv alloc(A[0:n], mode:rw, live:io, device:1)
+  #pragma kernel data(A[0:n], mode:rw, live:io)
   #pragma loop tile[0](dynamic)
   for (i = 0; i < n; i++)
     A[i] += b;
@@ -35,7 +35,7 @@ int main() {
   {
     struct klt_data_section_t sections[1] = { { 0, n } };
     struct klt_data_t data = { &A[0], 1, sections,  e_klt_read_write, e_klt_live_inout };
-    klt_declare_data(&data);
+    klt_allocate_data(&data, 0);
   //klt_allocate_data(&data, 1);
   }
   

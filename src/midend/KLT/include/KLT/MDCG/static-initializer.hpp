@@ -21,12 +21,12 @@ struct DataContainer {
 
 /* OUT:
       struct klt_data_container_t {
-        int num_param;
-        int * sizeof_param;
+        size_t num_param;
+        size_t * sizeof_param;
 
-        int num_data;
-        int * sizeof_data;
-        int * ndims_data;
+        size_t num_data;
+        size_t * sizeof_data;
+        size_t * ndims_data;
       };                            */
 
   static size_t cnt[3];

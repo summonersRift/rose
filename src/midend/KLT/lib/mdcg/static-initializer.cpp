@@ -11,6 +11,19 @@ namespace MDCG {
 std::map<  SgVariableSymbol *, size_t> param_ids_map; // Filled by: , Used by: createParamIds
 std::map<Descriptor::data_t *, size_t> data_ids_map;  // Filled by: , Used by: createDataIds
 
+SgType * size_t_type = NULL;
+SgType * get_size_t_type(MFB::Driver<MFB::Sage> & driver) {
+  if (size_t_type == NULL) {
+    SgGlobal * global_scope_across_files = driver.project->get_globalScopeAcrossFiles();
+    assert(global_scope_across_files != NULL);
+    SgTypedefSymbol * size_t_symbol = SageInterface::lookupTypedefSymbolInParentScopes("size_t", global_scope_across_files);
+    assert(size_t_symbol != NULL);
+    size_t_type = isSgType(size_t_symbol->get_type());
+    assert(size_t_type != NULL);
+  }
+  return size_t_type;
+}
+
 void registerParamAndDataIds(const Kernel::kernel_t & original) {
   std::vector<SgVariableSymbol *>::const_iterator it_vsym;
   for (it_vsym = original.parameters.begin(); it_vsym != original.parameters.end(); it_vsym++)
@@ -25,16 +38,16 @@ void clearParamAndDataIds() {
   data_ids_map.clear();
 }
 
-std::pair<SgVarRefExp *, SgExprListExp *> createIntArray(MFB::Driver<MFB::Sage> & driver, const std::string & decl_name, size_t file_id, size_t size) {
+std::pair<SgVarRefExp *, SgExprListExp *> createScalarArray(SgType * scalar_type, MFB::Driver<MFB::Sage> & driver, const std::string & decl_name, size_t file_id, size_t size) {
   SgExprListExp * expr_list = SageBuilder::buildExprListExp();
   SgInitializer * init = SageBuilder::buildAggregateInitializer(expr_list);
-  SgType * type = SageBuilder::buildArrayType(SageBuilder::buildIntType(), SageBuilder::buildUnsignedLongVal(size));
+  SgType * type = SageBuilder::buildArrayType(scalar_type, SageBuilder::buildUnsignedLongVal(size));
   SgVarRefExp * var_ref = SageBuilder::buildVarRefExp(::MDCG::Tools::StaticInitializer::instantiateDeclaration(driver, decl_name, file_id, type, init));
   return std::pair<SgVarRefExp *, SgExprListExp *>(var_ref, expr_list);
 }
 
 SgExpression * createParamSizeOf(MFB::Driver<MFB::Sage> & driver, const std::string & decl_name, size_t file_id, const std::vector<SgVariableSymbol *> & parameters) {
-  std::pair<SgVarRefExp *, SgExprListExp *> res = createIntArray(driver, decl_name, file_id, parameters.size());
+  std::pair<SgVarRefExp *, SgExprListExp *> res = createScalarArray(get_size_t_type(driver), driver, decl_name, file_id, parameters.size());
 
   std::vector<SgVariableSymbol *>::const_iterator it;
   for (it = parameters.begin(); it != parameters.end(); it++) {
@@ -46,7 +59,7 @@ SgExpression * createParamSizeOf(MFB::Driver<MFB::Sage> & driver, const std::str
 }
 
 SgExpression * createDataSizeOf(MFB::Driver<MFB::Sage> & driver, const std::string & decl_name, size_t file_id, const std::vector<Descriptor::data_t *> & data) {
-  std::pair<SgVarRefExp *, SgExprListExp *> res = createIntArray(driver, decl_name, file_id, data.size());
+  std::pair<SgVarRefExp *, SgExprListExp *> res = createScalarArray(get_size_t_type(driver), driver, decl_name, file_id, data.size());
 
   std::vector<Descriptor::data_t *>::const_iterator it;
   for (it = data.begin(); it != data.end(); it++) {
@@ -58,7 +71,7 @@ SgExpression * createDataSizeOf(MFB::Driver<MFB::Sage> & driver, const std::stri
 }
 
 SgExpression * createDataNDims(MFB::Driver<MFB::Sage> & driver, const std::string & decl_name, size_t file_id, const std::vector<Descriptor::data_t *> & data) {
-  std::pair<SgVarRefExp *, SgExprListExp *> res = createIntArray(driver, decl_name, file_id, data.size());
+  std::pair<SgVarRefExp *, SgExprListExp *> res = createScalarArray(get_size_t_type(driver), driver, decl_name, file_id, data.size());
 
   std::vector<Descriptor::data_t *>::const_iterator it;
   for (it = data.begin(); it != data.end(); it++)
@@ -68,7 +81,7 @@ SgExpression * createDataNDims(MFB::Driver<MFB::Sage> & driver, const std::strin
 }
 
 SgExpression * createParamIds(MFB::Driver<MFB::Sage> & driver, const std::string & decl_name, size_t file_id, const std::vector<SgVariableSymbol *> & parameters) {
-  std::pair<SgVarRefExp *, SgExprListExp *> res = createIntArray(driver, decl_name, file_id, parameters.size());
+  std::pair<SgVarRefExp *, SgExprListExp *> res = createScalarArray(SageBuilder::buildIntType(), driver, decl_name, file_id, parameters.size());
 
   std::vector<SgVariableSymbol *>::const_iterator it;
   for (it = parameters.begin(); it != parameters.end(); it++) {
@@ -81,7 +94,7 @@ SgExpression * createParamIds(MFB::Driver<MFB::Sage> & driver, const std::string
 }
 
 SgExpression * createDataIds(MFB::Driver<MFB::Sage> & driver, const std::string & decl_name, size_t file_id, const std::vector<Descriptor::data_t *> & data) {
-  std::pair<SgVarRefExp *, SgExprListExp *> res = createIntArray(driver, decl_name, file_id, data.size());
+  std::pair<SgVarRefExp *, SgExprListExp *> res = createScalarArray(SageBuilder::buildIntType(), driver, decl_name, file_id, data.size());
 
   std::vector<Descriptor::data_t *>::const_iterator it;
   for (it = data.begin(); it != data.end(); it++) {
@@ -94,7 +107,7 @@ SgExpression * createDataIds(MFB::Driver<MFB::Sage> & driver, const std::string 
 }
 
 SgExpression * createLoopIds(MFB::Driver<MFB::Sage> & driver, const std::string & decl_name, size_t file_id, const std::vector<Descriptor::loop_t *> & loops) {
-  std::pair<SgVarRefExp *, SgExprListExp *> res = createIntArray(driver, decl_name, file_id, loops.size());
+  std::pair<SgVarRefExp *, SgExprListExp *> res = createScalarArray(SageBuilder::buildIntType(), driver, decl_name, file_id, loops.size());
 
   std::vector<Descriptor::loop_t *>::const_iterator it;
   for (it = loops.begin(); it != loops.end(); it++)
@@ -104,7 +117,7 @@ SgExpression * createLoopIds(MFB::Driver<MFB::Sage> & driver, const std::string 
 }
 
 SgExpression * createDepsIds(MFB::Driver<MFB::Sage> & driver, const std::string & decl_name, size_t file_id, const std::vector<Descriptor::kernel_t *> & deps) {
-  std::pair<SgVarRefExp *, SgExprListExp *> res = createIntArray(driver, decl_name, file_id, deps.size());
+  std::pair<SgVarRefExp *, SgExprListExp *> res = createScalarArray(SageBuilder::buildIntType(), driver, decl_name, file_id, deps.size());
 
   std::vector<Descriptor::kernel_t *>::const_iterator it;
   for (it = deps.begin(); it != deps.end(); it++)
@@ -124,25 +137,25 @@ SgExpression * DataContainer::createFieldInitializer(
 ) {
   switch (field_id) {
     case 0:
-    { // int num_param;
+    { // size_t num_param;
       return SageBuilder::buildIntVal(input.parameters.size());
     }
     case 1:
-    { // int * sizeof_param;
+    { // size_t * sizeof_param;
       std::ostringstream decl_name; decl_name << "sizeof_param_" << cnt[0]++;
       return createParamSizeOf(driver, decl_name.str(), file_id, input.parameters);
     }
     case 2:
-    { // int num_data;
+    { // size_t num_data;
       return SageBuilder::buildIntVal(input.data.size());
     }
     case 3:
-    { // int * sizeof_data;
+    { // size_t * sizeof_data;
       std::ostringstream decl_name; decl_name << "sizeof_data_" << cnt[1]++;
       return createDataSizeOf(driver, decl_name.str(), file_id, input.data);
     }
     case 4:
-    { // int * ndims_data;
+    { // size_t * ndims_data;
       std::ostringstream decl_name; decl_name << "ndims_data_" << cnt[2]++;
       return createDataNDims(driver, decl_name.str(), file_id, input.data);
     }

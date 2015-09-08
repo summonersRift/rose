@@ -3,7 +3,8 @@
 
 void kernel_0(int n, int m, int t, float *** A, float *** B, float alpha, float beta) {
   int i, j, k;
-  #pragma tilek kernel data(A[0:n][0:m][0:t], B[0:n][0:m][0:t])
+  #pragma tilek kernel data(A[0:n][0:m][0:t], mode:r, live:in) \
+                       data(B[0:n][0:m][0:t], mode:w, live:out)
   {
   #pragma tilek loop tile[0](dynamic)
   for (i = 0; i < n; i++)
@@ -17,7 +18,8 @@ void kernel_0(int n, int m, int t, float *** A, float *** B, float alpha, float 
 
 void kernel_1(int n, int m, int t, float *** A, float *** B, float alpha, float beta) {
   int i, j, k;
-  #pragma tilek kernel data(A[0:n][0:m][0:t], B[0:n][0:m][0:t])
+  #pragma tilek kernel data(A[0:n][0:m][0:t], mode:r, live:in) \
+                       data(B[0:n][0:m][0:t], mode:w, live:out)
   {
   #pragma tilek loop tile[2](dynamic)
   for (i = 0; i < n; i++)
@@ -31,7 +33,8 @@ void kernel_1(int n, int m, int t, float *** A, float *** B, float alpha, float 
 
 void kernel_2(int n, int m, int t, float *** A, float *** B, float alpha, float beta) {
   int i, j, k;
-  #pragma tilek kernel data(A[0:n][0:m][0:t], B[0:n][0:m][0:t])
+  #pragma tilek kernel data(A[0:n][0:m][0:t], mode:r, live:in) \
+                       data(B[0:n][0:m][0:t], mode:w, live:out)
   {
   #pragma tilek loop tile[1](dynamic)
   for (i = 0; i < n; i++)
@@ -45,7 +48,8 @@ void kernel_2(int n, int m, int t, float *** A, float *** B, float alpha, float 
 
 void kernel_3(int n, int m, int t, float *** A, float *** B, float alpha, float beta) {
   int i, j, k;
-  #pragma tilek kernel data(A[0:n][0:m][0:t], B[0:n][0:m][0:t])
+  #pragma tilek kernel data(A[0:n][0:m][0:t], mode:r, live:in) \
+                       data(B[0:n][0:m][0:t], mode:w, live:out)
   {
   #pragma tilek loop tile[0](dynamic)
   for (i = 0; i < n; i++)

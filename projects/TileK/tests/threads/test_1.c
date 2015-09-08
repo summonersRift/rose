@@ -23,7 +23,7 @@ void print_vector(int n_0, int n_1, float * v) {
 
 void kernel_0(int n, float * v, float b) {
   int i;
-  #pragma tilek kernel data(v[0:n]) num_threads(4)
+  #pragma tilek kernel num_threads(4) data(v[0:n], mode:rw, live:inout)
   {
   #pragma tilek loop tile(thread) tile[1](dynamic)
   for (i = 0; i < n; i++)

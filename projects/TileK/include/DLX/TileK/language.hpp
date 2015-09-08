@@ -26,6 +26,7 @@ struct language_t {
 
     // Kind of constructs
     enum construct_kinds_e {
+      e_construct_dataenv,
       e_construct_kernel,
       e_construct_loop,
       e_construct_last
@@ -33,6 +34,7 @@ struct language_t {
 
     // Kind of clauses
     enum clause_kinds_e {
+      e_clause_alloc,
       e_clause_data,
       e_clause_tile,
 #ifdef TILEK_THREADS
@@ -71,15 +73,11 @@ struct language_t {
 
   // KLT Interface
 
-//  typedef std::true_type has_klt_support;
-
     typedef Directives::directive_t<language_t> directive_t;
     typedef Directives::generic_construct_t<language_t> construct_t;
     typedef Directives::generic_clause_t<language_t> clause_t;
 
     // Kernel support
-
-//    typedef std::true_type has_klt_kernel;
 
       typedef Directives::construct_t<language_t, e_construct_kernel> kernel_construct_t;
       static kernel_construct_t * isKernelConstruct(construct_t * construct);
@@ -87,15 +85,11 @@ struct language_t {
 
     // Loop support
 
-//    typedef std::true_type has_klt_loop;
-
       typedef Directives::construct_t<language_t, e_construct_loop> loop_construct_t;
       static loop_construct_t * isLoopConstruct(construct_t * construct);
       static SgForStatement * getLoopStatement(loop_construct_t * loop_construct);
 
     // Tile support
-
-//    typedef std::true_type has_klt_tile;
 
       typedef Directives::clause_t<language_t, e_clause_tile> tile_clause_t;
       static tile_clause_t * isTileClause(clause_t * clause);
@@ -104,18 +98,14 @@ struct language_t {
 
     // Data support
 
-//    typedef std::true_type has_klt_data;
-
       typedef Directives::clause_t<language_t, e_clause_data> data_clause_t;
       static data_clause_t * isDataClause(clause_t * clause);
-      static const std::vector<DLX::Frontend::data_sections_t> & getDataSections(data_clause_t * data_clause);
+      static const DLX::data_sections_t & getDataSection(data_clause_t * data_clause);
 
   // TileK Interface
 
 #ifdef TILEK_THREADS
     // Thread support
-
-//    typedef std::true_type has_tilek_thread;
 
       typedef Directives::clause_t<language_t, e_clause_num_threads> num_threads_clause_t;
       static num_threads_clause_t * isNumThreadsClause(clause_t * clause);
@@ -123,8 +113,6 @@ struct language_t {
 
 #ifdef TILEK_ACCELERATOR
     // Accelerator support
-
-//    typedef std::true_type has_tilek_acc;
 
       typedef Directives::clause_t<language_t, e_clause_num_gangs> num_gangs_clause_t;
       static num_gangs_clause_t * isNumGangsClause(clause_t * clause);
@@ -139,6 +127,21 @@ struct language_t {
 
 }
 
+enum mode_e {
+  e_mode_unknown = 0,
+  e_read_mode,
+  e_write_mode,
+  e_read_write
+};
+
+enum liveness_e {
+  e_live_unknown = 0,
+  e_live_not,
+  e_live_in,
+  e_live_out,
+  e_live_inout
+};
+
 namespace Directives {
 
 template <>
@@ -146,15 +149,15 @@ generic_construct_t<TileK::language_t> * buildConstruct<TileK::language_t>(TileK
 
 template <>
 generic_clause_t<TileK::language_t> * buildClause<TileK::language_t>(TileK::language_t::clause_kinds_e kind);
- 
-template <>
-bool parseClauseParameters<TileK::language_t>(
-  std::string & directive_str,
-  SgLocatedNode * directive_node,
-  generic_clause_t<TileK::language_t> * clause
-);
 
 //////
+
+template <>
+template <>
+struct generic_construct_t<TileK::language_t>::assoc_nodes_t<TileK::language_t::e_construct_dataenv> {
+  SgScopeStatement * parent_scope;
+  SgScopeStatement * dataenv_region;
+};
 
 template <>
 template <>
@@ -174,8 +177,19 @@ struct generic_construct_t<TileK::language_t>::assoc_nodes_t<TileK::language_t::
 
 template <>
 template <>
+struct generic_clause_t<TileK::language_t>::parameters_t<TileK::language_t::e_clause_alloc> {
+  data_sections_t data_section;
+  mode_e mode;
+  liveness_e liveness;
+  SgExpression * device_id;
+};
+
+template <>
+template <>
 struct generic_clause_t<TileK::language_t>::parameters_t<TileK::language_t::e_clause_data> {
-  std::vector<Frontend::data_sections_t> data_sections;
+  data_sections_t data_section;
+  mode_e mode;
+  liveness_e liveness;
 };
 
 template <>
@@ -219,7 +233,6 @@ struct generic_clause_t<TileK::language_t>::parameters_t<TileK::language_t::e_cl
   SgExpression * num_workers;
 };
 #endif
-
 
 }
 

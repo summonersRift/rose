@@ -21,11 +21,13 @@ language_t::directives_relation_label_map_t language_t::s_directives_relation_la
 void language_t::init() {
   language_label = "tilek";
 
+  Directives::setConstructLabel<language_t>(e_construct_dataenv, "dataenv");
   Directives::setConstructLabel<language_t>(e_construct_kernel, "kernel");
   Directives::setConstructLabel<language_t>(e_construct_loop, "loop");
 
   s_blank_construct = e_construct_last;
 
+  Directives::addClauseLabel<language_t>(e_clause_data, "alloc");
   Directives::addClauseLabel<language_t>(e_clause_data, "data");
   Directives::addClauseLabel<language_t>(e_clause_tile, "tile");
 #ifdef TILEK_THREADS
@@ -64,8 +66,8 @@ language_t::tile_clause_t * language_t::isTileClause(clause_t * clause) {
   return clause->kind == language_t::e_clause_tile ? (language_t::tile_clause_t *)clause : NULL;
 }
 
-const std::vector<DLX::Frontend::data_sections_t> & language_t::getDataSections(data_clause_t * data_clause) {
-  return data_clause->parameters.data_sections;
+const DLX::data_sections_t & language_t::getDataSection(data_clause_t * data_clause) {
+  return data_clause->parameters.data_section;
 }
 
 #ifdef TILEK_THREADS

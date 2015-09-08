@@ -36,7 +36,7 @@ void print_array(int n_0, int n_1, int m_0, int m_1, float ** A) {
 
 void kernel_0(int n, int m, float ** A, float b) {
   int i, j;
-  #pragma tilek kernel data(A[0:n][0:m])
+  #pragma tilek kernel data(A[0:n][0:m], mode:rw, live:inout)
   {
   #pragma tilek loop tile[0](dynamic)
   for (i = 0; i < n; i++)

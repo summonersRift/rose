@@ -16,7 +16,6 @@ void klt_pop_data_environment();
 /// Return an allocation of 'data' for the device. Search the data-environments recursively
 struct klt_allocation_t * klt_get_data(struct klt_data_t * data, size_t device_id);
 
-void klt_declare_data(struct klt_data_t * data);
 void klt_allocate_data(struct klt_data_t * data, size_t device_id);
 void klt_release_data(struct klt_data_t * data, size_t device_id);
 

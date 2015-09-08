@@ -56,8 +56,16 @@ int main() {
   float ** E = create_array(n, m);
 
 #if ORIGINAL == 1
-  #pragma dataenv decl(A[0:n][0:p], live:in, mode:r) decl(B[0:p][0:q], live:in, mode:r) decl(C[0:q][0:m], live:in, mode:r) decl(D[0:n][0:q], live:not, mode:rw) decl(E[0:n][0:m], live:out, mode:rw)
-  #pragma tilek kernel data(A[0:n][0:p], live:in, mode:r) data(B[0:p][0:q], live:in, mode:r) data(C[0:q][0:m], live:in, mode:r) data(D[0:n][0:q], live:not, mode:rw) data(E[0:n][0:m], live:out, mode:rw)
+  #pragma dataenv alloc(A[0:n][0:p], mode:r, live:in) \
+                  alloc(B[0:p][0:q], mode:r, live:in) \
+                  alloc(C[0:q][0:m], mode:r, live:in) \
+                  alloc(D[0:n][0:q], mode:rw, live:not) \
+                  alloc(E[0:n][0:m], mode:rw, live:out)
+  #pragma tilek kernel data(A[0:n][0:p], mode:r, live:in) \
+                       data(B[0:p][0:q], mode:r, live:in) \
+                       data(C[0:q][0:m], mode:r, live:in) \
+                       data(D[0:n][0:q], mode:rw, live:not) \
+                       data(E[0:n][0:m], mode:rw, live:out)
   {
     #pragma tilek loop tile[0](dynamic)
     for (i = 0; i < n; i++) {
@@ -88,27 +96,27 @@ int main() {
   {
     struct klt_data_section_t sections[2] = { { 0, n }, { 0, p } };
     struct klt_data_t data = { &A[0][0], 2, sections,  e_klt_read_only, e_klt_live_in };
-    klt_declare_data(&data);
+    klt_allocate_data(&data, 0);
   }
   {
     struct klt_data_section_t sections[2] = { { 0, p }, { 0, q } };
     struct klt_data_t data = { &B[0][0], 2, sections,  e_klt_read_only, e_klt_live_in };
-    klt_declare_data(&data);
+    klt_allocate_data(&data, 0);
   }
   {
     struct klt_data_section_t sections[2] = { { 0, q }, { 0, m } };
     struct klt_data_t data = { &C[0][0], 2, sections,  e_klt_read_only, e_klt_live_in };
-    klt_declare_data(&data);
+    klt_allocate_data(&data, 0);
   }
   {
     struct klt_data_section_t sections[2] = { { 0, n }, { 0, q } };
     struct klt_data_t data = { &D[0][0], 2, sections,  e_klt_read_write, e_klt_live_not };
-    klt_declare_data(&data);
+    klt_allocate_data(&data, 0);
   }
   {
     struct klt_data_section_t sections[2] = { { 0, n }, { 0, m } };
     struct klt_data_t data = { &E[0][0], 2, sections,  e_klt_read_write, e_klt_live_out };
-    klt_declare_data(&data);
+    klt_allocate_data(&data, 0);
   }
 
   {

@@ -1,9 +1,3 @@
-/*!
- * \file DLX/Core/directives.hpp
- *
- * \author Tristan Vanderbruggen
- *
- */
 
 #ifndef __DLX_DIRECTIVES_HPP__
 #define __DLX_DIRECTIVES_HPP__
