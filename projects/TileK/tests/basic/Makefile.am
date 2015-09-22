@@ -19,15 +19,35 @@ ROSE_FLAGS=-DSKIP_ROSE_BUILTIN_DECLARATIONS -I$(TILEK_INC) -DTILEK_BASIC
 C_FLAGS=-O0 -g -I$(TILEK_INC) -DTILEK_BASIC
 LD_FLAGS=-lrt $(TILEK_RTL) $(KLT_RTL)
 
-CHECK_TARGET=check-test_1 check-test_2 check-test_3 check-test_4 check-test_5
-
-check-new-klt: check-new-klt_1 check-new-klt_2 check-new-klt_3 check-new-klt_4 check-new-klt_5
+CHECK_TARGET=check-test_0 #check-test_1 check-test_2 check-test_3 check-test_4 check-test_5 check-test_10 check-test_11
 
 check-local: $(CHECK_TARGET)
 
 clean-local:
 	rm -f rose_*.c *-kernel.c *-static.c *.o test_*
 	rm -f directives_*.dot subkernels_*.dot
+
+#########################################
+
+test_0-kernel.c: rose_test_0.c
+test_0-static.c: rose_test_0.c
+rose_test_0.c: $(srcdir)/test_0.c $(TILEK)
+	$(TILEK) $(ROSE_FLAGS) -c $(srcdir)/test_0.c
+
+rose_test_0.o: rose_test_0.c
+	gcc $(C_FLAGS) -c rose_test_0.c -o rose_test_0.o
+
+test_0-kernel.o: test_0-kernel.c
+	gcc $(C_FLAGS) -c test_0-kernel.c -o test_0-kernel.o
+
+test_0-static.o: test_0-static.c
+	gcc $(C_FLAGS) -c test_0-static.c -o test_0-static.o
+
+test_0: rose_test_0.o test_0-kernel.o test_0-static.o $(TILEK_RTL) $(KLT_RTL)
+	libtool --mode=link gcc rose_test_0.o test_0-kernel.o test_0-static.o $(LD_FLAGS) -o test_0
+
+check-test_0: test_0
+	./test_0
 
 #########################################
 
@@ -138,6 +158,50 @@ test_5: rose_test_5.o test_5-kernel.o test_5-static.o $(TILEK_RTL) $(KLT_RTL)
 
 check-test_5: test_5
 	./test_5
+
+#########################################
+
+test_10-kernel.c: rose_test_10.c
+test_10-static.c: rose_test_10.c
+rose_test_10.c: $(srcdir)/test_10.c $(TILEK)
+	$(TILEK) $(ROSE_FLAGS) -c $(srcdir)/test_10.c
+
+rose_test_10.o: rose_test_10.c
+	gcc $(C_FLAGS) -c rose_test_10.c -o rose_test_10.o
+
+test_10-kernel.o: test_10-kernel.c
+	gcc $(C_FLAGS) -c test_10-kernel.c -o test_10-kernel.o
+
+test_10-static.o: test_10-static.c
+	gcc $(C_FLAGS) -c test_10-static.c -o test_10-static.o
+
+test_10: rose_test_10.o test_10-kernel.o test_10-static.o $(TILEK_RTL) $(KLT_RTL)
+	libtool --mode=link gcc rose_test_10.o test_10-kernel.o test_10-static.o $(LD_FLAGS) -o test_10
+
+check-test_10: test_10
+	./test_10
+
+#########################################
+
+test_11-kernel.c: rose_test_11.c
+test_11-static.c: rose_test_11.c
+rose_test_11.c: $(srcdir)/test_11.c $(TILEK)
+	$(TILEK) $(ROSE_FLAGS) -c $(srcdir)/test_11.c
+
+rose_test_11.o: rose_test_11.c
+	gcc $(C_FLAGS) -c rose_test_11.c -o rose_test_11.o
+
+test_11-kernel.o: test_11-kernel.c
+	gcc $(C_FLAGS) -c test_11-kernel.c -o test_11-kernel.o
+
+test_11-static.o: test_11-static.c
+	gcc $(C_FLAGS) -c test_11-static.c -o test_11-static.o
+
+test_11: rose_test_11.o test_11-kernel.o test_11-static.o $(TILEK_RTL) $(KLT_RTL)
+	libtool --mode=link gcc rose_test_11.o test_11-kernel.o test_11-static.o $(LD_FLAGS) -o test_11
+
+check-test_11: test_11
+	./test_11
 
 #########################################
 #

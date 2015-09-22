@@ -22,6 +22,8 @@ struct klt_data_section_t {
 struct klt_data_t {
   void * ptr;
 
+  size_t base_type_size;
+
   size_t num_sections;
   struct klt_data_section_t * sections;
 

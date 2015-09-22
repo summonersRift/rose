@@ -8,10 +8,6 @@
 
 extern void kernel_k0_v0_0(void **, void **, struct klt_loop_context_t *, struct klt_data_context_t *);
 
-struct klt_subkernel_config_t config_k0_v0_0[1] = {
-  { &kernel_k0_v0_0 }
-};
-
 struct klt_tile_desc_t tile_desc_k0_v0_0_l0[1] = {
   {0, 1, 0}
 };
@@ -26,7 +22,7 @@ int loops_ids_k0_v0_0[1] = {0};
 int  deps_ids_k0_v0_0[0] = {};
 
 struct klt_subkernel_desc_t subkernels_k0_v0[1] = {
-  { {1, 1, loops_k0_v0_0}, 2, param_ids_k0_v0_0, 1, data_ids_k0_v0_0, 1, loops_ids_k0_v0_0, 0, deps_ids_k0_v0_0, config_k0_v0_0}
+  { e_klt_host, {1, 1, loops_k0_v0_0}, 2, param_ids_k0_v0_0, 1, data_ids_k0_v0_0, 1, loops_ids_k0_v0_0, 0, deps_ids_k0_v0_0, &kernel_k0_v0_0}
 };
 
 struct klt_version_selector_t version_selector_k0_v0[1] = {{}};

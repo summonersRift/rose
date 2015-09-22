@@ -1,9 +1,13 @@
-Kernel from Loop Tree
+Kernel from LoopTrees
 =====================
 
-This module uses the [Multiple File Builder (MFB)](../../midend/MFB) to build computation kernel from a description of the loops.
-It is a template library that can be specialized for different input languages, and target languages and runtimes.
-
-[RoseACC](http://github.com/tristanvdb/RoseACC-workspace) implements one specialization of KLT.
-In RoseACC, the input language is OpenACC, the target language is OpenCL C, and the target runtime is libOpenACC (RoseACC own implementation of OpenACC).
+This module generates SPMD kernels from nested loops.
+These kernels are generated to be executed with different SPMD programming models.
+KLT's runtime enables to execute the kernels.
+Sequential versions of the kernel can be executed on the host.
+Parallel kernels are generated for:
+ - a pThread runtime
+ - OpenCL
+ - CUDA
+In addition to executing the kernels, KLT's runtime take care of data movement.
 

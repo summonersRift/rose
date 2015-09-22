@@ -136,6 +136,7 @@ int main() {
     kernel->data[0].sections[1].length = p;
     kernel->data[0].mode = e_klt_read_only;
     kernel->data[0].liveness = e_klt_live_in;
+    klt_allocate_data(&(kernel->data[0]), 0);
 
     kernel->data[1].ptr = &B[0][0];
     kernel->data[1].sections[0].offset = 0;
@@ -144,6 +145,7 @@ int main() {
     kernel->data[1].sections[1].length = q;
     kernel->data[1].mode = e_klt_read_only;
     kernel->data[1].liveness = e_klt_live_in;
+    klt_allocate_data(&(kernel->data[1]), 0);
 
     kernel->data[2].ptr = &C[0][0];
     kernel->data[2].sections[0].offset = 0;
@@ -152,6 +154,7 @@ int main() {
     kernel->data[2].sections[1].length = m;
     kernel->data[2].mode = e_klt_read_only;
     kernel->data[2].liveness = e_klt_live_in;
+    klt_allocate_data(&(kernel->data[2]), 0);
 
     kernel->data[3].ptr = &D[0][0];
     kernel->data[3].sections[0].offset = 0;
@@ -160,6 +163,7 @@ int main() {
     kernel->data[3].sections[1].length = q;
     kernel->data[3].mode = e_klt_read_write;
     kernel->data[3].liveness = e_klt_live_not;
+    klt_allocate_data(&(kernel->data[3]), 0);
 
     kernel->data[4].ptr = &E[0][0];
     kernel->data[4].sections[0].offset = 0;
@@ -168,6 +172,7 @@ int main() {
     kernel->data[4].sections[1].length = m;
     kernel->data[4].mode = e_klt_read_write;
     kernel->data[4].liveness = e_klt_live_out;
+    klt_allocate_data(&(kernel->data[4]), 0);
 
     kernel->loops[0].lower = 0;
     kernel->loops[0].upper = n-1;

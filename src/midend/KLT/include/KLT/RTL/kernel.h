@@ -7,11 +7,20 @@
 #include "KLT/RTL/loop.h"
 #include "KLT/RTL/data.h"
 
-struct klt_subkernel_config_t;
-struct klt_version_selector_t;
-struct klt_user_config_t;
+struct klt_version_selector_t {};
+
+#if KLT_THREADS_ENABLED
+struct klt_threads_workload_t {
+  klt_threads_kernel_func_ptr kernel_func;
+  void ** parameters;
+  void ** data;
+  struct klt_loop_context_t * loop_context;
+  struct klt_data_context_t * data_context;
+};
+#endif
 
 struct klt_subkernel_desc_t {
+  enum klt_device_e device_kind;
   struct klt_loop_container_t loop;
   int num_params;
   int * param_ids;
@@ -21,10 +30,11 @@ struct klt_subkernel_desc_t {
   int * loop_ids;
   int num_deps;
   int * deps_ids;
-  struct klt_subkernel_config_t * config;
+  void * descriptor;
 };
 
 struct klt_version_desc_t {
+  enum klt_device_e device_kind;
   int num_subkernels;
   struct klt_subkernel_desc_t * subkernels;
   struct klt_version_selector_t * version_selector;
@@ -40,12 +50,17 @@ struct klt_kernel_desc_t {
 struct klt_kernel_t {
   struct klt_kernel_desc_t * desc;
 
+  size_t device_id;
+
   void ** param;
   struct klt_data_t * data;
 
   struct klt_loop_t * loops;
 
-  struct klt_user_config_t * config;
+  size_t num_threads;
+
+  size_t num_gangs[3];
+  size_t num_workers[3];
 };
 
 extern struct klt_kernel_desc_t klt_kernel_desc[];

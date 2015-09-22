@@ -25,7 +25,7 @@ bool Frontend<TileK::language_t>::findAssociatedNodes<TileK::language_t::e_const
 
   construct->assoc_nodes.parent_scope = isSgScopeStatement(pragma_decl->get_parent());
   assert(construct->assoc_nodes.parent_scope != NULL);
-  construct->assoc_nodes.dataenv_region = isSgScopeStatement(SageInterface::getNextStatement(pragma_decl));
+  construct->assoc_nodes.dataenv_region = isSgStatement(SageInterface::getNextStatement(pragma_decl));
   assert(construct->assoc_nodes.dataenv_region != NULL);
 
   return true;
@@ -42,7 +42,7 @@ bool Frontend<TileK::language_t>::findAssociatedNodes<TileK::language_t::e_const
 
   construct->assoc_nodes.parent_scope = isSgScopeStatement(pragma_decl->get_parent());
   assert(construct->assoc_nodes.parent_scope != NULL);
-  construct->assoc_nodes.kernel_region = isSgScopeStatement(SageInterface::getNextStatement(pragma_decl));
+  construct->assoc_nodes.kernel_region = isSgStatement(SageInterface::getNextStatement(pragma_decl));
   assert(construct->assoc_nodes.kernel_region != NULL);
 
   return true;
@@ -66,16 +66,17 @@ bool Frontend<TileK::language_t>::findAssociatedNodes<TileK::language_t::e_const
 }
 
 bool parse_enum_mode(enum mode_e & mode) {
+  std::cerr << "[Info] (parse_enum_mode) " << AstFromString::c_char << std::endl;
   if (!Parser::consume("mode")) return false;
   Parser::skip_whitespace();
   if (!Parser::consume(':')) return false;
   Parser::skip_whitespace();
   if (Parser::consume("rw"))
-    mode = e_read_write;
+    mode = e_mode_read_write;
   else if (Parser::consume("r"))
-    mode = e_read_mode;
+    mode = e_mode_read;
   else if (Parser::consume("w"))
-    mode = e_write_mode;
+    mode = e_mode_write;
   else {
     std::cerr << "[Error] (parse_enum_mode) Unknown read/write mode!" << std::endl;
     assert(false);
@@ -84,6 +85,7 @@ bool parse_enum_mode(enum mode_e & mode) {
 }
 
 bool parse_enum_liveness(enum liveness_e & live) {
+  std::cerr << "[Info] (parse_enum_liveness) " << AstFromString::c_char << std::endl;
   if (!Parser::consume("live")) return false;
   Parser::skip_whitespace();
   if (!Parser::consume(':')) return false;
@@ -104,6 +106,7 @@ bool parse_enum_liveness(enum liveness_e & live) {
 }
 
 bool parse_device_id(SgExpression * & id) {
+  std::cerr << "[Info] (parse_device_id) " << AstFromString::c_char << std::endl;
   if (!Parser::consume("device")) return false;
   Parser::skip_whitespace();
   if (!Parser::consume(':')) return false;
@@ -120,6 +123,7 @@ template <>
 bool Frontend<TileK::language_t>::parseClauseParameters<TileK::language_t::e_clause_alloc>(
   Directives::clause_t<TileK::language_t, TileK::language_t::e_clause_alloc> * clause
 ) {
+  std::cerr << "[Info] (Frontend<TileK>::parseClauseParameters<e_clause_alloc>) " << AstFromString::c_char << std::endl;
   if (!Parser::consume('(')) return false;
   Parser::skip_whitespace();
   if (!Parser::parse(clause->parameters.data_section)) return false;
@@ -145,6 +149,7 @@ template <>
 bool Frontend<TileK::language_t>::parseClauseParameters<TileK::language_t::e_clause_data>(
   Directives::clause_t<TileK::language_t, TileK::language_t::e_clause_data> * clause
 ) {
+  std::cerr << "[Info] (Frontend<TileK>::parseClauseParameters<e_clause_data>) " << AstFromString::c_char << std::endl;
   if (!Parser::consume('(')) return false;
   Parser::skip_whitespace();
   if (!Parser::parse(clause->parameters.data_section)) return false;
@@ -398,6 +403,13 @@ bool Frontend<TileK::language_t>::build_graph() {
   std::vector<Directives::directive_t<TileK::language_t> *>::const_iterator it_directive;
   for (it_directive = directives.begin(); it_directive != directives.end(); it_directive++) {
     switch ((*it_directive)->construct->kind) {
+      case TileK::language_t::e_construct_dataenv:
+      {
+        Directives::construct_t<TileK::language_t, TileK::language_t::e_construct_dataenv> * construct =
+                 (Directives::construct_t<TileK::language_t, TileK::language_t::e_construct_dataenv> *)((*it_directive)->construct);
+        lookup_region_successors(construct->assoc_nodes.dataenv_region, *it_directive, translation_map);
+        break;
+      }
       case TileK::language_t::e_construct_kernel:
       {
         Directives::construct_t<TileK::language_t, TileK::language_t::e_construct_kernel> * construct =

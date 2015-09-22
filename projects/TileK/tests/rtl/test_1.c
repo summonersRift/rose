@@ -36,6 +36,9 @@ int main() {
   kernel->data[0].ptr = &A[0];
   kernel->data[0].sections[0].offset = 0;
   kernel->data[0].sections[0].length = n;
+  kernel->data[0].mode = e_klt_read_write;
+  kernel->data[0].liveness = e_klt_live_inout;
+  klt_allocate_data(&(kernel->data[0]), 0);
 
   kernel->loops[0].lower = 0;
   kernel->loops[0].upper = n-1;

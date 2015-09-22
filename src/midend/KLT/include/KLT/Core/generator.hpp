@@ -189,6 +189,9 @@ SgBasicBlock * Generator::instanciateOnHost(typename language_tpl::directive_t *
       SageInterface::appendStatement(host_api->buildDataSectionLengthAssign(kernel_sym, data_cnt, dim_cnt, (*it_section)->length), bb);
       dim_cnt++;
     }
+    SageInterface::appendStatement(host_api->buildDataModeAssign(kernel_sym, data_cnt, SageBuilder::buildIntVal((unsigned long)(*it_data)->mode)), bb);
+    SageInterface::appendStatement(host_api->buildDataLivenessAssign(kernel_sym, data_cnt, SageBuilder::buildIntVal((unsigned long)(*it_data)->liveness)), bb);
+    SageInterface::appendStatement(host_api->buildDataAllocateCall(kernel_sym, data_cnt), bb);
     data_cnt++;
   }
 

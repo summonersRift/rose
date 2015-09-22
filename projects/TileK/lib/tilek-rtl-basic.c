@@ -7,6 +7,7 @@
 #include "KLT/RTL/data.h"
 #include "KLT/RTL/context.h"
 #include "KLT/RTL/memory.h"
+#include "KLT/RTL/data-environment.h"
 
 #include <stdlib.h>
 #include <string.h>
@@ -30,7 +31,11 @@ void klt_user_schedule(
 
   void ** local_data = (void **)malloc(subkernel->num_data * sizeof(void *));
   for (i = 0; i < subkernel->num_data; i++) {
-    local_data[i] = kernel->data[subkernel->data_ids[i]].ptr;
+    struct klt_data_t * data = &(kernel->data[subkernel->data_ids[i]]);
+    assert(data != NULL);
+    struct klt_allocation_t * alloc = klt_get_data(data, 0);
+    assert(alloc != NULL);
+    local_data[i] = alloc->user_descriptor;
   }
 
   (*subkernel->config->kernel_ptr)(local_param, local_data, klt_loop_context, klt_data_context);
@@ -45,4 +50,6 @@ int klt_user_get_tile_length(struct klt_kernel_t * kernel, unsigned long kind, u
 struct klt_allocation_t * klt_user_allocate_data_on_device(struct klt_data_t * data, struct klt_memloc_t * memloc) { assert(0); }
 
 void klt_user_free_data_on_device(struct klt_data_t * data, struct klt_memloc_t * memloc, struct klt_allocation_t * alloc) { assert(0); }
+
+void klt_user_init() { /* NOP */ }
 

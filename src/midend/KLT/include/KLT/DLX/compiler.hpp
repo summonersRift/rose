@@ -57,11 +57,14 @@ class Compiler : public ::DLX::Compiler<language_tpl> {
     typedef std::map<SgForStatement *, size_t> loop_id_map_t;
     typedef std::pair<Kernel::kernel_t *, loop_id_map_t> extracted_kernel_t;
 
+    typedef std::pair<SgScopeStatement *, std::vector<Descriptor::data_t *> > extracted_dataenv_t;
+
     typedef ::DLX::data_sections_t data_sections_t;
     typedef KLT::Descriptor::data_t data_t;
 
     typedef typename language_tpl::directive_t directive_t;
     typedef typename language_tpl::construct_t construct_t;
+    typedef typename language_tpl::dataenv_construct_t dataenv_construct_t;
     typedef typename language_tpl::kernel_construct_t kernel_construct_t;
     typedef typename language_tpl::loop_construct_t loop_construct_t;
     typedef typename language_tpl::clause_t clause_t;
@@ -88,17 +91,19 @@ class Compiler : public ::DLX::Compiler<language_tpl> {
 
   protected: // Extract Data
     // It requires language_tpl to have KLT's data extension ('language_tpl::has_klt_data')
-    Descriptor::data_t * convertData(data_clause_t * data_clause, const data_sections_t & data_section) const;
+    Descriptor::data_t * dataFromSections(const data_sections_t & data_section) const;
   public:
     // It requires language_tpl to have KLT's data extension ('language_tpl::has_klt_data')
-    void convertDataList(const std::vector<clause_t *> & clauses, std::vector<data_t *> & data) const;
+    void convertDataList (const std::vector<clause_t *> & clauses, std::vector<Descriptor::data_t *> & data) const;
+    void convertAllocList(const std::vector<clause_t *> & clauses, std::vector<Descriptor::data_t *> & data) const;
 
   public: // Extract KLT representation
     // It requires language_tpl to have KLT's kernel extension ('language_tpl::has_klt_kernel'), loop extension ('language_tpl::has_klt_loop'), and data extension ('language_tpl::has_klt_data')
-    void extractLoopsAndKernels(
+    void extractDirectives(
       const std::vector<directive_t *> & directives,
       std::map<directive_t *, SgForStatement *> & loop_directive_map,
-      std::map<directive_t *, extracted_kernel_t> & kernel_directives_map
+      std::map<directive_t *, extracted_kernel_t> & kernel_directives_map,
+      std::map<directive_t *, extracted_dataenv_t > & dataenv_directives_map
     ) const;
 
   public: // Tiling
@@ -142,7 +147,7 @@ class Compiler : public ::DLX::Compiler<language_tpl> {
 ////////////////////////////////////////////////// Extract Data
 
 template <class language_tpl, class generator_tpl>
-KLT::Descriptor::data_t * Compiler<language_tpl, generator_tpl>::convertData(data_clause_t * data_clause, const data_sections_t & data_section) const {
+KLT::Descriptor::data_t * Compiler<language_tpl, generator_tpl>::dataFromSections(const data_sections_t & data_section) const {
   SgVariableSymbol * data_sym = data_section.first;
 
   SgType * base_type = data_sym->get_type();
@@ -160,31 +165,59 @@ KLT::Descriptor::data_t * Compiler<language_tpl, generator_tpl>::convertData(dat
 }
 
 template <class language_tpl, class generator_tpl>
-void Compiler<language_tpl, generator_tpl>::convertDataList(const std::vector<clause_t *> & clauses, std::vector<data_t *> & data) const {
+void Compiler<language_tpl, generator_tpl>::convertDataList(const std::vector<clause_t *> & clauses, std::vector<Descriptor::data_t *> & datas) const {
   typename std::vector<typename language_tpl::clause_t *>::const_iterator it_clause;
   for (it_clause = clauses.begin(); it_clause != clauses.end(); it_clause++) {
     typename language_tpl::data_clause_t * data_clause = language_tpl::isDataClause(*it_clause);
-    if (data_clause != NULL)
-      data.push_back(convertData(data_clause, language_tpl::getDataSection(data_clause)));
+    if (data_clause != NULL) {
+      Descriptor::data_t * data = dataFromSections(language_tpl::getDataSection(data_clause));
+      // TODO
+      datas.push_back(data);
+    }
+  }
+}
+
+template <class language_tpl, class generator_tpl>
+void Compiler<language_tpl, generator_tpl>::convertAllocList(const std::vector<clause_t *> & clauses, std::vector<Descriptor::data_t *> & datas) const {
+  typename std::vector<typename language_tpl::clause_t *>::const_iterator it_clause;
+  for (it_clause = clauses.begin(); it_clause != clauses.end(); it_clause++) {
+    typename language_tpl::alloc_clause_t * alloc_clause = language_tpl::isAllocClause(*it_clause);
+    if (alloc_clause != NULL) {
+      Descriptor::data_t * data = dataFromSections(language_tpl::getDataSection(alloc_clause));
+      // TODO
+      datas.push_back(data);
+    }
   }
 }
 
 ////////////////////////////////////////////////// Extract Kernels & Loops
 
 template <class language_tpl, class generator_tpl>
-void Compiler<language_tpl, generator_tpl>::extractLoopsAndKernels(
+void Compiler<language_tpl, generator_tpl>::extractDirectives(
   const std::vector<directive_t *> & directives,
   std::map<directive_t *, SgForStatement *> & loop_directive_map,
-  std::map<directive_t *, extracted_kernel_t> & kernel_directives_map
+  std::map<directive_t *, extracted_kernel_t> & kernel_directives_map,
+  std::map<directive_t *, extracted_dataenv_t > & dataenv_directives_map
 ) const {
   typename std::vector<directive_t *>::const_iterator it_directive;
   for (it_directive = directives.begin(); it_directive != directives.end(); it_directive++) {
     directive_t * directive = *it_directive;
 
+    dataenv_construct_t * dataenv_construct = language_tpl::isDataEnvironmentConstruct(directive->construct);
     kernel_construct_t * kernel_construct = language_tpl::isKernelConstruct(directive->construct);
     loop_construct_t * loop_construct = language_tpl::isLoopConstruct(directive->construct);
 
-    if (kernel_construct != NULL) {
+    if (dataenv_construct != NULL) {
+      std::vector<Descriptor::data_t *> & datas = dataenv_directives_map.insert(
+        std::pair<directive_t *, extracted_dataenv_t>(
+          directive,
+          extracted_dataenv_t(
+            language_tpl::getDataEnvironmentRegion(dataenv_construct),
+            std::vector<Descriptor::data_t *>()
+      ))).first->second.second;
+      convertAllocList(directive->clause_list, datas);
+    }
+    else if (kernel_construct != NULL) {
       // Where to store the result
       extracted_kernel_t & kernel_directive = kernel_directives_map[directive];
       // Associated code region.
@@ -392,13 +425,15 @@ template <class language_tpl, class generator_tpl>
 void Compiler<language_tpl, generator_tpl>::compile(SgNode * node) {
   std::map<directive_t *, SgForStatement *> loop_directive_map;
   std::map<directive_t *, extracted_kernel_t> kernel_directives_map;
+  std::map<directive_t *, extracted_dataenv_t> dataenv_directives_map;
   kernel_directive_translation_map_t kernel_directive_translation_map;
 
   bool parsed = ::DLX::Compiler<language_tpl>::parse(node);
   assert(parsed);
 
   // Extract KLT's representation 
-  extractLoopsAndKernels(::DLX::Compiler<language_tpl>::frontend.directives, loop_directive_map, kernel_directives_map);
+  extractDirectives(::DLX::Compiler<language_tpl>::frontend.directives, loop_directive_map, kernel_directives_map, dataenv_directives_map);
+
   // Apply tiling (and other transformations). Generate multiple versions of each kernel. Each version can be made of multiple subkernels.
   generateAllKernels(loop_directive_map, kernel_directives_map, kernel_directive_translation_map);
 
@@ -411,6 +446,7 @@ void Compiler<language_tpl, generator_tpl>::compile(SgNode * node) {
     out.close();
   }
 #endif
+  // Replace kernel directives by host-code for generated kernel
   for (it_directive = kernel_directive_translation_map.begin(); it_directive != kernel_directive_translation_map.end(); it_directive++) {
     directive_t * directive = it_directive->first;
     const subkernel_result_t & subkernel_result = it_directive->second;
@@ -428,6 +464,8 @@ void Compiler<language_tpl, generator_tpl>::compile(SgNode * node) {
 
     SageInterface::replaceStatement(region, bb);
   }
+
+  // TODO Replace dataenv directives by translation
 
   // Add the description of this kernel to the static data (all subkernels of all versions)
   generator->template addToStaticData<language_tpl, generator_tpl>(kernel_directive_translation_map);

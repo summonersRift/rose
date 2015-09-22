@@ -24,6 +24,7 @@ Generator::Generator(MFB::Driver<MFB::KLT::KLT> & driver_, ::MDCG::Tools::ModelB
 {}
 
 void Generator::loadModel(const std::string & klt_inc_dir, const std::string & usr_inc_dir) {
+  model_builder.add(tilek_model, "data-environment",    klt_inc_dir + "/KLT/RTL", "h");
   model_builder.add(tilek_model, "data",    klt_inc_dir + "/KLT/RTL", "h");
   model_builder.add(tilek_model, "tile",    klt_inc_dir + "/KLT/RTL", "h");
   model_builder.add(tilek_model, "loop",    klt_inc_dir + "/KLT/RTL", "h");

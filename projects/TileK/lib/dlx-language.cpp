@@ -27,7 +27,7 @@ void language_t::init() {
 
   s_blank_construct = e_construct_last;
 
-  Directives::addClauseLabel<language_t>(e_clause_data, "alloc");
+  Directives::addClauseLabel<language_t>(e_clause_alloc, "alloc");
   Directives::addClauseLabel<language_t>(e_clause_data, "data");
   Directives::addClauseLabel<language_t>(e_clause_tile, "tile");
 #ifdef TILEK_THREADS
@@ -42,13 +42,37 @@ void language_t::init() {
   s_directives_relation_labels.insert(std::pair<directives_relation_e, std::string>(e_parent_scope, "parent-scope"));
 }
 
+////
+
+language_t::dataenv_construct_t * language_t::isDataEnvironmentConstruct(construct_t * construct) {
+  return construct->kind == language_t::e_construct_dataenv ? (language_t::dataenv_construct_t *)construct : NULL;
+}
+
+SgScopeStatement * language_t::getDataEnvironmentRegion(dataenv_construct_t * dataenv_construct) {
+  SgStatement * stmt =  dataenv_construct->assoc_nodes.dataenv_region;
+  while (!isSgScopeStatement(stmt)) {
+    assert(isSgPragmaDeclaration(stmt));
+    stmt = SageInterface::getNextStatement(stmt);
+  }
+  return (SgScopeStatement *)stmt;
+}
+
+////
+
 language_t::kernel_construct_t * language_t::isKernelConstruct(construct_t * construct) {
   return construct->kind == language_t::e_construct_kernel ? (language_t::kernel_construct_t *)construct : NULL;
 }
 
 SgScopeStatement * language_t::getKernelRegion(kernel_construct_t * kernel_construct) {
-  return kernel_construct->assoc_nodes.kernel_region;
+  SgStatement * stmt =  kernel_construct->assoc_nodes.kernel_region;
+  while (!isSgScopeStatement(stmt)) {
+    assert(isSgPragmaDeclaration(stmt));
+    stmt = SageInterface::getNextStatement(stmt);
+  }
+  return (SgScopeStatement *)stmt;
 }
+
+////
 
 language_t::loop_construct_t * language_t::isLoopConstruct(construct_t * construct) {
   return construct->kind == language_t::e_construct_loop ? (language_t::loop_construct_t *)construct : NULL;
@@ -58,23 +82,62 @@ SgForStatement * language_t::getLoopStatement(loop_construct_t * loop_construct)
   return loop_construct->assoc_nodes.for_loop;
 }
 
+////
+
 language_t::data_clause_t * language_t::isDataClause(clause_t * clause) {
   return clause->kind == language_t::e_clause_data ? (language_t::data_clause_t *)clause : NULL;
 }
+
+language_t::alloc_clause_t * language_t::isAllocClause(clause_t * clause) {
+  return clause->kind == language_t::e_clause_alloc ? (language_t::alloc_clause_t *)clause : NULL;
+}
+
+const DLX::data_sections_t & language_t::getDataSection(clause_t * clause) {
+  if (isDataClause(clause))
+    return ((data_clause_t *)clause)->parameters.data_section;
+  else if (isAllocClause(clause))
+    return ((alloc_clause_t *)clause)->parameters.data_section;
+  else
+    assert(false);
+}
+
+DLX::mode_e language_t::getMode(clause_t * clause) {
+  if (isDataClause(clause))
+    return ((data_clause_t *)clause)->parameters.mode;
+  else if (isAllocClause(clause))
+    return ((alloc_clause_t *)clause)->parameters.mode;
+  else
+    assert(false);
+}
+
+DLX::liveness_e language_t::getLiveness(clause_t * clause) {
+  if (isDataClause(clause))
+    return ((data_clause_t *)clause)->parameters.liveness;
+  else if (isAllocClause(clause))
+    return ((alloc_clause_t *)clause)->parameters.liveness;
+  else
+    assert(false);
+}
+
+SgExpression * language_t::getDeviceID(alloc_clause_t * alloc_clause) {
+  return alloc_clause->parameters.device_id;
+}
+
+////
 
 language_t::tile_clause_t * language_t::isTileClause(clause_t * clause) {
   return clause->kind == language_t::e_clause_tile ? (language_t::tile_clause_t *)clause : NULL;
 }
 
-const DLX::data_sections_t & language_t::getDataSection(data_clause_t * data_clause) {
-  return data_clause->parameters.data_section;
-}
+////
 
 #ifdef TILEK_THREADS
 language_t::num_threads_clause_t * language_t::isNumThreadsClause(clause_t * clause) {
   return clause->kind == language_t::e_clause_num_threads ? (language_t::num_threads_clause_t *)clause : NULL;
 }
 #endif
+
+////
 
 #ifdef TILEK_ACCELERATOR
 language_t::num_gangs_clause_t * language_t::isNumGangsClause(clause_t * clause) {

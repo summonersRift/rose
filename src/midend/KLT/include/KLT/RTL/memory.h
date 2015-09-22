@@ -17,13 +17,13 @@ struct klt_memloc_t {
 
   size_t size; /// for user (set to 0)
 
-  void * user_descriptor;
+  void * descriptor;
 };
 
 extern size_t klt_memlocs_count;
 extern struct klt_memloc_t ** klt_memlocs;
 
-void iklt_increase_alloc_memlocs();
+size_t iklt_increase_alloc_memlocs();
 
 struct klt_memloc_t * klt_get_memloc_by_id(size_t id);
 
@@ -34,12 +34,8 @@ struct klt_allocation_t {
 
   size_t size; /// for user (set to 0)
 
-  void * user_descriptor;
+  void * descriptor;
 };
-
-/// User-defined
-extern struct klt_allocation_t * klt_user_allocate_data_on_device(struct klt_data_t * data, struct klt_memloc_t * memloc);
-extern void klt_user_free_data_on_device(struct klt_data_t * data, struct klt_memloc_t * memloc, struct klt_allocation_t * alloc);
 
 #endif /* __KLT_RTL_MEMORY_H__ */
 

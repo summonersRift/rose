@@ -1,4 +1,5 @@
 
+#include "KLT/RTL/kernel.h"
 #include "KLT/RTL/context.h"
 #include "KLT/RTL/loop.h"
 #include "KLT/RTL/tile.h"
@@ -10,9 +11,24 @@
 
 #include <assert.h>
 
-struct klt_kernel_t;
-
-extern int klt_user_get_tile_length(struct klt_kernel_t * kernel, unsigned long kind, unsigned long param);
+int iklt_get_tile_length(struct klt_kernel_t * kernel, enum klt_tile_kind_e kind, unsigned long param) {
+  switch (kind) {
+    case e_klt_tile_static:
+      return param;
+    case e_klt_tile_dynamic:
+      assert(0);
+      return 0;
+    case e_klt_tile_thread:
+      return kernel->num_threads;
+    case e_klt_tile_gang:
+      return kernel->num_gangs[param];
+    case e_klt_tile_worker:
+      return kernel->num_workers[param];
+    default:
+      assert(0);
+      return 0;
+  }
+}
 
 void klt_solve_one_loop(struct klt_loop_desc_t * loop_desc, struct klt_loop_context_t * loop_ctx, struct klt_kernel_t * kernel, int loop_it) {
   int loop_idx = loop_desc[loop_it].idx;
@@ -24,10 +40,7 @@ void klt_solve_one_loop(struct klt_loop_desc_t * loop_desc, struct klt_loop_cont
   while (tile_it < loop_desc[loop_it].num_tiles && loop_desc[loop_it].tile_desc[tile_it].kind != e_klt_tile_dynamic) {
     int tile_idx = loop_desc[loop_it].tile_desc[tile_it].idx;
     klt_set_tile_length(loop_ctx, tile_idx, length);
-    if (loop_desc[loop_it].tile_desc[tile_it].kind == e_klt_tile_static)
-      length /= loop_desc[loop_it].tile_desc[tile_it].param;
-    else
-      length /= klt_user_get_tile_length(kernel, loop_desc[loop_it].tile_desc[tile_it].kind, loop_desc[loop_it].tile_desc[tile_it].param);
+    length /= iklt_get_tile_length(kernel, loop_desc[loop_it].tile_desc[tile_it].kind, loop_desc[loop_it].tile_desc[tile_it].param);
     klt_set_tile_stride(loop_ctx, tile_idx, length);
     tile_it++;
   }
@@ -36,10 +49,7 @@ void klt_solve_one_loop(struct klt_loop_desc_t * loop_desc, struct klt_loop_cont
   while (tile_it >= 0 && loop_desc[loop_it].tile_desc[tile_it].kind != e_klt_tile_dynamic) {
     int tile_idx = loop_desc[loop_it].tile_desc[tile_it].idx;
     klt_set_tile_stride(loop_ctx, tile_idx, stride);
-    if (loop_desc[loop_it].tile_desc[tile_it].kind == e_klt_tile_static)
-      stride *= loop_desc[loop_it].tile_desc[tile_it].param;
-    else
-      stride *= klt_user_get_tile_length(kernel, loop_desc[loop_it].tile_desc[tile_it].kind, loop_desc[loop_it].tile_desc[tile_it].param);
+    stride *= iklt_get_tile_length(kernel, loop_desc[loop_it].tile_desc[tile_it].kind, loop_desc[loop_it].tile_desc[tile_it].param);
     klt_set_tile_length(loop_ctx, tile_idx, stride);
     tile_it--;
   }
@@ -78,7 +88,7 @@ struct klt_loop_context_t * klt_build_loop_context(struct klt_loop_container_t *
     memcpy(&(loops[i]), &(loops_[loop_container->loop_desc[i].idx]), sizeof(struct klt_loop_t));
 //  loops[i] = loops_[loop_container->loop_desc[i].idx];
 
-  int size = sizeof(struct klt_loop_context_t) + loop_container->num_loops * sizeof(struct klt_loop_t) + loop_container->num_tiles * sizeof(struct klt_tile_t);
+  size_t size = sizeof(struct klt_loop_context_t) + loop_container->num_loops * sizeof(struct klt_loop_t) + loop_container->num_tiles * sizeof(struct klt_tile_t);
   struct klt_loop_context_t * loop_ctx = malloc(size);
 
   memset(loop_ctx, 0, size);
@@ -96,7 +106,20 @@ struct klt_loop_context_t * klt_build_loop_context(struct klt_loop_container_t *
   return loop_ctx;
 }
 
+struct klt_loop_context_t * klt_copy_loop_context(struct klt_loop_context_t * loop_context) {
+  size_t size = sizeof(struct klt_loop_context_t) + loop_context->num_loops * sizeof(struct klt_loop_t) + loop_context->num_tiles * sizeof(struct klt_tile_t);
+  struct klt_loop_context_t * res = malloc(size);
+  memcpy(res, loop_context, size);
+  return res;
+}
+
 struct klt_data_context_t * klt_build_data_context() {
   return malloc(sizeof(struct klt_data_context_t));
+}
+
+struct klt_data_context_t * klt_copy_data_context(struct klt_data_context_t * data_context) {
+  struct klt_data_context_t * res = malloc(sizeof(struct klt_data_context_t));
+  memcpy(res, data_context, sizeof(struct klt_data_context_t));
+  return res;
 }
 

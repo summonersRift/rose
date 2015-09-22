@@ -19,6 +19,21 @@ class SgExpression;
 
 namespace DLX {
 
+enum mode_e {
+  e_mode_unknown = 0,
+  e_mode_read,
+  e_mode_write,
+  e_mode_read_write
+};
+
+enum liveness_e {
+  e_live_unknown = 0,
+  e_live_not,
+  e_live_in,
+  e_live_out,
+  e_live_inout
+};
+
 namespace TileK {
 
 struct language_t {
@@ -77,6 +92,12 @@ struct language_t {
     typedef Directives::generic_construct_t<language_t> construct_t;
     typedef Directives::generic_clause_t<language_t> clause_t;
 
+    // Data Environment support
+
+      typedef Directives::construct_t<language_t, e_construct_dataenv> dataenv_construct_t;
+      static dataenv_construct_t * isDataEnvironmentConstruct(construct_t * construct);
+      static SgScopeStatement * getDataEnvironmentRegion(dataenv_construct_t * dataenv_construct);
+
     // Kernel support
 
       typedef Directives::construct_t<language_t, e_construct_kernel> kernel_construct_t;
@@ -96,11 +117,19 @@ struct language_t {
       typedef clause_t::parameters_t<e_clause_tile> tile_parameter_t;
 //    static tile_parameter_t * getTileParameter(tile_clause_t * clause);
 
-    // Data support
+    // Data/Alloc support
 
       typedef Directives::clause_t<language_t, e_clause_data> data_clause_t;
       static data_clause_t * isDataClause(clause_t * clause);
-      static const DLX::data_sections_t & getDataSection(data_clause_t * data_clause);
+
+      typedef Directives::clause_t<language_t, e_clause_alloc> alloc_clause_t;
+      static alloc_clause_t * isAllocClause(clause_t * clause);
+
+      static const DLX::data_sections_t & getDataSection(clause_t * clause);
+      static DLX::mode_e getMode(clause_t * clause);
+      static DLX::liveness_e getLiveness(clause_t * clause);
+
+      static SgExpression * getDeviceID(alloc_clause_t * alloc_clause);
 
   // TileK Interface
 
@@ -127,21 +156,6 @@ struct language_t {
 
 }
 
-enum mode_e {
-  e_mode_unknown = 0,
-  e_read_mode,
-  e_write_mode,
-  e_read_write
-};
-
-enum liveness_e {
-  e_live_unknown = 0,
-  e_live_not,
-  e_live_in,
-  e_live_out,
-  e_live_inout
-};
-
 namespace Directives {
 
 template <>
@@ -156,14 +170,14 @@ template <>
 template <>
 struct generic_construct_t<TileK::language_t>::assoc_nodes_t<TileK::language_t::e_construct_dataenv> {
   SgScopeStatement * parent_scope;
-  SgScopeStatement * dataenv_region;
+  SgStatement * dataenv_region;
 };
 
 template <>
 template <>
 struct generic_construct_t<TileK::language_t>::assoc_nodes_t<TileK::language_t::e_construct_kernel> {
   SgScopeStatement * parent_scope;
-  SgScopeStatement * kernel_region;
+  SgStatement * kernel_region;
 };
 
 template <>

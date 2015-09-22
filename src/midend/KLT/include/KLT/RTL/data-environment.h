@@ -7,7 +7,7 @@
 struct klt_allocation_t;
 struct klt_data_t;
 
-/// Create a new data-environment and stack it on top of the existing ones. Return a pointer to this new data-environment's data
+/// Create a new data-environment and stack it on top of the existing ones
 void klt_push_data_environment();
 
 /// Clear the current data-environment and pop it out of the stack

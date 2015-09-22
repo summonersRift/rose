@@ -99,6 +99,8 @@ void host_t::load(const MDCG::Model::model_t & model) {
     res = api_t::load(class_   , data_class          , model, "klt_data_t"        , NULL);   assert(res == true);
       res = api_t::load(field_ , data_ptr_field      , model,   "ptr"             , class_); assert(res == true);
       res = api_t::load(field_ , data_sections_field , model,   "sections"        , class_); assert(res == true);
+      res = api_t::load(field_ , data_mode_field     , model,   "mode"            , class_); assert(res == true);
+      res = api_t::load(field_ , data_liveness_field , model,   "liveness"        , class_); assert(res == true);
 
     res = api_t::load(class_   , section_class       , model, "klt_data_section_t", NULL);   assert(res == true);
       res = api_t::load(field_ , section_offset_field, model,   "offset"          , class_); assert(res == true);
@@ -107,6 +109,8 @@ void host_t::load(const MDCG::Model::model_t & model) {
     res = api_t::load(function_, build_kernel_func   , model, "klt_build_kernel"  , NULL);   assert(res == true);
 
     res = api_t::load(function_, execute_kernel_func , model, "klt_execute_kernel", NULL);   assert(res == true);
+
+    res = api_t::load(function_, allocate_data_func  , model, "klt_allocate_data" , NULL);   assert(res == true);
 
   loadUser(model);
 }
@@ -155,6 +159,21 @@ SgStatement * host_t::buildDataSectionLengthAssign(SgVariableSymbol * kernel_sym
   return SageBuilder::buildExprStatement(SageBuilder::buildAssignOp(SageBuilder::buildDotExp(SageBuilder::buildPntrArrRefExp(
            MFB::Utils::buildPtrArrElemField(SageBuilder::buildVarRefExp(kernel_sym), kernel_data_field, SageBuilder::buildIntVal(idx), data_sections_field), SageBuilder::buildIntVal(dim)
          ), SageBuilder::buildVarRefExp(section_length_field)), rhs));
+}
+
+SgStatement * host_t::buildDataModeAssign(SgVariableSymbol * kernel_sym, size_t idx, SgExpression * rhs) const {
+  return SageBuilder::buildExprStatement(SageBuilder::buildAssignOp(MFB::Utils::buildPtrArrElemField(SageBuilder::buildVarRefExp(kernel_sym), kernel_data_field, SageBuilder::buildIntVal(idx), data_mode_field), rhs));
+}
+
+SgStatement * host_t::buildDataLivenessAssign(SgVariableSymbol * kernel_sym, size_t idx, SgExpression * rhs) const {
+  return SageBuilder::buildExprStatement(SageBuilder::buildAssignOp(MFB::Utils::buildPtrArrElemField(SageBuilder::buildVarRefExp(kernel_sym), kernel_data_field, SageBuilder::buildIntVal(idx), data_liveness_field), rhs));
+}
+
+SgStatement * host_t::buildDataAllocateCall(SgVariableSymbol * kernel_sym, size_t idx) const {
+  return SageBuilder::buildExprStatement(SageBuilder::buildFunctionCallExp(allocate_data_func, SageBuilder::buildExprListExp(
+    SageBuilder::buildAddressOfOp(MFB::Utils::buildPtrArrElemField(SageBuilder::buildVarRefExp(kernel_sym), kernel_data_field, SageBuilder::buildIntVal(idx), NULL)),
+    SageBuilder::buildIntVal(0)
+  )));
 }
 
 SgStatement * host_t::buildLoopLowerAssign(SgVariableSymbol * kernel_sym, size_t idx, SgExpression * rhs) const {

@@ -99,12 +99,15 @@ struct host_t : public ::MDCG::Tools::api_t {
     SgClassSymbol * data_class;
       SgVariableSymbol * data_ptr_field;
       SgVariableSymbol * data_sections_field;
+      SgVariableSymbol * data_mode_field;
+      SgVariableSymbol * data_liveness_field;
 
     SgClassSymbol * section_class;
       SgVariableSymbol * section_offset_field;
       SgVariableSymbol * section_length_field;
 
     SgFunctionSymbol * build_kernel_func;
+    SgFunctionSymbol * allocate_data_func;
     SgFunctionSymbol * execute_kernel_func;
 
   public:
@@ -120,6 +123,9 @@ struct host_t : public ::MDCG::Tools::api_t {
     SgStatement * buildDataPtrAssign(SgVariableSymbol * kernel_sym, size_t idx, SgExpression * rhs) const;
     SgStatement * buildDataSectionOffsetAssign(SgVariableSymbol * kernel_sym, size_t idx, size_t dim, SgExpression * rhs) const;
     SgStatement * buildDataSectionLengthAssign(SgVariableSymbol * kernel_sym, size_t idx, size_t dim, SgExpression * rhs) const;
+    SgStatement * buildDataModeAssign(SgVariableSymbol * kernel_sym, size_t idx, SgExpression * rhs) const;
+    SgStatement * buildDataLivenessAssign(SgVariableSymbol * kernel_sym, size_t idx, SgExpression * rhs) const;
+    SgStatement * buildDataAllocateCall(SgVariableSymbol * kernel_sym, size_t idx) const;
 
     SgStatement * buildLoopLowerAssign(SgVariableSymbol * kernel_sym, size_t idx, SgExpression * rhs) const;
     SgStatement * buildLoopUpperAssign(SgVariableSymbol * kernel_sym, size_t idx, SgExpression * rhs) const;

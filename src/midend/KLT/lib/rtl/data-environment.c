@@ -44,8 +44,59 @@ void klt_clear_data_environment(struct klt_data_environment_t * data_env) {
   size_t i, j;
   for (i = 0; i < data_env->num_data; i++) {
     for (j = 0; j < data_env->allocations[i].num_allocations; j++) {
-      if (data_env->allocations[i].allocations[j].memloc->memloc_id != 0)
-        klt_user_free_data_on_device(data_env->allocations[i].data, data_env->allocations[i].allocations[j].memloc, data_env->allocations[i].allocations[j].allocation);
+      switch (data_env->allocations[i].allocations[j].memloc->device->kind) {
+        case e_klt_host:
+        {
+          // NOP
+          break;
+        }
+        case e_klt_threads:
+        {
+#if KLT_THREADS_ENABLED
+          // NOP
+          break;
+#else /* KLT_THREADS_ENABLED */
+          assert(0); // Threads are not enables
+#endif /* KLT_THREADS_ENABLED */
+        }
+        case e_klt_opencl:
+        {
+#if KLT_OPENCL_ENABLED
+          cl_int status;
+          if (data_env->allocations[i].data->liveness == e_klt_live_out || data_env->allocations[i].data->liveness == e_klt_live_inout) {
+            // if multiple allocation of one data, we cannot ensure which device allocation is written in original ptr !!! 
+            status = clEnqueueReadBuffer(
+              data_env->allocations[i].allocations[j].memloc->device->descriptor.opencl->queue,
+              (cl_mem)data_env->allocations[i].allocations[j].allocation->descriptor,
+              CL_TRUE,
+              0,
+              data_env->allocations[i].allocations[j].allocation->size,
+              data_env->allocations[i].data->ptr,
+              0,
+              NULL,
+              NULL
+            ); /* TODO events chain */
+            assert(status == CL_SUCCESS);
+          }
+          status = clReleaseMemObject((cl_mem)data_env->allocations[i].allocations[j].allocation->descriptor);
+          assert(status == CL_SUCCESS);
+#else /* KLT_OPENCL_ENABLED */
+          assert(0); // OpenCL is not enables
+#endif /* KLT_OPENCL_ENABLED */
+        }
+        case e_klt_cuda:
+        {
+#if KLT_CUDA_ENABLED
+          assert(0); // NIY CUDA
+          if (data_env->allocations[i].data->liveness == e_klt_live_out || data_env->allocations[i].data->liveness == e_klt_live_inout) {
+            // TODO copy the data back to the host (if multiple allocation of one data, behaviour is undefined)
+          }
+          // TODO klt_user_free_data_on_device(data_env->allocations[i].data, data_env->allocations[i].allocations[j].memloc, data_env->allocations[i].allocations[j].allocation);
+#else /* KLT_CUDA_ENABLED */
+          assert(0); // CUDA is not enables
+#endif /* KLT_CUDA_ENABLED */
+        }
+      }
       free(data_env->allocations[i].allocations[j].allocation);
       data_env->allocations[i].allocations[j].memloc = NULL;
       data_env->allocations[i].allocations[j].allocation = NULL;
@@ -83,34 +134,23 @@ struct iklt_data_map_t * iklt_get_data_map(struct klt_data_environment_t * data_
   return NULL;
 }
 
-struct iklt_data_map_t * iklt_lookup_data(struct klt_data_t * data) {
-  struct klt_data_environment_t * data_env = klt_data_environment;
-  while (data_env != NULL) {
-    struct iklt_data_map_t * data_map = iklt_get_data_map(data_env, data);
+struct iklt_data_map_t * iklt_lookup_data_deep(struct klt_data_t * data, struct klt_data_environment_t ** data_env_ptr) {
+  assert(data_env_ptr != &klt_data_environment); // just to make sure
+
+  while (*data_env_ptr != NULL) {
+    struct iklt_data_map_t * data_map = iklt_get_data_map(*data_env_ptr, data);
     if (data_map != NULL) return data_map;
-    data_env = data_env->parent;
+    *data_env_ptr = (*data_env_ptr)->parent;
   }
   return NULL;
 }
 
-struct klt_allocation_t * iklt_search_alloc_map(struct klt_data_environment_t * data_env, struct klt_data_t * data, size_t memloc_id) {
-  struct iklt_data_map_t * data_map = iklt_get_data_map(data_env, data);
-  if (data_map == NULL)
-    return NULL;
-
-  size_t i;
-  for (i = 0; i < data_map->num_allocations; i++)
-    if (data_map->allocations[i].memloc->memloc_id == memloc_id)
-      return data_map->allocations[i].allocation;
-  return NULL;
+struct iklt_data_map_t * iklt_lookup_data(struct klt_data_t * data) {
+  struct klt_data_environment_t * data_env = klt_data_environment;
+  return iklt_lookup_data_deep(data, &data_env);
 }
 
-struct klt_allocation_t * klt_get_data(struct klt_data_t * data, size_t device_id) {
-  struct iklt_data_map_t * data_map = iklt_lookup_data(data);
-  if (data == NULL) return NULL;
-
-  struct klt_memloc_t * memloc = klt_get_matching_memloc(device_id, data->mode);
-
+struct klt_allocation_t * iklt_get_data_from_map(struct klt_data_t * data, struct klt_memloc_t * memloc, struct iklt_data_map_t * data_map) {
   size_t i;
   for (i = 0; i < data_map->num_allocations; i++)
     if (data_map->allocations[i].memloc->memloc_id == memloc->memloc_id)
@@ -119,9 +159,19 @@ struct klt_allocation_t * klt_get_data(struct klt_data_t * data, size_t device_i
   return NULL;
 }
 
+struct klt_allocation_t * klt_get_data(struct klt_data_t * data, size_t device_id) {
+  struct iklt_data_map_t * data_map = iklt_lookup_data(data);
+  if (data_map == NULL) return NULL;
+
+  struct klt_memloc_t * memloc = klt_get_matching_memloc(device_id, data->mode);
+  assert(memloc != NULL);
+
+  return iklt_get_data_from_map(data, memloc, data_map);
+}
+
 ///
 
-struct iklt_data_map_t * klt_declare_data(struct klt_data_t * data) {
+struct iklt_data_map_t * iklt_declare_data(struct klt_data_t * data) {
   klt_data_environment->num_data++;
   klt_data_environment->allocations = realloc(klt_data_environment->allocations, klt_data_environment->num_data * sizeof(struct iklt_data_map_t));
   assert(klt_data_environment->allocations != NULL);
@@ -134,15 +184,34 @@ struct iklt_data_map_t * klt_declare_data(struct klt_data_t * data) {
     data_map->allocations[0].allocation = malloc(sizeof(struct klt_allocation_t));
     data_map->allocations[0].allocation->mode = data->mode;
     data_map->allocations[0].allocation->size = 0;
-    data_map->allocations[0].allocation->user_descriptor = data->ptr;
+    data_map->allocations[0].allocation->descriptor = data->ptr;
   return data_map;
 }
 
 void klt_allocate_data(struct klt_data_t * data, size_t device_id) {
-  struct iklt_data_map_t * data_map = iklt_lookup_data(data);
-  if (data_map == NULL)
-    data_map = klt_declare_data(data);
+  assert(data != NULL);
 
+  struct klt_data_environment_t * data_env = klt_data_environment;
+  assert(data_env != NULL);
+
+  struct klt_memloc_t * memloc = klt_get_matching_memloc(device_id, data->mode);
+  assert(memloc != NULL);
+
+  // Look for existing allocation
+  struct iklt_data_map_t * data_map;
+  while (data_env != NULL) {
+    data_map = iklt_lookup_data_deep(data, &data_env);
+    if (data_map == NULL) break;
+
+    struct klt_allocation_t * alloc = iklt_get_data_from_map(data, memloc, data_map);
+    if (alloc != NULL) return;
+  }
+
+  // declare allocation in current data-environment if data-map was found in this environment
+  if (data_map == NULL || data_env != klt_data_environment)
+    data_map = iklt_declare_data(data);
+
+  // Case of host device
   if (device_id == 0) {
     if (data->ptr == NULL) {
       assert(0); // TODO maybe
@@ -150,13 +219,111 @@ void klt_allocate_data(struct klt_data_t * data, size_t device_id) {
     return;
   }
 
+  // Allocate allocation
   data_map->num_allocations++;
   data_map->allocations = realloc(data_map->allocations, data_map->num_allocations * sizeof(struct iklt_alloc_map_t));
   assert(data_map->allocations != NULL);
 
+  // Initialize allocation
   struct iklt_alloc_map_t * alloc = &(data_map->allocations[data_map->num_allocations - 1]);
     alloc->memloc = klt_get_matching_memloc(device_id, data->mode);
-    alloc->allocation = klt_user_allocate_data_on_device(data, alloc->memloc);
+
+  size_t i;
+  alloc->allocation = malloc(sizeof(struct klt_allocation_t));
+  alloc->allocation->mode = data->mode;
+  alloc->allocation->size = data->base_type_size;
+  for (i = 0; i < data->num_sections; i++)
+    alloc->allocation->size *= data->sections[i].length;
+
+  switch (alloc->memloc->device->kind) {
+    case e_klt_host:
+    {
+      assert(0); // Not reachable
+      break;
+    }
+    case e_klt_threads:
+    {
+#if KLT_THREADS_ENABLED
+      alloc->allocation->descriptor = data->ptr;
+      break;
+#else /* KLT_THREADS_ENABLED */
+      assert(0); // Threads are not enables
+#endif /* KLT_THREADS_ENABLED */
+    }
+    case e_klt_opencl:
+    {
+#if KLT_OPENCL_ENABLED
+      cl_int status;
+      alloc->allocation->descriptor = clCreateBuffer(
+        alloc->memloc->device->descriptor.opencl->context,
+        CL_MEM_READ_WRITE,
+        alloc->allocation->size,
+        NULL,
+        &status
+      );
+      assert(status == CL_SUCCESS);
+      break;
+#else /* KLT_OPENCL_ENABLED */
+      assert(0); // OpenCL is not enables
+#endif /* KLT_OPENCL_ENABLED */
+    }
+    case e_klt_cuda:
+    {
+#if KLT_CUDA_ENABLED
+      assert(0); // NIY CUDA
+#else /* KLT_CUDA_ENABLED */
+      assert(0); // CUDA is not enables
+#endif /* KLT_CUDA_ENABLED */
+    }
+  }
+
+  // Live-in data movement
+  if (data->liveness == e_klt_live_in || data->liveness == e_klt_live_inout) {
+    switch (alloc->memloc->device->kind) {
+      case e_klt_host:
+      {
+        assert(0); // Not reachable
+        break;
+      }
+      case e_klt_threads:
+      {
+#if KLT_THREADS_ENABLED
+        // NOP
+        break;
+#else /* KLT_THREADS_ENABLED */
+        assert(0); // Threads are not enables
+#endif /* KLT_THREADS_ENABLED */
+      }
+      case e_klt_opencl:
+      {
+#if KLT_OPENCL_ENABLED
+        cl_int status = clEnqueueWriteBuffer(
+          alloc->memloc->device->descriptor.opencl->queue,
+          (cl_mem)alloc->allocation->descriptor,
+          CL_TRUE,
+          0,
+          alloc->allocation->size,
+          data->ptr,
+          0,
+          NULL,
+          NULL
+        ); /* TODO events chain */
+        assert(status == CL_SUCCESS);
+        break;
+#else /* KLT_OPENCL_ENABLED */
+        assert(0); // OpenCL is not enables
+#endif /* KLT_OPENCL_ENABLED */
+      }
+      case e_klt_cuda:
+      {
+#if KLT_CUDA_ENABLED
+        assert(0); // NIY CUDA TODO copy data to the device
+#else /* KLT_CUDA_ENABLED */
+        assert(0); // CUDA is not enables
+#endif /* KLT_CUDA_ENABLED */
+      }
+    }
+  }
 }
 
 ///

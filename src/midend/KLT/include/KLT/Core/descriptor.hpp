@@ -51,12 +51,28 @@ struct section_t {
   section_t(SgExpression * offset_, SgExpression * length_);
 };
 
+enum e_mode {
+  e_mode_unknown = 0,
+  e_mode_ro,
+  e_mode_wo,
+  e_mode_rw
+};
+enum e_liveness {
+  e_live_unknown = 0,
+  e_live_in,
+  e_live_out,
+  e_live_inout,
+  e_live_not
+};
+
 struct data_t {
   SgVariableSymbol * symbol;
   SgType * base_type;
   std::vector<section_t *> sections;
+  e_mode mode;
+  e_liveness liveness;
 
-  data_t(SgVariableSymbol * symbol_, SgType * base_type_);
+  data_t(SgVariableSymbol * symbol_, SgType * base_type_, e_mode mode_ = e_mode_rw, e_liveness liveness_ = e_live_inout);
 };
 
 struct kernel_t {

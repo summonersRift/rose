@@ -15,8 +15,8 @@ loop_t::loop_t(size_t id_, SgExpression * lb_, SgExpression * ub_, SgExpression 
 section_t::section_t(SgExpression * offset_, SgExpression * length_) :
   offset(offset_), length(length_) {}
 
-data_t::data_t(SgVariableSymbol * symbol_, SgType * base_type_) :
-  symbol(symbol_), base_type(base_type_), sections() {}
+data_t::data_t(SgVariableSymbol * symbol_, SgType * base_type_, e_mode mode_, e_liveness liveness_) :
+  symbol(symbol_), base_type(base_type_), sections(), mode(mode_), liveness(liveness_) {}
 
 kernel_t::kernel_t(size_t id_, std::string kernel_name_) :
   id(id_), kernel_name(kernel_name_), loops(), tiles(), parameters(), data() {}
