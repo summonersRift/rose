@@ -16,22 +16,20 @@ namespace Directives {
 template <>
 generic_clause_t<TileK::language_t> * buildClause<TileK::language_t>(TileK::language_t::clause_kinds_e kind) {
   switch (kind) {
+    case TileK::language_t::e_clause_device:
+      return new clause_t<TileK::language_t, TileK::language_t::e_clause_device>();
     case TileK::language_t::e_clause_alloc:
       return new clause_t<TileK::language_t, TileK::language_t::e_clause_alloc>();
     case TileK::language_t::e_clause_data:
       return new clause_t<TileK::language_t, TileK::language_t::e_clause_data>();
     case TileK::language_t::e_clause_tile:
       return new clause_t<TileK::language_t, TileK::language_t::e_clause_tile>();
-#ifdef TILEK_THREADS
     case TileK::language_t::e_clause_num_threads:
       return new clause_t<TileK::language_t, TileK::language_t::e_clause_num_threads>();
-#endif
-#ifdef TILEK_ACCELERATOR
     case TileK::language_t::e_clause_num_gangs:
       return new clause_t<TileK::language_t, TileK::language_t::e_clause_num_gangs>();
     case TileK::language_t::e_clause_num_workers:
       return new clause_t<TileK::language_t, TileK::language_t::e_clause_num_workers>();
-#endif
     case TileK::language_t::e_clause_last:
       assert(false);
     default:
@@ -44,6 +42,10 @@ generic_clause_t<TileK::language_t> * buildClause<TileK::language_t>(TileK::lang
 template <>
 bool Frontend<TileK::language_t>::parseClauseParameters_tpl(Directives::generic_clause_t<TileK::language_t> * clause) {
   switch (clause->kind) {
+    case TileK::language_t::e_clause_device:
+      return Frontend<TileK::language_t>::parseClauseParameters<TileK::language_t::e_clause_device>(
+        (Directives::clause_t<TileK::language_t, TileK::language_t::e_clause_device> *)clause
+      );
     case TileK::language_t::e_clause_alloc:
       return Frontend<TileK::language_t>::parseClauseParameters<TileK::language_t::e_clause_alloc>(
         (Directives::clause_t<TileK::language_t, TileK::language_t::e_clause_alloc> *)clause
@@ -56,13 +58,10 @@ bool Frontend<TileK::language_t>::parseClauseParameters_tpl(Directives::generic_
       return Frontend<TileK::language_t>::parseClauseParameters<TileK::language_t::e_clause_tile>(
         (Directives::clause_t<TileK::language_t, TileK::language_t::e_clause_tile> *)clause
       );
-#ifdef TILEK_THREADS
     case TileK::language_t::e_clause_num_threads:
       return Frontend<TileK::language_t>::parseClauseParameters<TileK::language_t::e_clause_num_threads>(
         (Directives::clause_t<TileK::language_t, TileK::language_t::e_clause_num_threads> *)clause
       );
-#endif
-#ifdef TILEK_ACCELERATOR
     case TileK::language_t::e_clause_num_gangs:
       return Frontend<TileK::language_t>::parseClauseParameters<TileK::language_t::e_clause_num_gangs>(
         (Directives::clause_t<TileK::language_t, TileK::language_t::e_clause_num_gangs> *)clause
@@ -71,7 +70,6 @@ bool Frontend<TileK::language_t>::parseClauseParameters_tpl(Directives::generic_
       return Frontend<TileK::language_t>::parseClauseParameters<TileK::language_t::e_clause_num_workers>(
         (Directives::clause_t<TileK::language_t, TileK::language_t::e_clause_num_workers> *)clause
       );
-#endif
     case TileK::language_t::e_clause_last:
       assert(false);
     default:

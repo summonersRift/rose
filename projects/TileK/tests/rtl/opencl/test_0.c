@@ -9,7 +9,7 @@
 int main() {
   int i;
 
-  int n = 16;
+  int n = 64;
   float b = 3.5;
 
   float * v = malloc(n * sizeof(float));

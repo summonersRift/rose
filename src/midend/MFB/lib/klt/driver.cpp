@@ -18,11 +18,11 @@ namespace MFB {
 Driver< ::MFB::KLT::KLT>::Driver(SgProject * project_) : ::MFB::Driver<Sage>(project_) {}
 Driver< ::MFB::KLT::KLT>::~Driver() {}
 
-Driver< ::MFB::KLT::KLT>::kernel_desc_t::kernel_desc_t(node_t * root_, const vsym_list_t & parameters_, const data_list_t & data_, ::KLT::Generator * generator_) :
-  root(root_), parameters(parameters_), data(data_), generator(generator_) {}
+Driver< ::MFB::KLT::KLT>::kernel_desc_t::kernel_desc_t(node_t * root_, ::KLT::Descriptor::target_kind_e target_, const vsym_list_t & parameters_, const data_list_t & data_, ::KLT::Generator * generator_) :
+  root(root_), target(target_), parameters(parameters_), data(data_), generator(generator_) {}
 
-Driver< ::MFB::KLT::KLT>::looptree_desc_t::looptree_desc_t(node_t * node_, ::KLT::Generator * generator_, const ::KLT::Utils::symbol_map_t & symbol_map_) :
-  symbol_map(symbol_map_), generator(generator_), node(node_) {}
+Driver< ::MFB::KLT::KLT>::looptree_desc_t::looptree_desc_t(node_t * node_, ::KLT::Generator * generator_, const ::KLT::Utils::symbol_map_t & symbol_map_, ::KLT::Descriptor::target_kind_e target_) :
+  symbol_map(symbol_map_), generator(generator_), node(node_), target(target_) {}
 
 namespace KLT {
 
@@ -48,14 +48,18 @@ size_t KLT<kernel_t>::kernel_cnt = 0;
 }
 
 sage_func_res_t KLT<kernel_t>::buildKernelDecl(::KLT::Descriptor::kernel_t & res, ::KLT::Generator * generator) {
-  ::MFB::Driver< ::MFB::Sage> & driver = generator->getModelBuilder().getDriver();
-  SgFunctionParameterList * kernel_param_list = generator->getCallInterface().buildKernelParamList(res);
-  SgType * kernel_ret_type = generator->getKernelAPI().buildKernelReturnType(res);
+  const ::KLT::API::kernel_t & kernel_api = generator->getKernelAPI();
+  const ::KLT::API::call_interface_t & call_interface = generator->getCallInterface();
+  ::MFB::file_id_t kernel_file_id = generator->getKernelFileID(res.target);
 
-  sage_func_desc_t sage_func_desc(res.kernel_name, kernel_ret_type, kernel_param_list, NULL, generator->getKernelFileID(), generator->getKernelFileID());
+  ::MFB::Driver< ::MFB::Sage> & driver = generator->getModelBuilder().getDriver();
+  SgFunctionParameterList * kernel_param_list = call_interface.buildKernelParamList(res);
+  SgType * kernel_ret_type = kernel_api.buildKernelReturnType(res);
+
+  sage_func_desc_t sage_func_desc(res.kernel_name, kernel_ret_type, kernel_param_list, NULL, kernel_file_id, kernel_file_id);
 
 #if VERBOSE
-  std::cerr << "[Info] (MFB::KLT::KLT<kernel_t>::buildKernelDecl) Calling Driver<Sage>::build<SgFunctionDeclaration> to create " << res.kernel_name << " in file #" << generator->getKernelFileID() << "." << std::endl;
+  std::cerr << "[Info] (MFB::KLT::KLT<kernel_t>::buildKernelDecl) Calling Driver<Sage>::build<SgFunctionDeclaration> to create " << res.kernel_name << " for target " << res.target << " in file #" << generator->getKernelFileID(res.target) << "." << std::endl;
 #endif
 
   sage_func_res_t sage_func_res = driver.build<SgFunctionDeclaration>(sage_func_desc);
@@ -66,11 +70,11 @@ sage_func_res_t KLT<kernel_t>::buildKernelDecl(::KLT::Descriptor::kernel_t & res
 
     SgFunctionDeclaration * first_kernel_decl = isSgFunctionDeclaration(kernel_decl->get_firstNondefiningDeclaration());
     assert(first_kernel_decl != NULL);
-    generator->getKernelAPI().applyKernelModifiers(first_kernel_decl);
+    kernel_api.applyKernelModifiers(first_kernel_decl, res.target);
 
     SgFunctionDeclaration * defn_kernel_decl = isSgFunctionDeclaration(kernel_decl->get_definingDeclaration());
     assert(defn_kernel_decl != NULL);
-    generator->getKernelAPI().applyKernelModifiers(defn_kernel_decl);
+    kernel_api.applyKernelModifiers(defn_kernel_decl, res.target);
 
 //  if (guard_kernel_decl) SageInterface::guardNode(defn_kernel_decl, std::string("defined(ENABLE_") + result->kernel_name + ")");
   }
@@ -93,14 +97,17 @@ KLT<kernel_t>::build_result_t KLT<kernel_t>::build(::MFB::Driver< ::MFB::KLT::KL
   res->parameters = object.parameters;
   res->data = object.data;
 
+  res->target = object.target;
+
   sage_func_res_t sage_func_res = buildKernelDecl(*res, object.generator);
 
   ::KLT::Utils::symbol_map_t symbol_map;
 
-  SgBasicBlock * body = object.generator->getCallInterface().generateKernelBody(*res, sage_func_res.definition, symbol_map);
+  const ::KLT::API::call_interface_t & call_interface = object.generator->getCallInterface();
+  SgBasicBlock * body = call_interface.generateKernelBody(*res, sage_func_res.definition, symbol_map);
   assert(body->get_parent() != NULL);
 
-  looptree_desc_t looptree_desc(object.root, object.generator, symbol_map);
+  looptree_desc_t looptree_desc(object.root, object.generator, symbol_map, res->target);
   SgStatement * stmt = driver.build<node_t>(looptree_desc);
   SageInterface::appendStatement(stmt, body);
 
@@ -146,11 +153,11 @@ KLT<block_t>::build_result_t KLT<block_t>::build(::MFB::Driver< ::MFB::KLT::KLT>
   if (block->children.size() == 0)
     return NULL;
   if (block->children.size() == 1)
-    return driver.build<node_t>(looptree_desc_t(block->children[0], object.generator, object.symbol_map));
+    return driver.build<node_t>(looptree_desc_t(block->children[0], object.generator, object.symbol_map, object.target));
 
   SgBasicBlock * bb = SageBuilder::buildBasicBlock();
   for (node_list_t::const_iterator it = block->children.begin(); it != block->children.end(); it++) {
-    SgStatement * stmt = driver.build<node_t>(looptree_desc_t(*it, object.generator, object.symbol_map));
+    SgStatement * stmt = driver.build<node_t>(looptree_desc_t(*it, object.generator, object.symbol_map, object.target));
     if (stmt != NULL)
       SageInterface::appendStatement(stmt, bb);
   }
@@ -168,8 +175,8 @@ KLT<cond_t>::build_result_t KLT<cond_t>::build(::MFB::Driver< ::MFB::KLT::KLT> &
 
   SgExpression * condition = object.symbol_map.translate(cond->condition);
 
-  SgStatement * true_body  = driver.build<node_t>(looptree_desc_t(cond->branch_true, object.generator, object.symbol_map));
-  SgStatement * false_body = driver.build<node_t>(looptree_desc_t(cond->branch_false, object.generator, object.symbol_map));
+  SgStatement * true_body  = driver.build<node_t>(looptree_desc_t(cond->branch_true, object.generator, object.symbol_map, object.target));
+  SgStatement * false_body = driver.build<node_t>(looptree_desc_t(cond->branch_false, object.generator, object.symbol_map, object.target));
 
   return SageBuilder::buildIfStmt(SageBuilder::buildExprStatement(condition), true_body, false_body);
 }
@@ -186,22 +193,24 @@ KLT<loop_t>::build_result_t KLT<loop_t>::build(::MFB::Driver< ::MFB::KLT::KLT> &
   std::map<size_t, SgVariableSymbol *>::const_iterator it = object.symbol_map.iter_loops.find(loop->id);
   assert(it != object.symbol_map.iter_loops.end());
 
+  const ::KLT::API::kernel_t & kernel_api = object.generator->getKernelAPI();
+
   SgVariableSymbol * iterator = it->second;
-  SgExpression * lower_bound = object.generator->getKernelAPI().buildGetLoopLower (loop->id, object.symbol_map.loop_context);
-  SgExpression * upper_bound = object.generator->getKernelAPI().buildGetLoopUpper (loop->id, object.symbol_map.loop_context);
-  SgExpression * stride      = object.generator->getKernelAPI().buildGetLoopStride(loop->id, object.symbol_map.loop_context);
+  SgExpression * lower_bound = kernel_api.buildGetLoopLower (loop->id, object.symbol_map.loop_context);
+  SgExpression * upper_bound = kernel_api.buildGetLoopUpper (loop->id, object.symbol_map.loop_context);
+  SgExpression * stride      = kernel_api.buildGetLoopStride(loop->id, object.symbol_map.loop_context);
 
   return SageBuilder::buildForStatement(
     SageBuilder::buildForInitStatement(SageBuilder::buildExprStatement(SageBuilder::buildAssignOp(SageBuilder::buildVarRefExp(iterator), lower_bound))),
     SageBuilder::buildExprStatement(SageBuilder::buildLessOrEqualOp(SageBuilder::buildVarRefExp(iterator), upper_bound)),
     SageBuilder::buildPlusAssignOp(SageBuilder::buildVarRefExp(iterator), stride),
-    driver.build<node_t>(looptree_desc_t(loop->body, object.generator, object.symbol_map))
+    driver.build<node_t>(looptree_desc_t(loop->body, object.generator, object.symbol_map, object.target))
   );
 }
 
 ///// LoopTree::tile_t
 
-std::pair<SgVariableSymbol *, SgForStatement *> buildTile(::MFB::Driver< ::MFB::KLT::KLT> & driver, tile_t * tile, ::KLT::Generator * generator, const ::KLT::Utils::symbol_map_t & symbol_map) {
+std::pair<SgVariableSymbol *, SgForStatement *> buildTile(::MFB::Driver< ::MFB::KLT::KLT> & driver, tile_t * tile, ::KLT::Generator * generator, const ::KLT::Utils::symbol_map_t & symbol_map, ::KLT::Descriptor::target_kind_e target) {
   std::pair<SgVariableSymbol *, SgForStatement *> res;
 
   std::map<size_t, SgVariableSymbol *>::const_iterator it = symbol_map.iter_tiles.find(tile->id);
@@ -211,9 +220,11 @@ std::pair<SgVariableSymbol *, SgForStatement *> buildTile(::MFB::Driver< ::MFB::
 
   // Only static (0) and dynamic (1) tiles are unparsed as loops other tiles are distributed (hence their iterators are constant for each instance of the kernel)
   if (tile->kind == 0 || tile->kind == 1) {
+    const ::KLT::API::kernel_t & kernel_api = generator->getKernelAPI();
+
     SgExpression * lower_bound = SageBuilder::buildIntVal(0);
-    SgExpression * upper_bound = generator->getKernelAPI().buildGetTileLength(tile->id, symbol_map.loop_context);
-    SgExpression * stride      = generator->getKernelAPI().buildGetTileStride(tile->id, symbol_map.loop_context);
+    SgExpression * upper_bound = kernel_api.buildGetTileLength(tile->id, symbol_map.loop_context);
+    SgExpression * stride      = kernel_api.buildGetTileStride(tile->id, symbol_map.loop_context);
 
     res.second = SageBuilder::buildForStatement(
       SageBuilder::buildForInitStatement(SageBuilder::buildExprStatement(SageBuilder::buildAssignOp(SageBuilder::buildVarRefExp(res.first), lower_bound))),
@@ -251,7 +262,7 @@ KLT<tile_t>::build_result_t KLT<tile_t>::build(::MFB::Driver< ::MFB::KLT::KLT> &
   SgStatement * stmt = bb;
   std::vector<tile_t *>::const_reverse_iterator it = tile_chain.rbegin();
   while (it != tile_chain.rend()) {
-    std::pair<SgVariableSymbol *, SgForStatement *> res = buildTile(driver, *it, object.generator, object.symbol_map);
+    std::pair<SgVariableSymbol *, SgForStatement *> res = buildTile(driver, *it, object.generator, object.symbol_map, object.target);
     loop_iter_map[(*it)->loop->id] = SageBuilder::buildAddOp(loop_iter_map[(*it)->loop->id], SageBuilder::buildVarRefExp(res.first));
     if (res.second != NULL) {
       res.second->set_loop_body(stmt);
@@ -267,7 +278,7 @@ KLT<tile_t>::build_result_t KLT<tile_t>::build(::MFB::Driver< ::MFB::KLT::KLT> &
     SageInterface::appendStatement(SageBuilder::buildExprStatement(SageBuilder::buildAssignOp(SageBuilder::buildVarRefExp(it->second), it_loop_iter->second)), bb);
   }
 
-  SageInterface::appendStatement(driver.build<node_t>(looptree_desc_t(tile->next_node, object.generator, object.symbol_map)), bb);
+  SageInterface::appendStatement(driver.build<node_t>(looptree_desc_t(tile->next_node, object.generator, object.symbol_map, object.target)), bb);
 
   return stmt;
 }

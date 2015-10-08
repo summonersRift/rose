@@ -21,17 +21,24 @@ namespace DLX {
 
 enum mode_e {
   e_mode_unknown = 0,
-  e_mode_read,
-  e_mode_write,
-  e_mode_read_write
+  e_mode_read = 1,
+  e_mode_write = 2,
+  e_mode_read_write = 3
 };
 
 enum liveness_e {
   e_live_unknown = 0,
-  e_live_not,
-  e_live_in,
-  e_live_out,
-  e_live_inout
+  e_live_in = 1,
+  e_live_out = 2,
+  e_live_inout = 3,
+  e_live_not = 4
+};
+
+enum target_e {
+  e_target_unknown = 0,
+  e_target_host = 1,
+  e_target_threads = 2,
+  e_target_accelerator = 3
 };
 
 namespace TileK {
@@ -49,16 +56,13 @@ struct language_t {
 
     // Kind of clauses
     enum clause_kinds_e {
+      e_clause_device,
       e_clause_alloc,
       e_clause_data,
       e_clause_tile,
-#ifdef TILEK_THREADS
       e_clause_num_threads,
-#endif
-#ifdef TILEK_ACCELERATOR
       e_clause_num_gangs,
       e_clause_num_workers,
-#endif
       e_clause_last
     };
 
@@ -104,6 +108,16 @@ struct language_t {
       static kernel_construct_t * isKernelConstruct(construct_t * construct);
       static SgScopeStatement * getKernelRegion(kernel_construct_t * kernel_construct);
 
+      typedef Directives::clause_t<language_t, e_clause_device> device_clause_t;
+      static std::pair<target_e, SgExpression *> getKernelDeviceInfo(const std::vector<clause_t *> & clauses);
+
+      typedef Directives::clause_t<language_t, e_clause_num_threads> num_threads_clause_t;
+      static void collectKernelNumThreads(const std::vector<clause_t *> & clauses, SgExpression * & num_threads);
+
+      typedef Directives::clause_t<language_t, e_clause_num_gangs> num_gangs_clause_t;
+      typedef Directives::clause_t<language_t, e_clause_num_workers> num_workers_clause_t;
+      static void collectKernelNumGangsAndWorkers(const std::vector<clause_t *> & clauses, SgExpression * (& num_gangs)[3], SgExpression * (& num_workers)[3]);
+
     // Loop support
 
       typedef Directives::construct_t<language_t, e_construct_loop> loop_construct_t;
@@ -130,28 +144,6 @@ struct language_t {
       static DLX::liveness_e getLiveness(clause_t * clause);
 
       static SgExpression * getDeviceID(alloc_clause_t * alloc_clause);
-
-  // TileK Interface
-
-#ifdef TILEK_THREADS
-    // Thread support
-
-      typedef Directives::clause_t<language_t, e_clause_num_threads> num_threads_clause_t;
-      static num_threads_clause_t * isNumThreadsClause(clause_t * clause);
-#endif
-
-#ifdef TILEK_ACCELERATOR
-    // Accelerator support
-
-      typedef Directives::clause_t<language_t, e_clause_num_gangs> num_gangs_clause_t;
-      static num_gangs_clause_t * isNumGangsClause(clause_t * clause);
-      static size_t getGangID(num_gangs_clause_t * num_gangs_clause);
-
-
-      typedef Directives::clause_t<language_t, e_clause_num_workers> num_workers_clause_t;
-      static num_workers_clause_t * isNumWorkersClause(clause_t * clause);
-      static size_t getWorkerID(num_workers_clause_t * num_workers_clause);
-#endif
 };
 
 }
@@ -191,6 +183,13 @@ struct generic_construct_t<TileK::language_t>::assoc_nodes_t<TileK::language_t::
 
 template <>
 template <>
+struct generic_clause_t<TileK::language_t>::parameters_t<TileK::language_t::e_clause_device> {
+  target_e target;
+  SgExpression * device_id;
+};
+
+template <>
+template <>
 struct generic_clause_t<TileK::language_t>::parameters_t<TileK::language_t::e_clause_alloc> {
   data_sections_t data_section;
   mode_e mode;
@@ -213,26 +212,19 @@ struct generic_clause_t<TileK::language_t>::parameters_t<TileK::language_t::e_cl
   enum kind_e {
     e_static_tile,
     e_dynamic_tile,
-#ifdef TILEK_THREADS
     e_thread_tile,
-#endif
-#ifdef TILEK_ACCELERATOR
     e_gang_tile,
     e_worker_tile,
-#endif
   } kind;
   SgExpression * param;
 };
 
-#ifdef TILEK_THREADS
 template <>
 template <>
 struct generic_clause_t<TileK::language_t>::parameters_t<TileK::language_t::e_clause_num_threads> {
   SgExpression * num_threads;
 };
-#endif
 
-#ifdef TILEK_ACCELERATOR
 template <>
 template <>
 struct generic_clause_t<TileK::language_t>::parameters_t<TileK::language_t::e_clause_num_gangs> {
@@ -246,7 +238,6 @@ struct generic_clause_t<TileK::language_t>::parameters_t<TileK::language_t::e_cl
   size_t worker_id;
   SgExpression * num_workers;
 };
-#endif
 
 }
 

@@ -9,7 +9,7 @@
 int main() {
   int i;
 
-  int n = 16;
+  int n = 256*1024*1024;
   float b = 3.5;
 
   float * v = malloc(n * sizeof(float));
@@ -24,7 +24,7 @@ int main() {
     };
 
     struct klt_data_t data[1] = {
-      { &(v[0]), 1, sections_0,  e_klt_read_write, e_klt_live_inout }
+      { &(v[0]), sizeof(float), 1, sections_0,  e_klt_read_write, e_klt_live_inout }
     };
 
     klt_allocate_data(&(data[0]), 1);

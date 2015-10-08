@@ -41,7 +41,7 @@ void klt_set_tile_stride(struct klt_loop_context_t * ctx, int idx, int val);
 #endif
 
 struct klt_data_context_t {
-  int num_datas; // OpenCL don't like it if it is empty
+  int num_data; // OpenCL don't like it if it is empty
 };
 
 #endif /* __KLT_RTL_CONTEXT_H__ */

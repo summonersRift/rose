@@ -7,6 +7,10 @@
 #include "KLT/RTL/context.h"
 #include "KLT/RTL/build-context.h"
 
+#if KLT_OPENCL_ENABLED
+#  include "KLT/RTL/opencl-utils.h"
+#endif
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -69,20 +73,24 @@ struct klt_kernel_t * klt_build_kernel(int idx) {
   return res;
 }
 
-
+void ** klt_copy_pointers_array(size_t n, void ** arr) {
+  void ** res = (void **)malloc(n * sizeof(void *));
+  memcpy(res, arr, n * sizeof(void *));
+  return res;
+}
 
 #if KLT_THREADS_ENABLED
 struct klt_threads_workload_t * klt_create_threads_workload(
   klt_threads_kernel_func_ptr kernel_func,
-  void ** local_param,
-  void ** local_data,
+  size_t num_param, void ** local_param,
+  size_t num_data,  void ** local_data,
   struct klt_loop_context_t * loop_context,
   struct klt_data_context_t * data_context
 ) {
   struct klt_threads_workload_t * workload = malloc(sizeof(struct klt_threads_workload_t));
     workload->kernel_func = kernel_func;
-    workload->parameters = local_param;
-    workload->data = local_data;
+    workload->parameters = klt_copy_pointers_array(num_param, local_param);
+    workload->data = klt_copy_pointers_array(num_data, local_data);
     workload->loop_context = klt_copy_loop_context(loop_context);
     workload->data_context = klt_copy_data_context(data_context);
   return workload;
@@ -104,7 +112,7 @@ void iklt_execute_subkernels(
     assert(subkernel->device_kind == version->device_kind);
 
     struct klt_loop_context_t * klt_loop_context = klt_build_loop_context(&(subkernel->loop), kernel->loops, kernel);
-    struct klt_data_context_t * klt_data_context = klt_build_data_context();
+    struct klt_data_context_t * klt_data_context = klt_build_data_context(subkernel->num_data);
 
     void ** local_param = (void **)malloc(subkernel->num_params * sizeof(void *));
     for (j = 0; j < subkernel->num_params; j++) {
@@ -118,6 +126,7 @@ void iklt_execute_subkernels(
       struct klt_allocation_t * alloc = klt_get_data(data, kernel->device_id);
       assert(alloc != NULL);
       local_data[j] = alloc->descriptor;
+      
     }
 
 #if KLT_SUBKERNEL_TIMING
@@ -134,7 +143,7 @@ void iklt_execute_subkernels(
         clock_gettime(CLOCK_REALTIME, &timer_start);
 #endif /* KLT_SUBKERNEL_TIMING */
 
-        klt_host_kernel_func_ptr host_kernel_func = (klt_host_kernel_func_ptr)(subkernel->descriptor);
+        klt_host_kernel_func_ptr host_kernel_func = (klt_host_kernel_func_ptr)(subkernel->descriptor.host);
         (*host_kernel_func)(local_param, local_data, klt_loop_context, klt_data_context);
 
 #if KLT_SUBKERNEL_TIMING
@@ -146,15 +155,18 @@ void iklt_execute_subkernels(
       {
 #if KLT_THREADS_ENABLED
         assert(device->descriptor.threads != NULL);
+
         struct klt_threads_device_t * threads_device = device->descriptor.threads;
+        assert(threads_device != NULL);
 
         size_t num_threads = kernel->num_threads;
+        assert(num_threads > 0);
         assert(num_threads <= threads_device->num_threads);
 
         struct klt_threads_workload_t ** workloads = malloc(num_threads * sizeof(struct klt_threads_workload_t *));
         size_t tid;
         for (tid = 0; tid < num_threads; tid++)
-          workloads[tid] = klt_create_threads_workload((klt_threads_kernel_func_ptr)(subkernel->descriptor), local_param, local_data, klt_loop_context, klt_data_context);
+          workloads[tid] = klt_create_threads_workload((klt_threads_kernel_func_ptr)(subkernel->descriptor.threads), subkernel->num_params, local_param, subkernel->num_data, local_data, klt_loop_context, klt_data_context);
 
 #if KLT_SUBKERNEL_TIMING
         clock_gettime(CLOCK_REALTIME, &timer_start);
@@ -179,7 +191,80 @@ void iklt_execute_subkernels(
       case e_klt_opencl:
       {
 #if KLT_OPENCL_ENABLED
-        assert(0); // NIY OpenCL
+        cl_int status;
+        assert(device->descriptor.opencl != NULL);
+
+        struct klt_opencl_device_t * opencl_device = device->descriptor.opencl;
+
+        // Allocate and copy loop & data contexts
+
+        size_t size_loop_ctx = sizeof(struct klt_loop_context_t) + 3 * klt_loop_context->num_loops * sizeof(int) + 2 * klt_loop_context->num_tiles * sizeof(int);
+        cl_mem ocl_loop_context = clCreateBuffer(opencl_device->context, CL_MEM_READ_ONLY, size_loop_ctx, NULL, NULL);
+
+        status = clEnqueueWriteBuffer(opencl_device->queue, ocl_loop_context, CL_FALSE, 0, size_loop_ctx, klt_loop_context, 0, NULL, NULL);
+        assert(status == CL_SUCCESS);
+
+        size_t size_data_ctx = sizeof(struct klt_data_context_t);
+        cl_mem ocl_data_context = clCreateBuffer(opencl_device->context, CL_MEM_READ_ONLY, size_data_ctx, NULL, NULL);
+
+        status = clEnqueueWriteBuffer(opencl_device->queue, ocl_data_context, CL_FALSE, 0, size_data_ctx, klt_data_context, 0, NULL, NULL);
+        assert(status == CL_SUCCESS);
+
+        // Create OpenCL kernel
+
+//      printf("clCreateKernel: %s\n", subkernel->descriptor.accelerator);
+
+        cl_kernel ocl_kernel = clCreateKernel(opencl_device->program, subkernel->descriptor.accelerator, &status);
+        klt_check_opencl_status("[Error] clCreateKernel returns:", status);
+
+        // Set kernel arguments
+
+        size_t arg_cnt = 0;
+        for (i = 0; i < subkernel->num_params; i++) {
+          status = clSetKernelArg(ocl_kernel, arg_cnt++, kernel->desc->data.sizeof_param[subkernel->param_ids[i]], local_param[i]);
+          klt_check_opencl_status("[Error] clSetKernelArg (for parameter) returns:", status);
+        }
+
+        for (i = 0; i < subkernel->num_data; i++) {
+          status = clSetKernelArg(ocl_kernel, arg_cnt++, sizeof(cl_mem), &(local_data[i]));
+          klt_check_opencl_status("[Error] clSetKernelArg (for data) returns:", status);
+        }
+
+        status = clSetKernelArg(ocl_kernel, arg_cnt++, sizeof(cl_mem), &ocl_loop_context);
+        klt_check_opencl_status("[Error] clSetKernelArg (for loop context) returns:", status);
+
+        status = clSetKernelArg(ocl_kernel, arg_cnt++, sizeof(cl_mem), &ocl_data_context);
+        klt_check_opencl_status("[Error] clSetKernelArg (for data context) returns:", status);
+
+        // Contexts (loop and data) are freed at the end of this function so we need to wait for them to be copied
+        clFinish(opencl_device->queue);
+
+        // Launch kernel
+
+        size_t global_work_size[3] = {
+                                       kernel->num_gangs[0] * kernel->num_workers[0],
+                                       kernel->num_gangs[1] * kernel->num_workers[1],
+                                       kernel->num_gangs[2] * kernel->num_workers[2]
+                                     };
+        size_t local_work_size[3] =  {
+                                       kernel->num_workers[0],
+                                       kernel->num_workers[1],
+                                       kernel->num_workers[2]
+                                     };
+
+//      printf("global_work_size = { %d , %d , %d }\n", global_work_size[0], global_work_size[1], global_work_size[2]);
+//      printf("local_work_size  = { %d , %d , %d }\n", local_work_size [0], local_work_size [1], local_work_size [2]);
+
+        status = clEnqueueNDRangeKernel(opencl_device->queue, ocl_kernel, 3, NULL, global_work_size, local_work_size, 0, NULL, NULL);
+        klt_check_opencl_status("[Error] clEnqueueNDRangeKernel returns:", status);
+
+        { /// FIXME create a list of mem object to be free'd
+          clFinish(opencl_device->queue);
+          clReleaseKernel(ocl_kernel);
+          clReleaseMemObject(ocl_loop_context);
+          clReleaseMemObject(ocl_data_context);
+        }
+
 #else /* KLT_OPENCL_ENABLED */
         assert(0); // OpenCL is not enables
 #endif /* KLT_OPENCL_ENABLED */
@@ -217,6 +302,8 @@ void klt_execute_kernel(struct klt_kernel_t * kernel) {
   struct klt_device_t * device = klt_devices[kernel->device_id];
   assert(device != NULL);
 
+//printf("Execute kernel on device #%d\n", kernel->device_id);
+
   enum klt_device_e device_kind = device->kind;
 
   struct klt_version_desc_t * version = iklt_select_kernel_version(kernel, device_kind);
@@ -234,26 +321,36 @@ void klt_execute_kernel(struct klt_kernel_t * kernel) {
 
   switch (version->device_kind) {
     case e_klt_host:
+    {
+      /* NOP */
       break;
+    }
     case e_klt_threads:
+    {
 #if KLT_THREADS_ENABLED
       klt_threads_wait_for_completion(device->descriptor.threads);
       break;
 #else /* KLT_THREADS_ENABLED */
       assert(0); // Threads are not enables
 #endif /* KLT_THREADS_ENABLED */
+    }
     case e_klt_opencl:
+    {
 #if KLT_OPENCL_ENABLED
-      assert(0); // NIY OpenCL
+      clFinish(device->descriptor.opencl->queue);
+      break;
 #else /* KLT_OPENCL_ENABLED */
       assert(0); // OpenCL is not enables
 #endif /* KLT_OPENCL_ENABLED */
+    }
     case e_klt_cuda:
+    {
 #if KLT_CUDA_ENABLED
       assert(0); // NIY CUDA
 #else /* KLT_CUDA_ENABLED */
       assert(0); // CUDA is not enables
 #endif /* KLT_CUDA_ENABLED */
+    }
   }
 
 #if KLT_KERNEL_TIMING

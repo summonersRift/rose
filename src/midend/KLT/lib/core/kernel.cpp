@@ -11,10 +11,38 @@ namespace KLT {
 
 namespace Kernel {
 
-kernel_t::kernel_t() : root(NULL), parameters(), data() {}
+kernel_t::kernel_t() :
+  root(NULL),
+  target(Descriptor::e_target_unknown),
+  device_id(NULL),
+  parameters(),
+  data(),
+  num_threads(NULL),
+  num_gangs({NULL, NULL, NULL}),
+  num_workers({NULL, NULL, NULL})
+{}
 
-kernel_t::kernel_t(node_t * root_, const vsym_list_t & parameters_, const data_list_t & data_) :
-  root(root_), parameters(parameters_), data(data_) {}
+kernel_t::kernel_t(const kernel_t & original, node_t * new_root) :
+  root(new_root),
+  target(original.target),
+  device_id(original.device_id),
+  parameters(original.parameters),
+  data(original.data),
+  num_threads(original.num_threads),
+  num_gangs({NULL, NULL, NULL}),
+  num_workers({NULL, NULL, NULL})
+{
+  num_gangs[0] = original.num_gangs[0];
+  num_gangs[1] = original.num_gangs[1];
+  num_gangs[2] = original.num_gangs[2];
+  num_workers[0] = original.num_workers[0];
+  num_workers[1] = original.num_workers[1];
+  num_workers[2] = original.num_workers[2];
+}
+
+kernel_t * kernel_t::copy(node_t * new_root) const {
+  return new kernel_t(*this, new_root);
+}
 
 kernel_t * kernel_t::extract(SgStatement * stmt, const data_list_t & data_, std::map<SgForStatement *, size_t> & loop_map) {
   typedef SgVariableSymbol vsym_t;

@@ -30,19 +30,29 @@ struct klt_subkernel_desc_t {
   int * loop_ids;
   int num_deps;
   int * deps_ids;
-  void * descriptor;
+  union subkernel_descriptor_u {
+    klt_host_kernel_func_ptr host;
+#if KLT_THREADS_ENABLED
+    klt_threads_kernel_func_ptr threads;
+#endif
+#if KLT_OPENCL_ENABLED || KLT_CUDA_ENABLED
+    char * accelerator;
+#endif
+  } descriptor;
 };
 
 struct klt_version_desc_t {
   enum klt_device_e device_kind;
+  struct klt_version_selector_t version_selector;
+
   int num_subkernels;
   struct klt_subkernel_desc_t * subkernels;
-  struct klt_version_selector_t * version_selector;
 };
 
 struct klt_kernel_desc_t {
   struct klt_data_container_t data;
   struct klt_loop_container_t loop;
+
   int num_versions;
   struct klt_version_desc_t * versions;
 };

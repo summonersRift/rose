@@ -18,7 +18,7 @@ class Generator : public KLT::Generator {
   public:
     typedef KLT::API::host_t   host_t;
     typedef KLT::API::kernel_t kernel_t;
-    typedef basic_call_interface_t call_interface_t;
+    typedef KLT::API::basic_call_interface_t call_interface_t;
 
   public:
     static std::string kernel_file_tag;

@@ -16,13 +16,20 @@ namespace MDCG {
 
 namespace Tools {
 
-SgVariableSymbol * StaticInitializer::instantiateDeclaration(MFB::Driver<MFB::Sage> & driver, std::string decl_name, size_t file_id, SgType * type, SgInitializer * init) {
-
-  MFB::Sage<SgVariableDeclaration>::object_desc_t var_decl_desc(decl_name, type, init, NULL, file_id, false, true);
+/*SgVariableSymbol * StaticInitializer::instantiateDeclaration(
+  MFB::Driver<MFB::Sage> & driver,
+  std::string decl_name,
+  SgScopeStatement * scope,
+  size_t file_id,
+  SgType * type,
+  SgInitializer * init,
+  bool preppend
+) {
+  MFB::Sage<SgVariableDeclaration>::object_desc_t var_decl_desc(decl_name, type, init, scope, NULL, file_id, false, true);
   MFB::Sage<SgVariableDeclaration>::build_result_t var_decl_res = driver.build<SgVariableDeclaration>(var_decl_desc);
 
   return var_decl_res.symbol;
-}
+}*/
 
 }
 

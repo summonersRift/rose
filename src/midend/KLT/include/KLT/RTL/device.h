@@ -10,7 +10,7 @@ struct klt_threads_workload_t;
 #endif
 
 #if KLT_OPENCL_ENABLED
-#include <CL/opencl.h>
+#  include "KLT/RTL/opencl-utils.h"
 #endif
 
 struct klt_memloc_t;
@@ -72,7 +72,6 @@ struct klt_device_t {
 #if KLT_OPENCL_ENABLED
     struct klt_opencl_device_t * opencl;
 #endif
-    // TODO OpenCL
     // TODO CUDA
   } descriptor;
 };

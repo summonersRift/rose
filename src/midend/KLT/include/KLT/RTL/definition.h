@@ -34,24 +34,24 @@ enum klt_tile_kind_e {
 
 enum klt_memory_mode_e {
   e_klt_mode_unknown = 0,
-  e_klt_read_only,
-  e_klt_write_only,
-  e_klt_read_write
+  e_klt_read_only = 1,
+  e_klt_write_only = 2,
+  e_klt_read_write = 3
 };
 
 enum klt_liveness_e {
   e_klt_live_unknown = 0,
-  e_klt_live_in,
-  e_klt_live_out,
-  e_klt_live_inout,
-  e_klt_live_not
+  e_klt_live_in = 1,
+  e_klt_live_out = 2,
+  e_klt_live_inout = 3,
+  e_klt_live_not = 4
 };
 
 enum klt_device_e {
-  e_klt_host = 0,
-  e_klt_threads,
-  e_klt_opencl,
-  e_klt_cuda
+  e_klt_host = 1,
+  e_klt_threads = 2,
+  e_klt_opencl = 3,
+  e_klt_cuda = 4
 };
 
 struct klt_loop_context_t;

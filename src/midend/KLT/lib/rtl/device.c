@@ -97,11 +97,14 @@ void * iklt_threads_worker(void * arg) {
 //  printf("Thread #%d started working.\n", thread->tid);
 
     assert(thread->workload != NULL);
+    assert(thread->workload->kernel_func != NULL);
 
     (*thread->workload->kernel_func)(thread->tid, thread->workload->parameters, thread->workload->data, thread->workload->loop_context, thread->workload->data_context);
 
 //  printf("Thread #%d done working.\n", thread->tid);
 
+    free(thread->workload->parameters);
+    free(thread->workload->data);
     free(thread->workload->loop_context);
     free(thread->workload->data_context);
     free(thread->workload);
@@ -200,14 +203,6 @@ void iklt_destroy_threads_device(struct klt_threads_device_t * device) {
 #endif /* KLT_THREADS_ENABLED */
 
 #if KLT_OPENCL_ENABLED
-/*struct klt_opencl_device_t {
-  cl_platform_id platform;
-  cl_device_id device;
-  cl_context context;
-  cl_command_queue queue;
-  cl_program program;
-};*/
-
 struct klt_opencl_device_t * klt_build_opencl_device(cl_platform_id platform, cl_device_id device, size_t num_sources, char ** sources, char * options) {
   /*size_t i;
   for (i = 0; i < num_sources; i++) {
@@ -232,7 +227,7 @@ struct klt_opencl_device_t * klt_build_opencl_device(cl_platform_id platform, cl
 
   status = clBuildProgram(res->program, 1, &(res->device), options, NULL, NULL);
   if (status == CL_BUILD_PROGRAM_FAILURE) {
-    dbg_get_ocl_build_log(&(res->device), res->program);
+    klt_get_ocl_build_log(&(res->device), res->program);
   }
   assert(status == CL_SUCCESS);
 

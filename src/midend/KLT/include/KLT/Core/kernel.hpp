@@ -2,6 +2,8 @@
 #ifndef __KLT_KERNEL_HPP__
 #define __KLT_KERNEL_HPP__
 
+#include "KLT/Core/descriptor.hpp"
+
 #include <cstddef>
 #include <vector>
 #include <map>
@@ -33,14 +35,22 @@ class kernel_t {
   public:
     node_t * root;
 
+    Descriptor::target_kind_e target;
+    SgExpression * device_id;
+
     vsym_list_t parameters;
     data_list_t data;
 
+    SgExpression * num_threads;
+    SgExpression * num_gangs[3];
+    SgExpression * num_workers[3];
+
   protected:
     kernel_t();
+    kernel_t(const kernel_t & original, node_t * new_root);
 
   public:
-    kernel_t(node_t * root_, const vsym_list_t & parameters_, const data_list_t & data_);
+    kernel_t * copy(node_t * new_root) const;
     static kernel_t * extract(SgStatement * stmt, const data_list_t & data, std::map<SgForStatement *, size_t> & loop_map);
 };
 

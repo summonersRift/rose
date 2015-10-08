@@ -2,8 +2,11 @@
 #ifndef __KLT_API_HPP__
 #define __KLT_API_HPP__
 
-#include <cstddef>
+#include "KLT/Core/descriptor.hpp"
+
 #include "MDCG/Tools/api.hpp"
+
+#include <cstddef>
 
 class SgVariableSymbol;
 class SgFunctionSymbol;
@@ -21,17 +24,82 @@ namespace MFB {
   template <class Object> class Sage;
 }
 namespace KLT {
-  namespace Descriptor {
-    struct kernel_t;
-    struct loop_t;
-    struct tile_t;
-    struct data_t;
-  }
   namespace Utils {
     struct symbol_map_t;
   }
 
 namespace API {
+
+struct host_t : public ::MDCG::Tools::api_t {
+  protected:
+    SgClassSymbol * kernel_class;
+      SgVariableSymbol * kernel_param_field;
+      SgVariableSymbol * kernel_device_id_field;
+      SgVariableSymbol * kernel_data_field;
+      SgVariableSymbol * kernel_loops_field;
+      SgVariableSymbol * kernel_num_threads_field;
+      SgVariableSymbol * kernel_num_gangs_field;
+      SgVariableSymbol * kernel_num_workers_field;
+
+    SgClassSymbol * loop_class;
+      SgVariableSymbol * loop_lower_field;
+      SgVariableSymbol * loop_upper_field;
+      SgVariableSymbol * loop_stride_field;
+
+//  SgClassSymbol * tile_class;
+//    SgVariableSymbol * tile_length_field;
+//    SgVariableSymbol * tile_stride_field;
+
+    SgClassSymbol * data_class;
+      SgVariableSymbol * data_ptr_field;
+      SgVariableSymbol * data_base_type_size_field;
+      SgVariableSymbol * data_num_sections_field;
+      SgVariableSymbol * data_sections_field;
+      SgVariableSymbol * data_mode_field;
+      SgVariableSymbol * data_liveness_field;
+
+    SgClassSymbol * section_class;
+      SgVariableSymbol * section_offset_field;
+      SgVariableSymbol * section_length_field;
+
+    SgFunctionSymbol * build_kernel_func;
+    SgFunctionSymbol * allocate_data_func;
+    SgFunctionSymbol * execute_kernel_func;
+
+    SgFunctionSymbol * push_dataenv_func;
+    SgFunctionSymbol * pop_dataenv_func;
+
+  public:
+    void load(const MDCG::Model::model_t & model);
+
+  public:
+    SgVariableSymbol * insertKernelInstance(const std::string & name, size_t kernel_id, SgScopeStatement * scope) const;
+    void insertKernelExecute(SgVariableSymbol * kernel_sym, SgScopeStatement * scope) const;
+
+    SgStatement * buildParamAssign(SgVariableSymbol * kernel_sym, size_t idx, SgExpression * rhs) const;
+
+    SgStatement * buildDataPtrAssign(SgVariableSymbol * kernel_sym, size_t idx, SgExpression * rhs) const;
+    SgStatement * buildDataSectionOffsetAssign(SgVariableSymbol * kernel_sym, size_t idx, size_t dim, SgExpression * rhs) const;
+    SgStatement * buildDataSectionLengthAssign(SgVariableSymbol * kernel_sym, size_t idx, size_t dim, SgExpression * rhs) const;
+    SgStatement * buildDataModeAssign(SgVariableSymbol * kernel_sym, size_t idx, SgExpression * rhs) const;
+    SgStatement * buildDataLivenessAssign(SgVariableSymbol * kernel_sym, size_t idx, SgExpression * rhs) const;
+
+    SgStatement * buildLoopLowerAssign(SgVariableSymbol * kernel_sym, size_t idx, SgExpression * rhs) const;
+    SgStatement * buildLoopUpperAssign(SgVariableSymbol * kernel_sym, size_t idx, SgExpression * rhs) const;
+    SgStatement * buildLoopStrideAssign(SgVariableSymbol * kernel_sym, size_t idx, SgExpression * rhs) const;
+
+    SgStatement * buildNumThreadsAssign(SgVariableSymbol * kernel_sym, SgExpression * rhs) const;
+
+    SgStatement * buildNumGangsAssign(SgVariableSymbol * kernel_sym, size_t lvl, SgExpression * rhs) const;
+    SgStatement * buildNumWorkersAssign(SgVariableSymbol * kernel_sym, size_t lvl, SgExpression * rhs) const;
+
+    SgStatement * buildDeviceIdAssign(SgVariableSymbol * kernel_sym, SgExpression * device_id) const;
+
+    SgStatement * buildDataAllocation(SgVariableSymbol * data_arr_sym, size_t data_idx, SgExpression * device_id) const;
+
+    SgStatement * buildPushDataEnvironment() const;
+    SgStatement * buildPopDataEnvironment() const;
+};
 
 struct kernel_t : public ::MDCG::Tools::api_t {
   protected:
@@ -46,17 +114,26 @@ struct kernel_t : public ::MDCG::Tools::api_t {
 
     SgClassSymbol * klt_data_context_class;
 
-  public:
-    void load(const MDCG::Model::model_t & model);
-    virtual void loadUser(const MDCG::Model::model_t & model);
+    // Thread
+
+    SgVariableSymbol * tid_symbol;
+
+    // OpenCL Specific
+
+    SgFunctionSymbol * get_ocl_group_id_func;
+    SgFunctionSymbol * get_ocl_local_id_func;
 
   public:
-    virtual SgInitializedName * buildConstantVariable(const std::string & name, SgType * type, SgInitializer * init) const;
-    virtual SgInitializedName * buildGlobalVariable(const std::string & name, SgType * type, SgInitializer * init) const;
-    virtual SgInitializedName * buildLocalVariable(const std::string & name, SgType * type, SgInitializer * init) const;
+    // target: select to load either OpenCL or CUDA symbols
+    void load(const MDCG::Model::model_t & model, Descriptor::target_kind_e target);
+
+  public:
+    virtual SgInitializedName * buildConstantVariable(const std::string & name, SgType * type, SgInitializer * init, Descriptor::target_kind_e target) const;
+    virtual SgInitializedName * buildGlobalVariable(const std::string & name, SgType * type, SgInitializer * init, Descriptor::target_kind_e target) const;
+    virtual SgInitializedName * buildLocalVariable(const std::string & name, SgType * type, SgInitializer * init, Descriptor::target_kind_e target) const;
 
     // default: none
-    virtual void applyKernelModifiers(SgFunctionDeclaration * kernel_decl) const;
+    virtual void applyKernelModifiers(SgFunctionDeclaration * kernel_decl, Descriptor::target_kind_e target) const;
 
     // default: void
     virtual SgType * buildKernelReturnType(Descriptor::kernel_t & kernel) const;
@@ -76,60 +153,17 @@ struct kernel_t : public ::MDCG::Tools::api_t {
     // Data Context and Getters (NIY)
 
     SgType * getDataContextPtrType() const;
-};
 
-struct host_t : public ::MDCG::Tools::api_t {
-  protected:
-    SgClassSymbol * kernel_class;
-      SgVariableSymbol * kernel_param_field;
-      SgVariableSymbol * kernel_data_field;
-      SgVariableSymbol * kernel_loops_field;
-      SgVariableSymbol * kernel_config_field;
-//    SgVariableSymbol * kernel_tiles_field;
+    // Threads
 
-    SgClassSymbol * loop_class;
-      SgVariableSymbol * loop_lower_field;
-      SgVariableSymbol * loop_upper_field;
-      SgVariableSymbol * loop_stride_field;
+    SgExpression * buildThreadTileIdx() const;
 
-//  SgClassSymbol * tile_class;
-//    SgVariableSymbol * tile_length_field;
-//    SgVariableSymbol * tile_stride_field;
+    // Accelerator
 
-    SgClassSymbol * data_class;
-      SgVariableSymbol * data_ptr_field;
-      SgVariableSymbol * data_sections_field;
-      SgVariableSymbol * data_mode_field;
-      SgVariableSymbol * data_liveness_field;
+    SgExpression * buildGangTileIdx(SgExpression * lvl, Descriptor::target_kind_e target) const;
+    SgExpression * buildWorkerTileIdx(SgExpression * lvl, Descriptor::target_kind_e target) const;
 
-    SgClassSymbol * section_class;
-      SgVariableSymbol * section_offset_field;
-      SgVariableSymbol * section_length_field;
-
-    SgFunctionSymbol * build_kernel_func;
-    SgFunctionSymbol * allocate_data_func;
-    SgFunctionSymbol * execute_kernel_func;
-
-  public:
-    void load(const MDCG::Model::model_t & model);
-    virtual void loadUser(const MDCG::Model::model_t & model);
-
-  public:
-    SgVariableSymbol * insertKernelInstance(const std::string & name, size_t kernel_id, SgScopeStatement * scope) const;
-    void insertKernelExecute(SgVariableSymbol * kernel_sym, SgScopeStatement * scope) const;
-
-    SgStatement * buildParamAssign(SgVariableSymbol * kernel_sym, size_t idx, SgExpression * rhs) const;
-
-    SgStatement * buildDataPtrAssign(SgVariableSymbol * kernel_sym, size_t idx, SgExpression * rhs) const;
-    SgStatement * buildDataSectionOffsetAssign(SgVariableSymbol * kernel_sym, size_t idx, size_t dim, SgExpression * rhs) const;
-    SgStatement * buildDataSectionLengthAssign(SgVariableSymbol * kernel_sym, size_t idx, size_t dim, SgExpression * rhs) const;
-    SgStatement * buildDataModeAssign(SgVariableSymbol * kernel_sym, size_t idx, SgExpression * rhs) const;
-    SgStatement * buildDataLivenessAssign(SgVariableSymbol * kernel_sym, size_t idx, SgExpression * rhs) const;
-    SgStatement * buildDataAllocateCall(SgVariableSymbol * kernel_sym, size_t idx) const;
-
-    SgStatement * buildLoopLowerAssign(SgVariableSymbol * kernel_sym, size_t idx, SgExpression * rhs) const;
-    SgStatement * buildLoopUpperAssign(SgVariableSymbol * kernel_sym, size_t idx, SgExpression * rhs) const;
-    SgStatement * buildLoopStrideAssign(SgVariableSymbol * kernel_sym, size_t idx, SgExpression * rhs) const;
+  friend struct call_interface_t;
 };
 
 struct call_interface_t {
@@ -141,33 +175,24 @@ struct call_interface_t {
     call_interface_t(::MFB::Driver< ::MFB::Sage> & driver_, kernel_t * kernel_api_);
 
     SgFunctionParameterList * buildKernelParamList(Descriptor::kernel_t & kernel) const;
-    SgBasicBlock * generateKernelBody(Descriptor::kernel_t & kernel, SgFunctionDefinition * kernel_defn, Utils::symbol_map_t & symbol_map);
+    SgBasicBlock * generateKernelBody(Descriptor::kernel_t & kernel, SgFunctionDefinition * kernel_defn, Utils::symbol_map_t & symbol_map) const;
 
   protected:
-    // default: NOP
-    virtual void prependUserArguments(SgFunctionParameterList * param_list) const;
-
-    // default: NOP
-    virtual void getSymbolForUserArguments(SgFunctionDefinition * kernel_defn, Utils::symbol_map_t & symbol_map, SgBasicBlock * bb);
-
     // default: klt_loop_context_t & loop_ctx (TODO klt_data_context_t & data_ctx)
-    virtual void addKernelArgsForContext(SgFunctionParameterList * param_list) const;
-    virtual void getContextSymbol(SgFunctionDefinition * func_defn, Utils::symbol_map_t & symbol_map) const;
+    void addKernelArgsForContext(SgFunctionParameterList * param_list, Descriptor::target_kind_e target) const;
+    void getContextSymbol(SgFunctionDefinition * func_defn, Utils::symbol_map_t & symbol_map) const;
 
     // default: "loop_it_'loop.id'"
-    virtual void createLoopIterator(const std::vector<Descriptor::loop_t *> & loops, Utils::symbol_map_t & symbol_map, SgBasicBlock * bb) const;
-
-    // default: Should not be called => ASSERT
-    virtual SgExpression * getTileIdx(const Descriptor::tile_t & tile) const;
+    void createLoopIterator(const std::vector<Descriptor::loop_t *> & loops, Utils::symbol_map_t & symbol_map, SgBasicBlock * bb) const;
 
     // default: "tile_it_'tile.id'"
-    virtual void createTileIterator(const std::vector<Descriptor::tile_t *> & tiles, Utils::symbol_map_t & symbol_map, SgBasicBlock * bb) const;
+    void createTileIterator(const std::vector<Descriptor::tile_t *> & tiles, Utils::symbol_map_t & symbol_map, SgBasicBlock * bb, Descriptor::target_kind_e target) const;
 
-    virtual void addKernelArgsForParameter(SgFunctionParameterList * param_list, const std::vector<SgVariableSymbol *> & parameters) const = 0;
-    virtual void addKernelArgsForData(SgFunctionParameterList * param_list, const std::vector<Descriptor::data_t *> & data) const = 0;
+    void addKernelArgsForParameter(SgFunctionParameterList * param_list, const std::vector<SgVariableSymbol *> & parameters, Descriptor::target_kind_e target) const;
+    void addKernelArgsForData(SgFunctionParameterList * param_list, const std::vector<Descriptor::data_t *> & data, Descriptor::target_kind_e target) const;
 
-    virtual void getSymbolForParameter(SgFunctionDefinition * kernel_defn, const std::vector<SgVariableSymbol *> & parameters, Utils::symbol_map_t & symbol_map, SgBasicBlock * bb) const = 0;
-    virtual void getSymbolForData(SgFunctionDefinition * kernel_defn, const std::vector<Descriptor::data_t *> & data, Utils::symbol_map_t & symbol_map, SgBasicBlock * bb) const = 0;
+    void getSymbolForParameter(SgFunctionDefinition * kernel_defn, const std::vector<SgVariableSymbol *> & parameters, Utils::symbol_map_t & symbol_map, SgBasicBlock * bb, Descriptor::target_kind_e target) const;
+    void getSymbolForData(SgFunctionDefinition * kernel_defn, const std::vector<Descriptor::data_t *> & data, Utils::symbol_map_t & symbol_map, SgBasicBlock * bb, Descriptor::target_kind_e target) const;
 };
 
 } // namespace KLT::API

@@ -27,16 +27,13 @@ void language_t::init() {
 
   s_blank_construct = e_construct_last;
 
+  Directives::addClauseLabel<language_t>(e_clause_device, "device");
   Directives::addClauseLabel<language_t>(e_clause_alloc, "alloc");
   Directives::addClauseLabel<language_t>(e_clause_data, "data");
   Directives::addClauseLabel<language_t>(e_clause_tile, "tile");
-#ifdef TILEK_THREADS
   Directives::addClauseLabel<language_t>(e_clause_num_threads, "num_threads");
-#endif
-#ifdef TILEK_ACCELERATOR
   Directives::addClauseLabel<language_t>(e_clause_num_gangs, "num_gangs");
   Directives::addClauseLabel<language_t>(e_clause_num_workers, "num_workers");
-#endif
 
   s_directives_relation_labels.insert(std::pair<directives_relation_e, std::string>(e_child_scope, "child-scope"));
   s_directives_relation_labels.insert(std::pair<directives_relation_e, std::string>(e_parent_scope, "parent-scope"));
@@ -70,6 +67,54 @@ SgScopeStatement * language_t::getKernelRegion(kernel_construct_t * kernel_const
     stmt = SageInterface::getNextStatement(stmt);
   }
   return (SgScopeStatement *)stmt;
+}
+
+std::pair<target_e, SgExpression *> language_t::getKernelDeviceInfo(const std::vector<clause_t *> & clauses) {
+  std::pair<target_e, SgExpression *> res(e_target_unknown, NULL);
+  std::vector<clause_t *>::const_iterator it_clause;
+  for (it_clause = clauses.begin(); it_clause != clauses.end(); it_clause++) {
+    clause_t * clause = *it_clause;
+    if (clause->kind == e_clause_device) {
+      assert(res.first == e_target_unknown && res.second == NULL); // only one
+
+      device_clause_t * device_clause = (device_clause_t *)clause;
+      res.first = device_clause->parameters.target;
+      res.second = device_clause->parameters.device_id;
+    }
+  }
+  return res;
+}
+
+void language_t::collectKernelNumThreads(const std::vector<clause_t *> & clauses, SgExpression * & num_threads) {
+  std::vector<clause_t *>::const_iterator it_clause;
+  for (it_clause = clauses.begin(); it_clause != clauses.end(); it_clause++) {
+    clause_t * clause = *it_clause;
+    if (clause->kind == e_clause_num_threads) {
+      assert(num_threads == NULL); // only one
+
+      num_threads_clause_t * num_threads_clause = (num_threads_clause_t *)clause;
+      num_threads = num_threads_clause->parameters.num_threads;
+    }
+  }
+}
+
+void language_t::collectKernelNumGangsAndWorkers(const std::vector<clause_t *> & clauses, SgExpression * (& num_gangs)[3], SgExpression * (& num_workers)[3]) {
+  std::vector<clause_t *>::const_iterator it_clause;
+  for (it_clause = clauses.begin(); it_clause != clauses.end(); it_clause++) {
+    clause_t * clause = *it_clause;
+    if (clause->kind == e_clause_num_gangs) {
+      num_gangs_clause_t * num_gangs_clause = (num_gangs_clause_t *)clause;
+      assert(num_gangs_clause->parameters.gang_id < 3);
+      assert(num_gangs[num_gangs_clause->parameters.gang_id] == NULL); // only one
+      num_gangs[num_gangs_clause->parameters.gang_id] = num_gangs_clause->parameters.num_gangs;
+    }
+    if (clause->kind == e_clause_num_workers) {
+      num_workers_clause_t * num_workers_clause = (num_workers_clause_t *)clause;
+      assert(num_workers_clause->parameters.worker_id < 3);
+      assert(num_workers[num_workers_clause->parameters.worker_id] == NULL); // only one
+      num_workers[num_workers_clause->parameters.worker_id] = num_workers_clause->parameters.num_workers;
+    }
+  }
 }
 
 ////
@@ -130,30 +175,6 @@ language_t::tile_clause_t * language_t::isTileClause(clause_t * clause) {
 }
 
 ////
-
-#ifdef TILEK_THREADS
-language_t::num_threads_clause_t * language_t::isNumThreadsClause(clause_t * clause) {
-  return clause->kind == language_t::e_clause_num_threads ? (language_t::num_threads_clause_t *)clause : NULL;
-}
-#endif
-
-////
-
-#ifdef TILEK_ACCELERATOR
-language_t::num_gangs_clause_t * language_t::isNumGangsClause(clause_t * clause) {
-  return clause->kind == language_t::e_clause_num_gangs ? (language_t::num_gangs_clause_t *)clause : NULL;
-}
-size_t language_t::getGangID(num_gangs_clause_t * num_gangs_clause) {
-  return num_gangs_clause->parameters.gang_id;
-}
-
-language_t::num_workers_clause_t * language_t::isNumWorkersClause(clause_t * clause) {
-  return clause->kind == language_t::e_clause_num_workers ? (language_t::num_workers_clause_t *)clause : NULL;
-}
-size_t language_t::getWorkerID(num_workers_clause_t * num_workers_clause) {
-  return num_workers_clause->parameters.worker_id;
-}
-#endif
 
 }
 

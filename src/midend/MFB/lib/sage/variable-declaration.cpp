@@ -83,18 +83,22 @@ Sage<SgVariableDeclaration>::object_desc_t::object_desc_t(
   std::string name_,
   SgType * type_,
   SgInitializer * initializer_,
+  build_scopes_t scope_,
   SgSymbol * parent_,
   size_t file_id_,
   bool is_static_,
-  bool create_definition_
+  bool create_definition_,
+  bool prepend_
 ) :
   name(name_),
   type(type_),
   initializer(initializer_),
+  scope(scope_), 
   parent(parent_),
   file_id(file_id_),
   is_static(is_static_),
-  create_definition(create_definition_)
+  create_definition(create_definition_),
+  prepend(prepend_)
 {}
 
 
@@ -105,7 +109,10 @@ Sage<SgVariableDeclaration>::build_result_t Driver<Sage>::build<SgVariableDeclar
   SgScopeStatement * decl_scope = getBuildScopes<SgVariableDeclaration>(desc);
 
   SgVariableDeclaration * var_decl = SageBuilder::buildVariableDeclaration(desc.name, desc.type, desc.initializer, decl_scope);
-  SageInterface::appendStatement(var_decl, decl_scope);
+  if (desc.prepend)
+    SageInterface::prependStatement(var_decl, decl_scope);
+  else
+    SageInterface::appendStatement(var_decl, decl_scope);
 
   result.symbol = decl_scope->lookup_variable_symbol(desc.name);
   assert(result.symbol != NULL);
@@ -140,7 +147,9 @@ Sage<SgVariableDeclaration>::build_scopes_t Driver<Sage>::getBuildScopes<SgVaria
   SgSourceFile * file = it_file->second;
   assert(file != NULL);
 
-  if (desc.parent == NULL)
+  if (desc.scope != NULL)
+    result = desc.scope;
+  else if (desc.parent == NULL)
     result = file->get_globalScope();
   else if (namespace_symbol != NULL)
     result = Sage<SgNamespaceDeclarationStatement>::getDefinition(namespace_symbol, file);

@@ -4,6 +4,10 @@
 #include "KLT/RTL/memory.h"
 #include "KLT/RTL/device.h"
 
+#if KLT_OPENCL_ENABLED
+#  include "KLT/RTL/opencl-utils.h"
+#endif
+
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
@@ -77,16 +81,13 @@ extern char * opencl_kernel_file;
 extern char * opencl_kernel_options;
 extern char * opencl_klt_runtime_lib;
 
-char * read_file(const char * filename);
-void dbg_get_ocl_build_log(cl_device_id device, cl_program program);
-
 void klt_opencl_init() {
   size_t i, j;
   cl_int status;
 
   // Sources and Options
 
-  char * sources[2] = { read_file(opencl_kernel_file) , read_file(opencl_klt_runtime_lib) };
+  char * sources[2] = { klt_read_file(opencl_kernel_file) , klt_read_file(opencl_klt_runtime_lib) };
 
   size_t opts_length = strlen(opencl_kernel_options) + 1;
 
@@ -193,6 +194,9 @@ void klt_opencl_init() {
     free(devices);
   }
   free(platforms);
+  free(options);
+  free(sources[0]);
+  free(sources[1]);
 }
 #endif /* KLT_OPENCL_ENABLED */
 
@@ -218,131 +222,49 @@ void klt_init() {
 #endif /* KLT_CUDA_ENABLED */
 }
 
+void klt_host_exit() {
+  // TODO
+}
+
+#if KLT_THREADS_ENABLED
+void klt_threads_exit() {
+  // TODO
+}
+#endif /* KLT_THREADS_ENABLED */
+
 #if KLT_OPENCL_ENABLED
-char * read_file(const char * filename) {
-
-   FILE *fp;
-   int err;
-   int size;
-
-   char *source;
-
-   fp = fopen(filename, "rb");
-   if(fp == NULL) {
-      printf("Could not open kernel file: %s\n", filename);
-      assert(0);
-   }
-   
-   err = fseek(fp, 0, SEEK_END);
-   if(err != 0) {
-      printf("Error seeking to end of file\n");
-      assert(0);
-   }
-
-   size = ftell(fp);
-   if(size < 0) {
-      printf("Error getting file position\n");
-      assert(0);
-   }
-
-   err = fseek(fp, 0, SEEK_SET);
-   if(err != 0) {
-      printf("Error seeking to start of file\n");
-      assert(0);
-   }
-
-   source = (char*)malloc(size+1);
-   if(source == NULL) {
-      printf("Error allocating %d bytes for the program source\n", size+1);
-      assert(0);
-   }
-
-   err = fread(source, 1, size, fp);
-   if(err != size) {
-      printf("only read %d bytes\n", err);
-      assert(0);
-   }
-
-   source[size] = '\0';
-
-   return source;
-}
-
-void dbg_get_ocl_build_log(cl_device_id device, cl_program program) {
-  char * build_log;
-  size_t build_log_size;
-  clGetProgramBuildInfo(program, device, CL_PROGRAM_BUILD_LOG, 0, NULL, &build_log_size);
-  if (build_log_size == 0)
-    printf("[warning] OpenCL return an empty log...\n");
-  else {
-    build_log = (char*)malloc(build_log_size);
-    if (build_log == NULL) {
-      perror("[fatal] malloc : build_log");
-      exit(-1);
+void klt_opencl_exit() {
+  size_t i;
+  for (i = 0; i < klt_devices_count; i++)
+    if (klt_devices[i]->kind == e_klt_opencl) {
+      printf("klt_opencl_exit : device #%d\n", i);
+      clFinish(klt_devices[i]->descriptor.opencl->queue);
+      klt_check_opencl_status("[Error] clReleaseContext returns:", clReleaseContext(klt_devices[i]->descriptor.opencl->context));
+      klt_check_opencl_status("[Error] clReleaseCommandQueue returns:", clReleaseCommandQueue(klt_devices[i]->descriptor.opencl->queue));
+      klt_check_opencl_status("[Error] clReleaseProgram returns:", clReleaseProgram(klt_devices[i]->descriptor.opencl->program));
     }
-    clGetProgramBuildInfo(program, device, CL_PROGRAM_BUILD_LOG, build_log_size, build_log, NULL);
-    build_log[build_log_size-1] = '\0';
-    printf("*********************************\n%s\n*********************************\n", build_log);
-    free(build_log);
-  }
 }
+#endif /* KLT_OPENCL_ENABLED */
 
-const char * ocl_status_to_char(int status) {
-  switch (status) {
-      case CL_DEVICE_NOT_FOUND:                          return (char *)"CL_DEVICE_NOT_FOUND";
-      case CL_DEVICE_NOT_AVAILABLE:                      return (char *)"CL_DEVICE_NOT_AVAILABLE";
-      case CL_COMPILER_NOT_AVAILABLE:                    return (char *)"CL_COMPILER_NOT_AVAILABLE";
-      case CL_MEM_OBJECT_ALLOCATION_FAILURE:             return (char *)"CL_MEM_OBJECT_ALLOCATION_FAILURE";
-      case CL_OUT_OF_RESOURCES:                          return (char *)"CL_OUT_OF_RESOURCES";
-      case CL_OUT_OF_HOST_MEMORY:                        return (char *)"CL_OUT_OF_HOST_MEMORY";
-      case CL_PROFILING_INFO_NOT_AVAILABLE:              return (char *)"CL_PROFILING_INFO_NOT_AVAILABLE";
-      case CL_MEM_COPY_OVERLAP:                          return (char *)"CL_MEM_COPY_OVERLAP";
-      case CL_IMAGE_FORMAT_MISMATCH:                     return (char *)"CL_IMAGE_FORMAT_MISMATCH";
-      case CL_IMAGE_FORMAT_NOT_SUPPORTED:                return (char *)"CL_IMAGE_FORMAT_NOT_SUPPORTED";
-      case CL_BUILD_PROGRAM_FAILURE:                     return (char *)"CL_BUILD_PROGRAM_FAILURE";
-      case CL_MAP_FAILURE:                               return (char *)"CL_MAP_FAILURE";
-      case CL_INVALID_VALUE:                             return (char *)"CL_INVALID_VALUE";
-      case CL_INVALID_DEVICE_TYPE:                       return (char *)"CL_INVALID_DEVICE_TYPE";
-      case CL_INVALID_PLATFORM:                          return (char *)"CL_INVALID_PLATFORM";
-      case CL_INVALID_DEVICE:                            return (char *)"CL_INVALID_DEVICE";
-      case CL_INVALID_CONTEXT:                           return (char *)"CL_INVALID_CONTEXT";
-      case CL_INVALID_QUEUE_PROPERTIES:                  return (char *)"CL_INVALID_QUEUE_PROPERTIES";
-      case CL_INVALID_COMMAND_QUEUE:                     return (char *)"CL_INVALID_COMMAND_QUEUE";
-      case CL_INVALID_HOST_PTR:                          return (char *)"CL_INVALID_HOST_PTR";
-      case CL_INVALID_MEM_OBJECT:                        return (char *)"CL_INVALID_MEM_OBJECT";
-      case CL_INVALID_IMAGE_FORMAT_DESCRIPTOR:           return (char *)"CL_INVALID_IMAGE_FORMAT_DESCRIPTOR";
-      case CL_INVALID_IMAGE_SIZE:                        return (char *)"CL_INVALID_IMAGE_SIZE";
-      case CL_INVALID_SAMPLER:                           return (char *)"CL_INVALID_SAMPLER";
-      case CL_INVALID_BINARY:                            return (char *)"CL_INVALID_BINARY";
-      case CL_INVALID_BUILD_OPTIONS:                     return (char *)"CL_INVALID_BUILD_OPTIONS";
-      case CL_INVALID_PROGRAM:                           return (char *)"CL_INVALID_PROGRAM";
-      case CL_INVALID_PROGRAM_EXECUTABLE:                return (char *)"CL_INVALID_PROGRAM_EXECUTABLE";
-      case CL_INVALID_KERNEL_NAME:                       return (char *)"CL_INVALID_KERNEL_NAME";
-      case CL_INVALID_KERNEL_DEFINITION:                 return (char *)"CL_INVALID_KERNEL_DEFINITION";
-      case CL_INVALID_KERNEL:                            return (char *)"CL_INVALID_KERNEL";
-      case CL_INVALID_ARG_INDEX:                         return (char *)"CL_INVALID_ARG_INDEX";
-      case CL_INVALID_ARG_VALUE:                         return (char *)"CL_INVALID_ARG_VALUE";
-      case CL_INVALID_ARG_SIZE:                          return (char *)"CL_INVALID_ARG_SIZE";
-      case CL_INVALID_KERNEL_ARGS:                       return (char *)"CL_INVALID_KERNEL_ARGS";
-      case CL_INVALID_WORK_DIMENSION:                    return (char *)"CL_INVALID_WORK_DIMENSION";
-      case CL_INVALID_WORK_GROUP_SIZE:                   return (char *)"CL_INVALID_WORK_GROUP_SIZE";
-      case CL_INVALID_WORK_ITEM_SIZE:                    return (char *)"CL_INVALID_WORK_ITEM_SIZE";
-      case CL_INVALID_GLOBAL_OFFSET:                     return (char *)"CL_INVALID_GLOBAL_OFFSET";
-      case CL_INVALID_EVENT_WAIT_LIST:                   return (char *)"CL_INVALID_EVENT_WAIT_LIST";
-      case CL_INVALID_EVENT:                             return (char *)"CL_INVALID_EVENT";
-      case CL_INVALID_OPERATION:                         return (char *)"CL_INVALID_OPERATION";
-      case CL_INVALID_GL_OBJECT:                         return (char *)"CL_INVALID_GL_OBJECT";
-      case CL_INVALID_BUFFER_SIZE:                       return (char *)"CL_INVALID_BUFFER_SIZE";
-      case CL_INVALID_MIP_LEVEL:                         return (char *)"CL_INVALID_MIP_LEVEL";
-      case CL_INVALID_GLOBAL_WORK_SIZE:                  return (char *)"CL_INVALID_GLOBAL_WORK_SIZE";
-#ifdef CL_VERSION_1_1
-      case CL_MISALIGNED_SUB_BUFFER_OFFSET:              return (char *)"CL_MISALIGNED_SUB_BUFFER_OFFSET";
-      case CL_EXEC_STATUS_ERROR_FOR_EVENTS_IN_WAIT_LIST: return (char *)"CL_EXEC_STATUS_ERROR_FOR_EVENTS_IN_WAIT_LIST";
-      case CL_INVALID_PROPERTY:                          return (char *)"CL_INVALID_PROPERTY";
-#endif
-      default:                                           return (char *)"CL_UNKNOWN_ERROR_CODE";
-    }
-  return (char *)"CL_UNKNOWN_ERROR_CODE";
+#if KLT_CUDA_ENABLED
+void klt_cuda_exit() {
+  // TODO
 }
 #endif /* KLT_CUDA_ENABLED */
+
+void klt_exit() {
+#if KLT_OPENCL_ENABLED
+  klt_opencl_exit();
+#endif /* KLT_OPENCL_ENABLED */
+
+#if KLT_CUDA_ENABLED
+  klt_cuda_exit();
+#endif /* KLT_CUDA_ENABLED */
+
+#if KLT_THREADS_ENABLED
+  klt_threads_exit();
+#endif /* KLT_THREADS_ENABLED */
+
+  klt_host_exit();
+}
 

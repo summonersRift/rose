@@ -21,10 +21,10 @@ libKLT_RTL_Host_la_CFLAGS=$(KLT_RTL_cflags)
 libKLT_RTL_Threads_la_SOURCES=$(KLT_RTL_sources)
 libKLT_RTL_Threads_la_CFLAGS=$(KLT_RTL_cflags) -DKLT_THREADS_ENABLED=1
 
-libKLT_RTL_OpenCL_la_SOURCES=$(KLT_RTL_sources)
+libKLT_RTL_OpenCL_la_SOURCES=$(KLT_RTL_sources) opencl-utils.c
 libKLT_RTL_OpenCL_la_CFLAGS=$(KLT_RTL_cflags) -DKLT_OPENCL_ENABLED=1
 
-libKLT_RTL_la_SOURCES=$(KLT_RTL_sources)
+libKLT_RTL_la_SOURCES=$(KLT_RTL_sources) opencl-utils.c
 libKLT_RTL_la_CFLAGS=$(KLT_RTL_cflags) -DKLT_THREADS_ENABLED=1 -DKLT_OPENCL_ENABLED=1
 
 

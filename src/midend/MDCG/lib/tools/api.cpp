@@ -55,7 +55,7 @@ bool api_t::load(method_t & element, method_symbol_ptr & symbol, const MDCG::Mod
   element = parent->scope->getMethod(name);
   symbol = element->node->symbol;
   symbols.methods.insert(symbol);
-  return (symbol != NULL);;
+  return (symbol != NULL);
 }
 
 bool api_t::load(field_t & element, field_symbol_ptr & symbol, const MDCG::Model::model_t & model, const std::string & name, const class_t parent) {
@@ -63,7 +63,7 @@ bool api_t::load(field_t & element, field_symbol_ptr & symbol, const MDCG::Model
   element = parent->scope->getField(name);
   symbol = element->node->symbol;
   symbols.fields.insert(symbol);
-  return (symbol != NULL);;
+  return (symbol != NULL);
 }
 
 typedef namespace_symbol_set_t::const_iterator namespace_citer_t;

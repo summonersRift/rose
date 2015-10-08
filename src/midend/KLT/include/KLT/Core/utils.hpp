@@ -2,6 +2,8 @@
 #ifndef __KLT_UTILS_HPP__
 #define __KLT_UTILS_HPP__
 
+#include "KLT/Core/descriptor.hpp"
+
 #include <cstddef>
 #include <iostream>
 #include <fstream>
@@ -13,13 +15,6 @@ class SgStatement;
 class SgVariableSymbol;
 namespace KLT {
   class Generator;
-  namespace Descriptor {
-    struct loop_t;
-    struct tile_t;
-    struct section_t;
-    struct data_t;
-    struct kernel_t;
-  }
   namespace Kernel {
     struct kernel_t;
   }
@@ -66,6 +61,7 @@ struct symbol_map_t {
 
 template <class language_tpl>
 struct tiling_info_t {
+  Descriptor::target_kind_e target;
   std::map<size_t, std::map<size_t, typename language_tpl::tile_parameter_t *> > tiling_map;
 
   void toGraphViz(std::ostream & out) const;

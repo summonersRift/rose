@@ -3,13 +3,16 @@
 
 #include "KLT/MDCG/static-initializer.hpp"
 
+#include "MFB/Sage/driver.hpp"
+#include "MFB/Sage/variable-declaration.hpp"
+
 namespace KLT {
 
 namespace MDCG {
 
 // I hate using globals but I cannot see another way here
-std::map<  SgVariableSymbol *, size_t> param_ids_map; // Filled by: , Used by: createParamIds
-std::map<Descriptor::data_t *, size_t> data_ids_map;  // Filled by: , Used by: createDataIds
+std::map<  SgVariableSymbol *, size_t> param_ids_map; // Filled by: registerParamAndDataIds, Used by: createParamIds
+std::map<Descriptor::data_t *, size_t> data_ids_map;  // Filled by: registerParamAndDataIds, Used by: createDataIds
 
 SgType * size_t_type = NULL;
 SgType * get_size_t_type(MFB::Driver<MFB::Sage> & driver) {
@@ -38,16 +41,20 @@ void clearParamAndDataIds() {
   data_ids_map.clear();
 }
 
-std::pair<SgVarRefExp *, SgExprListExp *> createScalarArray(SgType * scalar_type, MFB::Driver<MFB::Sage> & driver, const std::string & decl_name, size_t file_id, size_t size) {
+std::pair<SgVarRefExp *, SgExprListExp *> createScalarArray(
+  SgType * scalar_type, MFB::Driver<MFB::Sage> & driver, const std::string & decl_name, SgScopeStatement * scope, size_t file_id, bool prepend, size_t size
+) {
   SgExprListExp * expr_list = SageBuilder::buildExprListExp();
   SgInitializer * init = SageBuilder::buildAggregateInitializer(expr_list);
   SgType * type = SageBuilder::buildArrayType(scalar_type, SageBuilder::buildUnsignedLongVal(size));
-  SgVarRefExp * var_ref = SageBuilder::buildVarRefExp(::MDCG::Tools::StaticInitializer::instantiateDeclaration(driver, decl_name, file_id, type, init));
+  SgVarRefExp * var_ref = SageBuilder::buildVarRefExp(::MDCG::Tools::StaticInitializer::instantiateDeclaration(driver, decl_name, scope, file_id, type, init, prepend));
   return std::pair<SgVarRefExp *, SgExprListExp *>(var_ref, expr_list);
 }
 
-SgExpression * createParamSizeOf(MFB::Driver<MFB::Sage> & driver, const std::string & decl_name, size_t file_id, const std::vector<SgVariableSymbol *> & parameters) {
-  std::pair<SgVarRefExp *, SgExprListExp *> res = createScalarArray(get_size_t_type(driver), driver, decl_name, file_id, parameters.size());
+SgExpression * createParamSizeOf(
+  MFB::Driver<MFB::Sage> & driver, const std::string & decl_name, SgScopeStatement * scope, size_t file_id, bool prepend, const std::vector<SgVariableSymbol *> & parameters
+) {
+  std::pair<SgVarRefExp *, SgExprListExp *> res = createScalarArray(get_size_t_type(driver), driver, decl_name, scope, file_id, prepend, parameters.size());
 
   std::vector<SgVariableSymbol *>::const_iterator it;
   for (it = parameters.begin(); it != parameters.end(); it++) {
@@ -58,8 +65,10 @@ SgExpression * createParamSizeOf(MFB::Driver<MFB::Sage> & driver, const std::str
   return res.first;
 }
 
-SgExpression * createDataSizeOf(MFB::Driver<MFB::Sage> & driver, const std::string & decl_name, size_t file_id, const std::vector<Descriptor::data_t *> & data) {
-  std::pair<SgVarRefExp *, SgExprListExp *> res = createScalarArray(get_size_t_type(driver), driver, decl_name, file_id, data.size());
+SgExpression * createDataSizeOf(
+  MFB::Driver<MFB::Sage> & driver, const std::string & decl_name, SgScopeStatement * scope, size_t file_id, bool prepend, const std::vector<Descriptor::data_t *> & data
+) {
+  std::pair<SgVarRefExp *, SgExprListExp *> res = createScalarArray(get_size_t_type(driver), driver, decl_name, scope, file_id, prepend, data.size());
 
   std::vector<Descriptor::data_t *>::const_iterator it;
   for (it = data.begin(); it != data.end(); it++) {
@@ -70,8 +79,10 @@ SgExpression * createDataSizeOf(MFB::Driver<MFB::Sage> & driver, const std::stri
   return res.first;
 }
 
-SgExpression * createDataNDims(MFB::Driver<MFB::Sage> & driver, const std::string & decl_name, size_t file_id, const std::vector<Descriptor::data_t *> & data) {
-  std::pair<SgVarRefExp *, SgExprListExp *> res = createScalarArray(get_size_t_type(driver), driver, decl_name, file_id, data.size());
+SgExpression * createDataNDims(
+  MFB::Driver<MFB::Sage> & driver, const std::string & decl_name, SgScopeStatement * scope, size_t file_id, bool prepend, const std::vector<Descriptor::data_t *> & data
+) {
+  std::pair<SgVarRefExp *, SgExprListExp *> res = createScalarArray(get_size_t_type(driver), driver, decl_name, scope, file_id, prepend, data.size());
 
   std::vector<Descriptor::data_t *>::const_iterator it;
   for (it = data.begin(); it != data.end(); it++)
@@ -80,8 +91,10 @@ SgExpression * createDataNDims(MFB::Driver<MFB::Sage> & driver, const std::strin
   return res.first;
 }
 
-SgExpression * createParamIds(MFB::Driver<MFB::Sage> & driver, const std::string & decl_name, size_t file_id, const std::vector<SgVariableSymbol *> & parameters) {
-  std::pair<SgVarRefExp *, SgExprListExp *> res = createScalarArray(SageBuilder::buildIntType(), driver, decl_name, file_id, parameters.size());
+SgExpression * createParamIds(
+  MFB::Driver<MFB::Sage> & driver, const std::string & decl_name, SgScopeStatement * scope, size_t file_id, bool prepend, const std::vector<SgVariableSymbol *> & parameters
+) {
+  std::pair<SgVarRefExp *, SgExprListExp *> res = createScalarArray(SageBuilder::buildIntType(), driver, decl_name, scope, file_id, prepend, parameters.size());
 
   std::vector<SgVariableSymbol *>::const_iterator it;
   for (it = parameters.begin(); it != parameters.end(); it++) {
@@ -93,8 +106,10 @@ SgExpression * createParamIds(MFB::Driver<MFB::Sage> & driver, const std::string
   return res.first;
 }
 
-SgExpression * createDataIds(MFB::Driver<MFB::Sage> & driver, const std::string & decl_name, size_t file_id, const std::vector<Descriptor::data_t *> & data) {
-  std::pair<SgVarRefExp *, SgExprListExp *> res = createScalarArray(SageBuilder::buildIntType(), driver, decl_name, file_id, data.size());
+SgExpression * createDataIds(
+  MFB::Driver<MFB::Sage> & driver, const std::string & decl_name, SgScopeStatement * scope, size_t file_id, bool prepend, const std::vector<Descriptor::data_t *> & data
+) {
+  std::pair<SgVarRefExp *, SgExprListExp *> res = createScalarArray(SageBuilder::buildIntType(), driver, decl_name, scope, file_id, prepend, data.size());
 
   std::vector<Descriptor::data_t *>::const_iterator it;
   for (it = data.begin(); it != data.end(); it++) {
@@ -106,8 +121,10 @@ SgExpression * createDataIds(MFB::Driver<MFB::Sage> & driver, const std::string 
   return res.first;
 }
 
-SgExpression * createLoopIds(MFB::Driver<MFB::Sage> & driver, const std::string & decl_name, size_t file_id, const std::vector<Descriptor::loop_t *> & loops) {
-  std::pair<SgVarRefExp *, SgExprListExp *> res = createScalarArray(SageBuilder::buildIntType(), driver, decl_name, file_id, loops.size());
+SgExpression * createLoopIds(
+  MFB::Driver<MFB::Sage> & driver, const std::string & decl_name, SgScopeStatement * scope, size_t file_id, bool prepend, const std::vector<Descriptor::loop_t *> & loops
+) {
+  std::pair<SgVarRefExp *, SgExprListExp *> res = createScalarArray(SageBuilder::buildIntType(), driver, decl_name, scope, file_id, prepend, loops.size());
 
   std::vector<Descriptor::loop_t *>::const_iterator it;
   for (it = loops.begin(); it != loops.end(); it++)
@@ -116,8 +133,10 @@ SgExpression * createLoopIds(MFB::Driver<MFB::Sage> & driver, const std::string 
   return res.first;
 }
 
-SgExpression * createDepsIds(MFB::Driver<MFB::Sage> & driver, const std::string & decl_name, size_t file_id, const std::vector<Descriptor::kernel_t *> & deps) {
-  std::pair<SgVarRefExp *, SgExprListExp *> res = createScalarArray(SageBuilder::buildIntType(), driver, decl_name, file_id, deps.size());
+SgExpression * createDepsIds(
+  MFB::Driver<MFB::Sage> & driver, const std::string & decl_name, SgScopeStatement * scope, size_t file_id, bool prepend, const std::vector<Descriptor::kernel_t *> & deps
+) {
+  std::pair<SgVarRefExp *, SgExprListExp *> res = createScalarArray(SageBuilder::buildIntType(), driver, decl_name, scope, file_id, prepend, deps.size());
 
   std::vector<Descriptor::kernel_t *>::const_iterator it;
   for (it = deps.begin(); it != deps.end(); it++)
@@ -133,7 +152,9 @@ SgExpression * DataContainer::createFieldInitializer(
   ::MDCG::Model::field_t element,
   size_t field_id,
   const input_t & input,
-  size_t file_id
+  SgScopeStatement * scope,
+  size_t file_id,
+  bool prepend
 ) {
   switch (field_id) {
     case 0:
@@ -143,7 +164,7 @@ SgExpression * DataContainer::createFieldInitializer(
     case 1:
     { // size_t * sizeof_param;
       std::ostringstream decl_name; decl_name << "sizeof_param_" << cnt[0]++;
-      return createParamSizeOf(driver, decl_name.str(), file_id, input.parameters);
+      return createParamSizeOf(driver, decl_name.str(), scope, file_id, prepend, input.parameters);
     }
     case 2:
     { // size_t num_data;
@@ -152,12 +173,12 @@ SgExpression * DataContainer::createFieldInitializer(
     case 3:
     { // size_t * sizeof_data;
       std::ostringstream decl_name; decl_name << "sizeof_data_" << cnt[1]++;
-      return createDataSizeOf(driver, decl_name.str(), file_id, input.data);
+      return createDataSizeOf(driver, decl_name.str(), scope, file_id, prepend, input.data);
     }
     case 4:
     { // size_t * ndims_data;
       std::ostringstream decl_name; decl_name << "ndims_data_" << cnt[2]++;
-      return createDataNDims(driver, decl_name.str(), file_id, input.data);
+      return createDataNDims(driver, decl_name.str(), scope, file_id, prepend, input.data);
     }
     default:
       assert(false);
@@ -169,7 +190,9 @@ SgExpression * TileDesc::createFieldInitializer(
   ::MDCG::Model::field_t element,
   size_t field_id,
   const input_t & input,
-  size_t file_id
+  SgScopeStatement * scope,
+  size_t file_id,
+  bool prepend
 ) {
   switch (field_id) {
     case 0:
@@ -199,7 +222,9 @@ SgExpression * LoopDesc::createFieldInitializer(
   ::MDCG::Model::field_t element,
   size_t field_id,
   const input_t & input,
-  size_t file_id
+  SgScopeStatement * scope,
+  size_t file_id,
+  bool prepend
 ) {
   switch (field_id) {
     case 0:
@@ -215,7 +240,7 @@ SgExpression * LoopDesc::createFieldInitializer(
       std::ostringstream decl_name; decl_name << "tile_desc_" << cnt[0]++;
       ::MDCG::Model::class_t field_class = element->node->getBaseClassForPointerOnClass("tile_desc", "klt_tile_desc_t"); assert(field_class != NULL);
       return ::MDCG::Tools::StaticInitializer::createArrayPointer<TileDesc>(
-                 driver, field_class, input->tiles.size(), input->tiles.begin(), input->tiles.end(), file_id, decl_name.str()
+                 driver, field_class, input->tiles.size(), input->tiles.begin(), input->tiles.end(), scope, file_id, prepend, decl_name.str()
              );
     }
     default:
@@ -230,7 +255,9 @@ SgExpression * TopLoopContainer::createFieldInitializer(
   ::MDCG::Model::field_t element,
   size_t field_id,
   const input_t & input,
-  size_t file_id
+  SgScopeStatement * scope,
+  size_t file_id,
+  bool prepend
 ) {
   switch (field_id) {
     case 0:
@@ -246,7 +273,7 @@ SgExpression * TopLoopContainer::createFieldInitializer(
       std::ostringstream decl_name; decl_name << "top_loop_desc_" << cnt[0]++;
       ::MDCG::Model::class_t field_class = element->node->getBaseClassForPointerOnClass("loop_desc", "klt_loop_desc_t"); assert(field_class != NULL);
       return ::MDCG::Tools::StaticInitializer::createArrayPointer<LoopDesc>(
-                 driver, field_class, input.size(), input.begin(), input.end(), file_id, decl_name.str()
+                 driver, field_class, input.size(), input.begin(), input.end(), scope, file_id, prepend, decl_name.str()
              );
     }
     default:
@@ -261,7 +288,9 @@ SgExpression * LoopContainer::createFieldInitializer(
   ::MDCG::Model::field_t element,
   size_t field_id,
   const input_t & input,
-  size_t file_id
+  SgScopeStatement * scope,
+  size_t file_id,
+  bool prepend
 ) {
   switch (field_id) {
     case 0:
@@ -277,11 +306,178 @@ SgExpression * LoopContainer::createFieldInitializer(
       std::ostringstream decl_name; decl_name << "loop_desc_" << cnt[0]++;
       ::MDCG::Model::class_t field_class = element->node->getBaseClassForPointerOnClass("loop_desc", "klt_loop_desc_t"); assert(field_class != NULL);
       return ::MDCG::Tools::StaticInitializer::createArrayPointer<LoopDesc>(
-                 driver, field_class, input.loops.size(), input.loops.begin(), input.loops.end(), file_id, decl_name.str()
+                 driver, field_class, input.loops.size(), input.loops.begin(), input.loops.end(), scope, file_id, prepend, decl_name.str()
              );
     }
     default:
      assert(false);
+  }
+}
+
+SgExpression * SubKernelDesc::createFieldInitializer(
+  MFB::Driver<MFB::Sage> & driver,
+  ::MDCG::Model::field_t element,
+  size_t field_id,
+  const input_t & input,
+  SgScopeStatement * scope,
+  size_t file_id,
+  bool prepend
+) {
+  switch (field_id) {
+    case 0:
+    { // enum klt_device_e device_kind;
+      assert(input.first->target != ::KLT::Descriptor::e_target_unknown);
+      return SageBuilder::buildIntVal(input.first->target);
+    }
+    case 1:
+    { // struct klt_loop_container_t loop;
+      ::MDCG::Model::class_t field_class = element->node->getBaseClass("loop", "klt_loop_container_t"); assert(field_class != NULL);
+      return ::MDCG::Tools::StaticInitializer::createInitializer<LoopContainer>(driver, field_class, *input.first, scope, file_id, prepend);
+    }
+    case 2:
+    { // int num_params;
+      return SageBuilder::buildIntVal(input.first->parameters.size());
+    }
+    case 3:
+    { // int * param_ids;
+      std::ostringstream decl_name; decl_name << "ids_param_" << input.first;
+      return createParamIds(driver, decl_name.str(), scope, file_id, prepend, input.first->parameters);
+    }
+    case 4:
+    { // int num_data;
+      return SageBuilder::buildIntVal(input.first->data.size());
+    }
+    case 5:
+    { // int * data_ids;
+      std::ostringstream decl_name; decl_name << "ids_data_" << input.first;
+      return createDataIds(driver, decl_name.str(), scope, file_id, prepend, input.first->data);
+    }
+    case 6:
+    { // int num_loops;
+      return SageBuilder::buildIntVal(input.first->loops.size());
+    }
+    case 7:
+    { // int * loop_ids;
+      std::ostringstream decl_name; decl_name << "ids_loop_" << input.first;
+      return createLoopIds(driver, decl_name.str(), scope, file_id, prepend, input.first->loops);
+    }
+    case 8:
+    { // int num_deps;
+      return SageBuilder::buildIntVal(input.second.size());
+    }
+    case 9:
+    { // int * deps_ids;
+      std::ostringstream decl_name; decl_name << "ids_deps_" << input.first;
+      return createDepsIds(driver, decl_name.str(), scope, file_id, prepend, input.second);
+    }
+    case 10:
+    { // void * descriptor;
+      assert(element->node->type != NULL);
+      assert(element->node->type->node->kind == ::MDCG::Model::node_t< ::MDCG::Model::e_model_type>::e_class_type);
+      assert(element->node->type->node->base_class != NULL);
+      assert(element->node->type->node->base_class->scope->field_children.size() > 0);
+
+      switch (input.first->target) {
+        case ::KLT::Descriptor::e_target_host:
+        case ::KLT::Descriptor::e_target_threads:
+        {
+          assert(element->node->type->node->base_class->scope->field_children[0] != NULL);
+          assert(element->node->type->node->base_class->scope->field_children[0]->node->type != NULL);
+          assert(element->node->type->node->base_class->scope->field_children[0]->node->type->node->type != NULL);
+          SgType * type = element->node->type->node->base_class->scope->field_children[0]->node->type->node->type;
+
+          SgVariableSymbol * symbol = ::MDCG::Tools::StaticInitializer::instantiateDeclaration(driver, input.first->kernel_name, scope, file_id, type, NULL, prepend);
+          assert(symbol != NULL);
+
+          SgDeclarationStatement * decl_stmt = isSgDeclarationStatement(symbol->get_declaration()->get_parent());
+            decl_stmt->get_declarationModifier().unsetDefault();
+            decl_stmt->get_declarationModifier().get_storageModifier().setExtern();
+
+          return SageBuilder::buildAddressOfOp(SageBuilder::buildVarRefExp(symbol));
+        }
+        case ::KLT::Descriptor::e_target_opencl:
+        case ::KLT::Descriptor::e_target_cuda:
+        {
+          return SageBuilder::buildStringVal(input.first->kernel_name);
+        }
+        default:
+          assert(false);
+      }
+    }
+    default:
+      assert(false);
+  }
+}
+
+SgExpression * DataSectionDesc::createFieldInitializer(
+  MFB::Driver<MFB::Sage> & driver,
+  ::MDCG::Model::field_t element,
+  size_t field_id,
+  const input_t & input,
+  SgScopeStatement * scope,
+  size_t file_id,
+  bool prepend
+) {
+  switch (field_id) {
+    case 0:
+    { // int offset;
+      return SageInterface::copyExpression(input->offset);
+    }
+    case 1:
+    { // int length;
+      return SageInterface::copyExpression(input->length);
+    }
+    default:
+      assert(false);
+  }
+}
+
+size_t DataDesc::cnt[1] = {0};
+
+SgExpression * DataDesc::createFieldInitializer(
+  MFB::Driver<MFB::Sage> & driver,
+  ::MDCG::Model::field_t element,
+  size_t field_id,
+  const input_t & input,
+  SgScopeStatement * scope,
+  size_t file_id,
+  bool prepend
+) {
+  switch (field_id) {
+    case 0:
+    { // void * ptr;
+      SgExpression * expr = SageBuilder::buildVarRefExp(input.first->symbol);
+      std::vector<Descriptor::section_t *>::const_iterator it;
+      for (it = input.first->sections.begin(); it != input.first->sections.end(); it++)
+        expr = SageBuilder::buildPntrArrRefExp(expr, SageBuilder::buildIntVal(0));
+      return SageBuilder::buildAddressOfOp(expr);
+    }
+    case 1:
+    { // size_t base_type_size;
+      return SageBuilder::buildSizeOfOp(input.first->base_type);
+    }
+    case 2:
+    { // size_t num_sections;
+      return SageBuilder::buildIntVal(input.first->sections.size());
+    }
+    case 3:
+    { // struct klt_data_section_t * sections;
+      std::ostringstream decl_name; decl_name << "sections_" << cnt[0]++;
+      ::MDCG::Model::class_t field_class = element->node->getBaseClassForPointerOnClass("sections", "klt_data_section_t"); assert(field_class != NULL);
+      return ::MDCG::Tools::StaticInitializer::createArrayPointer<DataSectionDesc>(
+                 driver, field_class, input.first->sections.size(), input.first->sections.begin(), input.first->sections.end(), scope, file_id, prepend, decl_name.str()
+             );
+    }
+    case 4:
+    { // enum klt_memory_mode_e mode;
+      return SageBuilder::buildUnsignedLongVal((unsigned long)input.first->mode);
+    }
+    case 5:
+    { // enum klt_liveness_e liveness;
+      return SageBuilder::buildUnsignedLongVal((unsigned long)input.first->liveness);
+    }
+    default:
+      assert(false);
   }
 }
 

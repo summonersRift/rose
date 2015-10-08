@@ -65,6 +65,35 @@ bool Frontend<TileK::language_t>::findAssociatedNodes<TileK::language_t::e_const
   return true;
 }
 
+template <>
+template <>
+bool Frontend<TileK::language_t>::parseClauseParameters<TileK::language_t::e_clause_device>(
+  Directives::clause_t<TileK::language_t, TileK::language_t::e_clause_device> * clause
+) {
+  std::cerr << "[Info] (Frontend<TileK>::parseClauseParameters<e_clause_device>) " << AstFromString::c_char << std::endl;
+  if (!Parser::consume('(')) return false;
+  Parser::skip_whitespace();
+  if (Parser::consume("host"))
+    clause->parameters.target = e_target_host;
+  else if (Parser::consume("threads"))
+    clause->parameters.target = e_target_threads;
+  else if (Parser::consume("accelerator") || Parser::consume("acc"))
+    clause->parameters.target = e_target_accelerator;
+  else {
+    std::cerr << "[Error] Unknown target type! Can be \"host\", \"threads\", or \"accelerator\"" << std::endl;
+    assert(false);
+  }
+  Parser::skip_whitespace();
+  if (Parser::consume(',')) {
+    Parser::skip_whitespace();
+    if (!Parser::parse(clause->parameters.device_id)) return false;
+  }
+  Parser::skip_whitespace();
+  if (!Parser::consume(')')) return false;
+  
+  return true;
+}
+
 bool parse_enum_mode(enum mode_e & mode) {
   std::cerr << "[Info] (parse_enum_mode) " << AstFromString::c_char << std::endl;
   if (!Parser::consume("mode")) return false;
@@ -173,6 +202,8 @@ template <>
 bool Frontend<TileK::language_t>::parseClauseParameters<TileK::language_t::e_clause_tile>(
   Directives::clause_t<TileK::language_t, TileK::language_t::e_clause_tile> * clause
 ) {
+  std::cerr << "[Info] (Frontend<TileK>::parseClauseParameters<e_clause_tile>) " << AstFromString::c_char << std::endl;
+
   if (!Parser::one<size_t>(clause->parameters.order, '[', ']'))
     clause->parameters.order = 0;
 
@@ -189,13 +220,10 @@ bool Frontend<TileK::language_t>::parseClauseParameters<TileK::language_t::e_cla
     Parser::skip_whitespace();
     if (!Parser::parse<SgExpression *>(clause->parameters.param)) return false;
   }
-#ifdef TILEK_THREADS
   else if (Parser::consume("thread")) {
     clause->parameters.kind = Directives::generic_clause_t<TileK::language_t>::parameters_t<TileK::language_t::e_clause_tile>::e_thread_tile;
     clause->parameters.param = NULL;
   }
-#endif
-#ifdef TILEK_ACCELERATOR
   else if (Parser::consume("gang")) {
     clause->parameters.kind = Directives::generic_clause_t<TileK::language_t>::parameters_t<TileK::language_t::e_clause_tile>::e_gang_tile;
     Parser::skip_whitespace();
@@ -210,7 +238,6 @@ bool Frontend<TileK::language_t>::parseClauseParameters<TileK::language_t::e_cla
     Parser::skip_whitespace();
     if (!Parser::parse<SgExpression *>(clause->parameters.param)) return false;
   }
-#endif
   else return false;
 
   Parser::skip_whitespace();
@@ -219,7 +246,6 @@ bool Frontend<TileK::language_t>::parseClauseParameters<TileK::language_t::e_cla
   return true;
 }
 
-#ifdef TILEK_THREADS
 template <>
 template <>
 bool Frontend<TileK::language_t>::parseClauseParameters<TileK::language_t::e_clause_num_threads>(
@@ -227,9 +253,7 @@ bool Frontend<TileK::language_t>::parseClauseParameters<TileK::language_t::e_cla
 ) {
   return Parser::one<SgExpression *>(clause->parameters.num_threads, '(', ')');
 }
-#endif
 
-#ifdef TILEK_ACCELERATOR
 template <>
 template <>
 bool Frontend<TileK::language_t>::parseClauseParameters<TileK::language_t::e_clause_num_gangs>(
@@ -249,7 +273,6 @@ bool Frontend<TileK::language_t>::parseClauseParameters<TileK::language_t::e_cla
     clause->parameters.worker_id = 0;
   return Parser::one<SgExpression *>(clause->parameters.num_workers, '(', ')');
 }
-#endif
 
 void lookup_region_successors(
   SgStatement * region,

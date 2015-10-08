@@ -30,6 +30,7 @@ class Sage<SgVariableDeclaration> {
       SgType * type;
       SgInitializer * initializer;
 
+      build_scopes_t scope;
       SgSymbol * parent;
       size_t file_id; // if parent is a class and it is a static: only used for definition scope (declaration scope depends on parent)
 
@@ -37,14 +38,18 @@ class Sage<SgVariableDeclaration> {
 
       bool create_definition; // for static field (valid if is_static && isSgClassSymbol(parent))
 
+      bool prepend; // weither or not statement is prepended to the scope instead of append
+
       object_desc_t(
         std::string name_,
         SgType * type_,
         SgInitializer * initializer_ = NULL,
+        build_scopes_t scope_ = NULL,
         SgSymbol * parent_ = NULL,
         size_t file_id_ = 0,
         bool is_static_ = false,
-        bool create_definition_ = true
+        bool create_definition_ = true,
+        bool prepend_ = false
       );
     };
 

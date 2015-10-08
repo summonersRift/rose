@@ -4,6 +4,10 @@
 #include "KLT/RTL/memory.h"
 #include "KLT/RTL/data.h"
 
+#if KLT_OPENCL_ENABLED
+#  include "KLT/RTL/opencl-utils.h"
+#endif
+
 #include <stdlib.h>
 
 #include <assert.h>
@@ -77,9 +81,12 @@ void klt_clear_data_environment(struct klt_data_environment_t * data_env) {
               NULL
             ); /* TODO events chain */
             assert(status == CL_SUCCESS);
+            clFinish(data_env->allocations[i].allocations[j].memloc->device->descriptor.opencl->queue);
           }
           status = clReleaseMemObject((cl_mem)data_env->allocations[i].allocations[j].allocation->descriptor);
+          printf("clReleaseMemObject: %x\n", data_env->allocations[i].allocations[j].allocation->descriptor);
           assert(status == CL_SUCCESS);
+          break;
 #else /* KLT_OPENCL_ENABLED */
           assert(0); // OpenCL is not enables
 #endif /* KLT_OPENCL_ENABLED */
@@ -92,6 +99,7 @@ void klt_clear_data_environment(struct klt_data_environment_t * data_env) {
             // TODO copy the data back to the host (if multiple allocation of one data, behaviour is undefined)
           }
           // TODO klt_user_free_data_on_device(data_env->allocations[i].data, data_env->allocations[i].allocations[j].memloc, data_env->allocations[i].allocations[j].allocation);
+          break;
 #else /* KLT_CUDA_ENABLED */
           assert(0); // CUDA is not enables
 #endif /* KLT_CUDA_ENABLED */
@@ -227,9 +235,14 @@ void klt_allocate_data(struct klt_data_t * data, size_t device_id) {
   // Initialize allocation
   struct iklt_alloc_map_t * alloc = &(data_map->allocations[data_map->num_allocations - 1]);
     alloc->memloc = klt_get_matching_memloc(device_id, data->mode);
+  assert(alloc->memloc != NULL);
+
+  assert(data->sections != NULL);
 
   size_t i;
   alloc->allocation = malloc(sizeof(struct klt_allocation_t));
+  assert(alloc->allocation != NULL);
+
   alloc->allocation->mode = data->mode;
   alloc->allocation->size = data->base_type_size;
   for (i = 0; i < data->num_sections; i++)
@@ -256,11 +269,12 @@ void klt_allocate_data(struct klt_data_t * data, size_t device_id) {
       cl_int status;
       alloc->allocation->descriptor = clCreateBuffer(
         alloc->memloc->device->descriptor.opencl->context,
-        CL_MEM_READ_WRITE,
+        CL_MEM_READ_WRITE, // TODO depends on memory location
         alloc->allocation->size,
         NULL,
         &status
       );
+//    printf("clCreateBuffer: %x\n", alloc->allocation->descriptor);
       assert(status == CL_SUCCESS);
       break;
 #else /* KLT_OPENCL_ENABLED */
@@ -308,6 +322,7 @@ void klt_allocate_data(struct klt_data_t * data, size_t device_id) {
           NULL,
           NULL
         ); /* TODO events chain */
+//      printf("clEnqueueWriteBuffer on device #%d: %x -> %x\n", alloc->memloc->device->device_id, data->ptr, alloc->allocation->descriptor);
         assert(status == CL_SUCCESS);
         break;
 #else /* KLT_OPENCL_ENABLED */

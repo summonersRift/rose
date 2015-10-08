@@ -3,6 +3,8 @@ include $(top_srcdir)/config/Makefile.for.ROSE.includes.and.libs
 
 lib_LTLIBRARIES=libKLT-Core.la
 
+cxxflags=-g -DVERBOSE=1 -O0
+
 libKLT_Core_la_SOURCES= \
   generator.cpp \
   looptree.cpp \
@@ -11,7 +13,7 @@ libKLT_Core_la_SOURCES= \
   api.cpp \
   utils.cpp
 libKLT_Core_la_CXXFLAGS= \
-  -g -O2 \
+  $(cxxflags) \
   -I$(top_srcdir)/src/midend/MFB/include \
   -I$(top_srcdir)/src/midend/MDCG/include \
   -I$(top_srcdir)/src/midend/KLT/include \

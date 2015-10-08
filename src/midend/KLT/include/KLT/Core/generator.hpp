@@ -59,67 +59,80 @@ class Generator {
     MFB::Driver<MFB::KLT::KLT> & driver;
     ::MDCG::Tools::ModelBuilder & model_builder;
 
-    size_t tilek_model;
-    std::string kernel_filename;
+    size_t klt_model;
+
     std::string static_filename;
-    MFB::file_id_t kernel_file_id;
     MFB::file_id_t static_file_id;
 
-    API::host_t * host_api;
-    API::kernel_t * kernel_api;
-    API::call_interface_t * call_interface;
+    std::string host_kernel_filename;
+    MFB::file_id_t host_kernel_file_id;
+
+    bool target_threads;
+    std::string threads_kernel_filename;
+    MFB::file_id_t threads_kernel_file_id;
+
+    bool target_opencl;
+    std::string opencl_kernel_filename;
+    MFB::file_id_t opencl_kernel_file_id;
+
+    bool target_cuda;
+    std::string cuda_kernel_filename;
+    MFB::file_id_t cuda_kernel_file_id;
+
+    API::host_t host_api;
+
+    API::kernel_t kernel_api;
+    API::call_interface_t call_interface;
 
     std::map<Kernel::kernel_t *, size_t> kernel_map;
 
   protected:
-    Generator(MFB::Driver<MFB::KLT::KLT> & driver_, ::MDCG::Tools::ModelBuilder & model_builder_);
-
-    void loadModel(const std::string & klt_inc_dir, const std::string & usr_inc_dir);
-
-    virtual void loadExtraModel(const std::string & usr_inc_dir) = 0;
+    void loadModel(const std::string & klt_inc_dir);
 
   public:
-    template <class generator_tpl>
-    static generator_tpl * build(
-        MFB::Driver<MFB::KLT::KLT> & driver, ::MDCG::Tools::ModelBuilder & model_builder,
-        const std::string & klt_inc_dir, const std::string & usr_inc_dir, const std::string & basename
+    Generator(
+      MFB::Driver<MFB::KLT::KLT> & driver_,
+      ::MDCG::Tools::ModelBuilder & model_builder_,
+      const std::string & klt_inc_dir,
+      const std::string & basename,
+      bool target_threads,
+      bool target_opencl,
+      bool target_cuda
     );
 
-  public:
     MFB::Driver<MFB::KLT::KLT> & getDriver();
     const MFB::Driver<MFB::KLT::KLT> & getDriver() const;
 
     ::MDCG::Tools::ModelBuilder & getModelBuilder();
     const ::MDCG::Tools::ModelBuilder & getModelBuilder() const;
 
-    API::host_t & getHostAPI();
     const API::host_t & getHostAPI() const;
+    const std::string & getStaticFileName() const;
+    MFB::file_id_t getStaticFileID() const;
 
-    API::kernel_t & getKernelAPI();
     const API::kernel_t & getKernelAPI() const;
-
     API::call_interface_t & getCallInterface();
     const API::call_interface_t & getCallInterface() const;
-
-    const std::string & getKernelFileName() const;
-    const std::string & getStaticFileName() const;
-    MFB::file_id_t getKernelFileID() const;
-    MFB::file_id_t getStaticFileID() const;
+    const std::string & getKernelFileName(Descriptor::target_kind_e target) const;
+    MFB::file_id_t getKernelFileID(Descriptor::target_kind_e target) const;
 
   public:
     size_t getKernelID(Kernel::kernel_t * kernel);
     size_t getKernelID(Kernel::kernel_t * kernel) const;
 
-    template <class language_tpl, class generator_tpl>
+    template <class language_tpl>
     SgBasicBlock * instanciateOnHost(typename language_tpl::directive_t * directive, Kernel::kernel_t * original, const std::vector<Descriptor::loop_t *> & loops) const;
 
   public:
-    template <class language_tpl, class generator_tpl>
+    template <class language_tpl>
     void addToStaticData(const std::map<typename language_tpl::directive_t *, Utils::subkernel_result_t<language_tpl> > & kernel_directive_translation_map) const;
 
   public:
     template <class language_tpl>
     static bool createTiles(LoopTree::loop_t * loop, const std::map<size_t, typename language_tpl::tile_parameter_t *> & tiling, LoopTree::tile_t * & first, LoopTree::tile_t * & last, size_t & tile_cnt);
+
+  public:
+    SgBasicBlock * insertDataEnvironment(SgScopeStatement * region, const std::vector<std::pair<Descriptor::data_t *, SgExpression *> > & datas) const;
 
   public:
     virtual void solveDataFlow(
@@ -131,45 +144,17 @@ class Generator {
     ) const;
 };
 
-template <class generator_tpl>
-generator_tpl * Generator::build(
-  MFB::Driver<MFB::KLT::KLT> & driver, ::MDCG::Tools::ModelBuilder & model_builder,
-  const std::string & klt_inc_dir, const std::string & usr_inc_dir, const std::string & basename
-) {
-  generator_tpl * generator = new generator_tpl(driver, model_builder);
-    generator->host_api       = new typename generator_tpl::host_t();
-    generator->kernel_api     = new typename generator_tpl::kernel_t();
-    generator->call_interface = new typename generator_tpl::call_interface_t(driver, generator->kernel_api);
-  generator->loadModel(klt_inc_dir, usr_inc_dir);
-
-  // TODO virtual boost::filesystem::path MFB::API::api_t::createFilePath(const std::string & name) const { return boost::filesystem::path(name + ".c"); }
-  generator->static_filename = basename + "-" + generator_tpl::static_file_tag + "." + generator_tpl::static_file_ext;
-  generator->static_file_id = driver.create(boost::filesystem::path(generator->static_filename));
-    driver.setUnparsedFile(generator->static_file_id);
-    driver.setCompiledFile(generator->static_file_id);
-  generator->getHostAPI().use(driver, generator->static_file_id);
-
-  generator->kernel_filename = basename + "-" + generator_tpl::kernel_file_tag + "." + generator_tpl::kernel_file_ext;
-  generator->kernel_file_id = driver.create(boost::filesystem::path(generator->kernel_filename));
-    driver.setUnparsedFile(generator->kernel_file_id);
-    driver.setCompiledFile(generator->kernel_file_id);
-  generator->getKernelAPI().use(driver, generator->kernel_file_id);
-
-  return generator;
-}
-
-
-template <class language_tpl, class generator_tpl>
+template <class language_tpl>
 SgBasicBlock * Generator::instanciateOnHost(typename language_tpl::directive_t * directive, Kernel::kernel_t * original, const std::vector<Descriptor::loop_t *> & loops) const {
   SgBasicBlock * bb = SageBuilder::buildBasicBlock();
 
-  SgVariableSymbol * kernel_sym = host_api->insertKernelInstance("kernel", getKernelID(original), bb);
+  SgVariableSymbol * kernel_sym = host_api.insertKernelInstance("kernel", getKernelID(original), bb);
 
   size_t param_cnt = 0;
   std::vector<SgVariableSymbol *>::const_iterator it_param;
   for (it_param = original->parameters.begin(); it_param != original->parameters.end(); it_param++) {
     SgExpression * ref = SageBuilder::buildVarRefExp(*it_param);
-    SageInterface::appendStatement(host_api->buildParamAssign(kernel_sym, param_cnt++, SageBuilder::buildAddressOfOp(ref)), bb);
+    SageInterface::appendStatement(host_api.buildParamAssign(kernel_sym, param_cnt++, SageBuilder::buildAddressOfOp(ref)), bb);
   }
 
   size_t data_cnt = 0;
@@ -181,43 +166,84 @@ SgBasicBlock * Generator::instanciateOnHost(typename language_tpl::directive_t *
       ref = SageBuilder::buildPntrArrRefExp(ref, SageBuilder::buildIntVal(0));
       dim_cnt++;
     }
-    SageInterface::appendStatement(host_api->buildDataPtrAssign(kernel_sym, data_cnt, SageBuilder::buildAddressOfOp(ref)), bb);
+    SageInterface::appendStatement(host_api.buildDataPtrAssign(kernel_sym, data_cnt, SageBuilder::buildAddressOfOp(ref)), bb);
     dim_cnt = 0;
     std::vector<Descriptor::section_t *>::const_iterator it_section;
     for (it_section = (*it_data)->sections.begin(); it_section != (*it_data)->sections.end(); it_section++) {
-      SageInterface::appendStatement(host_api->buildDataSectionOffsetAssign(kernel_sym, data_cnt, dim_cnt, (*it_section)->offset), bb);
-      SageInterface::appendStatement(host_api->buildDataSectionLengthAssign(kernel_sym, data_cnt, dim_cnt, (*it_section)->length), bb);
+      SageInterface::appendStatement(host_api.buildDataSectionOffsetAssign(kernel_sym, data_cnt, dim_cnt, (*it_section)->offset), bb);
+      SageInterface::appendStatement(host_api.buildDataSectionLengthAssign(kernel_sym, data_cnt, dim_cnt, (*it_section)->length), bb);
       dim_cnt++;
     }
-    SageInterface::appendStatement(host_api->buildDataModeAssign(kernel_sym, data_cnt, SageBuilder::buildIntVal((unsigned long)(*it_data)->mode)), bb);
-    SageInterface::appendStatement(host_api->buildDataLivenessAssign(kernel_sym, data_cnt, SageBuilder::buildIntVal((unsigned long)(*it_data)->liveness)), bb);
-    SageInterface::appendStatement(host_api->buildDataAllocateCall(kernel_sym, data_cnt), bb);
+    SageInterface::appendStatement(host_api.buildDataModeAssign(kernel_sym, data_cnt, SageBuilder::buildUnsignedLongVal((unsigned long)(*it_data)->mode)), bb);
+    SageInterface::appendStatement(host_api.buildDataLivenessAssign(kernel_sym, data_cnt, SageBuilder::buildUnsignedLongVal((unsigned long)(*it_data)->liveness)), bb);
     data_cnt++;
   }
 
   size_t loop_cnt = 0;
   std::vector<Descriptor::loop_t *>::const_iterator it_loop;
   for (it_loop = loops.begin(); it_loop != loops.end(); it_loop++) {
-    SageInterface::appendStatement(host_api->buildLoopLowerAssign(kernel_sym, loop_cnt, (*it_loop)->lb), bb);
-    SageInterface::appendStatement(host_api->buildLoopUpperAssign(kernel_sym, loop_cnt, (*it_loop)->ub), bb);
-    SageInterface::appendStatement(host_api->buildLoopStrideAssign(kernel_sym, loop_cnt, (*it_loop)->stride), bb);
+    SageInterface::appendStatement(host_api.buildLoopLowerAssign(kernel_sym, loop_cnt, (*it_loop)->lb), bb);
+    SageInterface::appendStatement(host_api.buildLoopUpperAssign(kernel_sym, loop_cnt, (*it_loop)->ub), bb);
+    SageInterface::appendStatement(host_api.buildLoopStrideAssign(kernel_sym, loop_cnt, (*it_loop)->stride), bb);
     loop_cnt++;
   }
 
-  generator_tpl::insertUserConfig(directive, kernel_sym, host_api, bb);
+  if (original->target == Descriptor::e_target_host) {
+    assert(original->num_threads    == NULL);
+    assert(original->num_gangs[0]   == NULL);
+    assert(original->num_workers[0] == NULL);
+    assert(original->num_gangs[1]   == NULL);
+    assert(original->num_workers[1] == NULL);
+    assert(original->num_gangs[2]   == NULL);
+    assert(original->num_workers[2] == NULL);
+  }
+  else if (original->target == Descriptor::e_target_threads) {
+    assert(original->num_threads    != NULL);
+    assert(original->num_gangs[0]   == NULL);
+    assert(original->num_workers[0] == NULL);
+    assert(original->num_gangs[1]   == NULL);
+    assert(original->num_workers[1] == NULL);
+    assert(original->num_gangs[2]   == NULL);
+    assert(original->num_workers[2] == NULL);
 
-  host_api->insertKernelExecute(kernel_sym, bb);
+    SageInterface::appendStatement(host_api.buildNumThreadsAssign(kernel_sym, original->num_threads), bb);
+  }
+  else if (original->target == Descriptor::e_target_opencl || original->target == Descriptor::e_target_cuda) {
+    assert(original->num_threads    == NULL);
+    assert(original->num_gangs[0]   != NULL);
+    assert(original->num_workers[0] != NULL);
+
+    for (size_t i = 0; i < 3; i++) {
+      if (original->num_gangs[i] != NULL)
+        SageInterface::appendStatement(host_api.buildNumGangsAssign(kernel_sym, i, original->num_gangs[i]), bb);
+      else
+        SageInterface::appendStatement(host_api.buildNumGangsAssign(kernel_sym, i, SageBuilder::buildIntVal(1)), bb);
+
+      if (original->num_workers[i] != NULL)
+        SageInterface::appendStatement(host_api.buildNumWorkersAssign(kernel_sym, i, original->num_workers[i]), bb);
+      else
+        SageInterface::appendStatement(host_api.buildNumWorkersAssign(kernel_sym, i, SageBuilder::buildIntVal(1)), bb);
+    }
+  }
+  else {
+    assert(original->target == Descriptor::e_target_unknown);
+    assert(false);
+  }
+
+  SageInterface::appendStatement(host_api.buildDeviceIdAssign(kernel_sym, original->device_id), bb);
+
+  host_api.insertKernelExecute(kernel_sym, bb);
 
   return bb;
 }
 
-template <class language_tpl, class generator_tpl>
+template <class language_tpl>
 void Generator::addToStaticData(const std::map<typename language_tpl::directive_t *, Utils::subkernel_result_t<language_tpl> > & kernel_directive_translation_map) const {
-  ::MDCG::Model::class_t kernel_desc_class = model_builder.get(tilek_model).lookup< ::MDCG::Model::class_t>("klt_kernel_desc_t");
-  ::MDCG::Tools::StaticInitializer::addArrayDeclaration< ::KLT::MDCG::KernelContainer<language_tpl, generator_tpl> >(
+  ::MDCG::Model::class_t kernel_desc_class = model_builder.get(klt_model).lookup< ::MDCG::Model::class_t>("klt_kernel_desc_t");
+  ::MDCG::Tools::StaticInitializer::addArrayDeclaration< ::KLT::MDCG::KernelContainer<language_tpl> >(
       driver, kernel_desc_class, kernel_directive_translation_map.size(),
       kernel_directive_translation_map.begin(), kernel_directive_translation_map.end(),
-      static_file_id, std::string("klt_kernel_desc")
+      NULL, static_file_id, false, std::string("klt_kernel_desc")
   );
 }
 
@@ -254,9 +280,8 @@ void subkernel_result_t<language_tpl>::toGraphViz(std::ostream & out) const {
   out << "  subgraph cluster_original {" << std::endl;
   original->root->toGraphViz(out, "    ");
   out << "  }" << std::endl;
-  size_t tiled_kernel_cnt = 0;
-
 /*
+  size_t tiled_kernel_cnt = 0;
   typename std::map<tiling_info_t<language_tpl> *, kernel_deps_map_t>::const_iterator it_tiled_kernel;
   for (it_tiled_kernel = tiled.begin(); it_tiled_kernel != tiled.end(); it_tiled_kernel++) {
     std::map<KLT::Kernel::kernel_t *, KLT::Descriptor::kernel_t *> translation_map;

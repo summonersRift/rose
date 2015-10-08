@@ -5,6 +5,7 @@
 #include "MFB/Sage/driver.hpp"
 #include "MFB/Sage/function-declaration.hpp"
 
+#include "KLT/Core/descriptor.hpp"
 #include "KLT/Core/utils.hpp"
 
 #include <vector>
@@ -56,13 +57,14 @@ class Driver< ::MFB::KLT::KLT> : public Driver< ::MFB::Sage> {
 
     struct kernel_desc_t {
       node_t * root;
+      ::KLT::Descriptor::target_kind_e target;
 
       const vsym_list_t & parameters;
       const data_list_t & data;
 
       ::KLT::Generator * generator;
 
-      kernel_desc_t(node_t * root, const vsym_list_t & parameters, const data_list_t & data, ::KLT::Generator * generator);
+      kernel_desc_t(node_t * root, ::KLT::Descriptor::target_kind_e target, const vsym_list_t & parameters, const data_list_t & data, ::KLT::Generator * generator);
     };
 
     typedef SgStatement * sg_stmt_ptr;
@@ -71,8 +73,9 @@ class Driver< ::MFB::KLT::KLT> : public Driver< ::MFB::Sage> {
       const ::KLT::Utils::symbol_map_t & symbol_map;
       ::KLT::Generator * generator;
       node_t * node;
+      ::KLT::Descriptor::target_kind_e target;
 
-      looptree_desc_t(node_t * node_, ::KLT::Generator * generator_, const ::KLT::Utils::symbol_map_t & symbol_map_);
+      looptree_desc_t(node_t * node_, ::KLT::Generator * generator_, const ::KLT::Utils::symbol_map_t & symbol_map_, ::KLT::Descriptor::target_kind_e target_);
     };
 
     template <class Object>
