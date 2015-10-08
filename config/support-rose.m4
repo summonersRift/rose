@@ -2062,11 +2062,6 @@ projects/TileK/tests/rtl/opencl/Makefile
 projects/TileK/tests/tilek/host/Makefile
 projects/TileK/tests/tilek/threads/Makefile
 projects/TileK/tests/tilek/opencl/Makefile
-projects/TileK/tests/basic/Makefile
-projects/TileK/tests/threads/Makefile
-projects/TileK/tests/accelerator/Makefile
-projects/TileK/tests/accelerator/OpenCL/Makefile
-projects/TileK/tests/accelerator/CUDA/Makefile
 projects/TileK/doc/Makefile
 projects/TileK/doc/index.html
 projects/TileK/doc/dlx.doxy
