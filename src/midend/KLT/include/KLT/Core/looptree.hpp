@@ -70,6 +70,8 @@ class extraction_context_t {
     const vsym_set_t & getParameters() const;
 };
 
+std::string getSageNodeLabel(SgNode * node);
+
 struct loop_t;
 struct tile_t;
 
@@ -85,7 +87,9 @@ struct node_t {
   virtual node_t * finalize() = 0;
 
   std::string getGraphVizLabel() const;
+
   virtual void toGraphViz(std::ostream & out, std::string indent) const = 0;
+  virtual void toJSON(std::ostream & out, std::string indent) const = 0;
 
   virtual void collectLoops(std::vector<Descriptor::loop_t *> & loops, std::map<const loop_t *, Descriptor::loop_t *> & loop_translation_map) const = 0;
   virtual void collectTiles(std::vector<Descriptor::tile_t *> & tiles, const std::map<const loop_t *, Descriptor::loop_t *> & loop_translation_map) const = 0;
@@ -102,6 +106,7 @@ struct block_t : public node_t {
   virtual node_t * finalize();
 
   virtual void toGraphViz(std::ostream & out, std::string indent) const;
+  virtual void toJSON(std::ostream & out, std::string indent) const;
 
   virtual void collectLoops(std::vector<Descriptor::loop_t *> & loops, std::map<const loop_t *, Descriptor::loop_t *> & loop_translation_map) const;
   virtual void collectTiles(std::vector<Descriptor::tile_t *> & tiles, const std::map<const loop_t *, Descriptor::loop_t *> & loop_translation_map) const;
@@ -121,6 +126,7 @@ struct cond_t : public node_t {
   virtual node_t * finalize();
 
   virtual void toGraphViz(std::ostream & out, std::string indent) const;
+  virtual void toJSON(std::ostream & out, std::string indent) const;
 
   virtual void collectLoops(std::vector<Descriptor::loop_t *> & loops, std::map<const loop_t *, Descriptor::loop_t *> & loop_translation_map) const;
   virtual void collectTiles(std::vector<Descriptor::tile_t *> & tiles, const std::map<const loop_t *, Descriptor::loop_t *> & loop_translation_map) const;
@@ -148,6 +154,7 @@ struct loop_t : public node_t {
   virtual node_t * finalize();
 
   virtual void toGraphViz(std::ostream & out, std::string indent) const;
+  virtual void toJSON(std::ostream & out, std::string indent) const;
 
   virtual void collectLoops(std::vector<Descriptor::loop_t *> & loops, std::map<const loop_t *, Descriptor::loop_t *> & loop_translation_map) const;
   virtual void collectTiles(std::vector<Descriptor::tile_t *> & tiles, const std::map<const loop_t *, Descriptor::loop_t *> & loop_translation_map) const;
@@ -164,6 +171,7 @@ struct stmt_t : public node_t {
   virtual node_t * finalize();
 
   virtual void toGraphViz(std::ostream & out, std::string indent) const;
+  virtual void toJSON(std::ostream & out, std::string indent) const;
 
   virtual void collectLoops(std::vector<Descriptor::loop_t *> & loops, std::map<const loop_t *, Descriptor::loop_t *> & loop_translation_map) const;
   virtual void collectTiles(std::vector<Descriptor::tile_t *> & tiles, const std::map<const loop_t *, Descriptor::loop_t *> & loop_translation_map) const;
@@ -188,6 +196,7 @@ struct tile_t : public node_t {
   virtual node_t * finalize();
 
   virtual void toGraphViz(std::ostream & out, std::string indent) const;
+  virtual void toJSON(std::ostream & out, std::string indent) const;
 
   virtual void collectLoops(std::vector<Descriptor::loop_t *> & loops, std::map<const loop_t *, Descriptor::loop_t *> & loop_translation_map) const;
   virtual void collectTiles(std::vector<Descriptor::tile_t *> & tiles, const std::map<const loop_t *, Descriptor::loop_t *> & loop_translation_map) const;

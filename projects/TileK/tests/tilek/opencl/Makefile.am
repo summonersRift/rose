@@ -51,7 +51,7 @@ check-test_0: test_0
 	./test_0
 
 clean-test_0:
-	rm -f test_0-host-kernel.c rose_test_0.c test_0-static.c
+	rm -f test_0-host-kernel.c test_0-opencl-kernel.cl rose_test_0.c test_0-static.c
 	rm -f rose_test_0.o test_0-host-kernel.o test_0-static.o
 	rm -f test_0
 
@@ -79,7 +79,7 @@ check-test_1: test_1
 	./test_1
 
 clean-test_1:
-	rm -f test_1-host-kernel.c rose_test_1.c test_1-static.c
+	rm -f test_1-host-kernel.c test_1-opencl-kernel.cl rose_test_1.c test_1-static.c
 	rm -f rose_test_1.o test_1-host-kernel.o test_1-static.o
 	rm -f test_1
 

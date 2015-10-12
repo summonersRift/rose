@@ -238,13 +238,18 @@ void block_t::toGraphViz(std::ostream & out, std::string indent) const {
     (*it)->toGraphViz(out, indent + "  ");
     out << indent + "  " << getGraphVizLabel() << " -> " << (*it)->getGraphVizLabel() << std::endl;
   }
+}
 
-  if (parent != NULL) {
-    out << indent + "  " << parent->getGraphVizLabel() << " -> " << getGraphVizLabel() << " [label=\"P\", contraint=false]" << std::endl;
+void block_t::toJSON(std::ostream & out, std::string indent) const {
+  out << indent << "[";
+  std::vector<node_t *>::const_iterator it = children.begin();
+  (*it)->toJSON(out, indent + "  ");it++;
+  for (; it != children.end(); it++) {
+    out << ",";
+    (*it)->toJSON(out, indent + "  ");
   }
-  else {
-    out << indent + "  " << parent->getGraphVizLabel() << " -> " << "node_null" << " [label=\"P\", contraint=false, color=red]" << std::endl;
-  }
+  out << std::endl;
+  out << indent << "]";
 }
 
 void cond_t::toGraphViz(std::ostream & out, std::string indent) const {
@@ -253,26 +258,36 @@ void cond_t::toGraphViz(std::ostream & out, std::string indent) const {
   out << indent + "  " << getGraphVizLabel() << " -> " << branch_true->getGraphVizLabel() << " [label=\"T\"]" << std::endl;
   branch_false->toGraphViz(out, indent + "  ");
   out << indent + "  " << getGraphVizLabel() << " -> " << branch_false->getGraphVizLabel() << " [label=\"F\"]" << std::endl;
+}
 
-  if (parent != NULL) {
-    out << indent + "  " << parent->getGraphVizLabel() << " -> " << getGraphVizLabel() << " [label=\"P\", contraint=false]" << std::endl;
-  }
-  else {
-    out << indent + "  " << parent->getGraphVizLabel() << " -> " << "node_null" << " [label=\"P\", contraint=false, color=red]" << std::endl;
-  }
+void cond_t::toJSON(std::ostream & out, std::string indent) const {
+  out << "{" << std::endl;
+  out << indent << "  \"type\":\"if\"," << std::endl;
+  out << indent << "  \"true\":";
+  branch_true->toJSON(out, indent + "  ");
+  out << "," << std::endl;
+  out << indent << "  \"false\":";
+  branch_false->toJSON(out, indent + "  ");
+  out << std::endl;
+  out << indent << "}";
 }
 
 void loop_t::toGraphViz(std::ostream & out, std::string indent) const {
   out << indent << getGraphVizLabel() << " [label=\"Loop#" << id << "\\niterator=" << iterator->get_name().getString() << "\\nlower=" << lower_bound->unparseToString() << "\\nupper=" << upper_bound->unparseToString() << "\\nstride=" << stride->unparseToString() << "\\n\"]" << std::endl;
   body->toGraphViz(out, indent + "  ");
   out << indent + "  " << getGraphVizLabel() << " -> " << body->getGraphVizLabel() << std::endl;
+}
 
-  if (parent != NULL) {
-    out << indent + "  " << parent->getGraphVizLabel() << " -> " << getGraphVizLabel() << " [label=\"P\", contraint=false]" << std::endl;
-  }
-  else {
-    out << indent + "  " << parent->getGraphVizLabel() << " -> " << "node_null" << " [label=\"P\", contraint=false, color=red]" << std::endl;
-  }
+void loop_t::toJSON(std::ostream & out, std::string indent) const {
+  out << "{" << std::endl;
+  out << indent << "  \"type\":\"loop\"," << std::endl;
+  out << indent << "  \"iterator\":\"" << iterator->get_name().getString() << "\"," << std::endl;
+  out << indent << "  \"lower_bound\":\"" << lower_bound->unparseToString() << "\"," << std::endl;
+  out << indent << "  \"upper_bound\":\"" << upper_bound->unparseToString() << "\"," << std::endl;
+  out << indent << "  \"stride\":\"" << stride->unparseToString() << "\"," << std::endl;
+  out << indent << "  \"body\":";
+  body->toJSON(out, indent + "  ");
+  out << indent << "}";
 }
 
 void tile_t::toGraphViz(std::ostream & out, std::string indent) const {
@@ -288,24 +303,286 @@ void tile_t::toGraphViz(std::ostream & out, std::string indent) const {
     next_node->toGraphViz(out, indent + "  ");
     out << indent + "  " << getGraphVizLabel() << " -> " << next_node->getGraphVizLabel() << std::endl;
   }
+}
 
-  if (parent != NULL) {
-    out << indent + "  " << parent->getGraphVizLabel() << " -> " << getGraphVizLabel() << " [label=\"P\", contraint=false]" << std::endl;
+void tile_t::toJSON(std::ostream & out, std::string indent) const {
+  out << "{" << std::endl;
+  out << indent << "  \"type\":\"tile\"," << std::endl;
+  out << indent << "  \"id\":" << id << "," << std::endl;
+  out << indent << "  \"kind\":" << kind << "," << std::endl;
+  out << indent << "  \"order\":" << order << "," << std::endl;
+  out << indent << "  \"loop->id\":" << loop->id << "," << std::endl;
+  out << indent << "  \"param\":" << param << "," << std::endl;
+  out << indent << "  \"tile_id\":" << tile_id << "," << std::endl;
+  if (param != NULL)
+    out << indent << "  \"param\":\"" << param->unparseToString() << "\"," << std::endl;
+  if (next_tile != NULL) {
+    out << indent << "  \"next_tile\":";
+    next_tile->toJSON(out, indent + "  ");
+    out << std::endl;
   }
-  else {
-    out << indent + "  " << parent->getGraphVizLabel() << " -> " << "node_null" << " [label=\"P\", contraint=false, color=red]" << std::endl;
+  if (next_node != NULL) {
+    out << indent << "  \"next_node\":";
+    next_node->toJSON(out, indent + "  ");
+    out << std::endl;
   }
+  out << indent << "}";
+}
+
+struct feature_vector_SgNode_t {
+  std::map<VariantT, size_t> node_histogram;
+
+  std::map<size_t, size_t> read_by_dimension; // scalar dim == 0
+  std::map<size_t, size_t> write_by_dimension;
+
+  std::map<VariantT, size_t> operation_histogram;
+  std::map<VariantT, size_t> index_histogram;
+
+  std::map<VariantT, std::string> variant_label;
+
+  void collect(
+    SgNode * node, std::string info_indent = std::string(),
+    bool is_lvalue = false, bool is_index = false, size_t lvl_avalue = 0
+  );
+
+  void toGraphViz(std::ostream & out, std::string indent);
+
+  void mapVariantToJSON(const std::map<VariantT, size_t> & map, std::string name, std::ostream & out, const std::string & indent);
+  void mapSizeToJSON(const std::map<size_t, size_t> & map, std::string name, std::ostream & out, const std::string & indent);
+
+  void toJSON(std::ostream & out, std::string indent);
+};
+
+void feature_vector_SgNode_t::toGraphViz(std::ostream & out, std::string indent) {
+  std::map<VariantT, size_t>::const_iterator varit;
+  std::map<size_t, size_t>::const_iterator dimit;
+  out << "node_histogram: ";
+  for (varit = node_histogram.begin(); varit != node_histogram.end(); varit++) {
+    out << variant_label[varit->first] << ":" << varit->second << ",";
+  }
+  out << "\\n";
+  out << "read_by_dimension: ";
+  for (dimit = read_by_dimension.begin(); dimit != read_by_dimension.end(); dimit++) {
+    out << dimit->first << ":" << dimit->second << ",";
+  }
+  out << "\\n";
+  out << "write_by_dimension: ";
+  for (dimit = write_by_dimension.begin(); dimit != write_by_dimension.end(); dimit++) {
+    out << dimit->first << ":" << dimit->second << ",";
+  }
+  out << "\\n";
+  out << "operation_histogram: ";
+  for (varit = operation_histogram.begin(); varit != operation_histogram.end(); varit++) {
+    out << variant_label[varit->first] << ":" << varit->second << ",";
+  }
+  out << "\\n";
+  out << "index_histogram: ";
+  for (varit = index_histogram.begin(); varit != index_histogram.end(); varit++) {
+    out << variant_label[varit->first] << ":" << varit->second << ",";
+  }
+  out << "\\n";
+}
+
+void feature_vector_SgNode_t::mapVariantToJSON(const std::map<VariantT, size_t> & map, std::string name, std::ostream & out, const std::string & indent) {
+  out << indent << "\"" << name << "\": {";
+  std::map<VariantT, size_t>::const_iterator it = map.begin();
+  if (it != map.end()) {
+    out << "\"" << variant_label[it->first] << "\":" << it->second;
+    it++;
+    for (; it != map.end(); it++) {
+      out << ", \"" << variant_label[it->first] << "\":" << it->second;
+    }
+  }
+  out << "}";
+}
+
+void feature_vector_SgNode_t::mapSizeToJSON(const std::map<size_t, size_t> & map, std::string name, std::ostream & out, const std::string & indent) {
+  out << indent << "\"" << name << "\": {";
+  std::map<size_t, size_t>::const_iterator it = map.begin();
+  if (it != map.end()) {
+    out << "\"" << it->first << "\":" << it->second;
+    it++;
+    for (; it != map.end(); it++) {
+      out << ", \"" << it->first << "\":" << it->second;
+    }
+  }
+  out << "}";
+}
+
+void feature_vector_SgNode_t::toJSON(std::ostream & out, std::string indent) {
+  std::map<VariantT, size_t>::const_iterator varit;
+  std::map<size_t, size_t>::const_iterator dimit;
+  out << "{" << std::endl;
+  mapVariantToJSON(node_histogram, "node_histogram", out, indent + "  ");
+  out << "," << std::endl;
+  mapSizeToJSON(read_by_dimension, "read_by_dimension", out, indent + "  ");
+  out << "," << std::endl;
+  mapSizeToJSON(write_by_dimension, "write_by_dimension", out, indent + "  ");
+  out << "," << std::endl;
+  mapVariantToJSON(operation_histogram, "operation_histogram", out, indent + "  ");
+  out << "," << std::endl;
+  mapVariantToJSON(index_histogram, "index_histogram", out, indent + "  ");
+  out << std::endl;
+  out << indent << "}";
+}
+
+void feature_vector_SgNode_t::collect(
+  SgNode * node, std::string info_indent,
+  bool is_lvalue, bool is_index, size_t lvl_avalue
+) {
+#if VERBOSE
+  std::cerr << info_indent << "|+ " << node->unparseToString() << std::endl;
+  std::cerr << info_indent << "|+ " << node->class_name() << " (" << node << ")" << std::endl;
+  std::cerr << info_indent << "|+ is_lvalue  = " << is_lvalue << " , is_index   = " << is_index << " , lvl_avalue  = " << lvl_avalue << std::endl;
+#endif
+
+  VariantT variant = node->variantT();
+  node_histogram[variant] += 1;
+  variant_label[variant] = node->class_name();
+
+  SgStatement * stmt = isSgStatement(node);
+  SgExpression * expr = isSgExpression(node);
+
+  if (stmt != NULL) {
+    assert(is_lvalue == false);
+    assert(is_index  == false);
+
+    SgExprStatement * expr_stmt = isSgExprStatement(stmt);
+
+    if (expr_stmt != NULL) {
+      collect(expr_stmt->get_expression(), info_indent + "    ", is_lvalue, is_index, lvl_avalue);
+      return;
+    }
+  }
+  else if (expr != NULL) {
+    SgUnaryOp * una_op = isSgUnaryOp(expr);
+    SgBinaryOp * bin_op = isSgBinaryOp(expr);
+    SgFunctionCallExp * func_call_expr = isSgFunctionCallExp(expr);
+    SgConditionalExp * cond_expr = isSgConditionalExp(expr);
+    SgValueExp * value_expr = isSgValueExp(expr);
+    SgVarRefExp * varref_expr = isSgVarRefExp(expr);
+    SgInitializer * init_expr = isSgInitializer(expr);
+
+    if (una_op != NULL) {
+      SgExpression * operand_expr = una_op->get_operand_i();
+
+#if VERBOSE
+      std::cerr << info_indent << "|| operand = " << operand_expr->class_name() << " (" << operand_expr << ")" << std::endl;
+#endif
+
+      collect(operand_expr, info_indent + "    ", is_lvalue, is_index, lvl_avalue);
+      return;
+    }
+    else if (bin_op != NULL) {
+      SgPntrArrRefExp * pntr_arrref_expr = isSgPntrArrRefExp(bin_op);
+      SgAssignOp * assign_op = isSgAssignOp(bin_op);
+      SgCompoundAssignOp * compound_assign_op = isSgCompoundAssignOp(bin_op);
+
+      SgExpression * lhs_expr = bin_op->get_lhs_operand_i();
+      SgExpression * rhs_expr = bin_op->get_rhs_operand_i();
+
+#if VERBOSE
+      std::cerr << info_indent << "|| lhs_expr = " << lhs_expr->class_name() << " (" << lhs_expr << ")" << std::endl;
+      std::cerr << info_indent << "|| rhs_expr = " << rhs_expr->class_name() << " (" << rhs_expr << ")" << std::endl;
+#endif
+
+      if (pntr_arrref_expr != NULL) {
+        assert(lvl_avalue == 0); // (a[0])[0]
+        pntr_arrref_expr = isSgPntrArrRefExp(lhs_expr);
+        while (pntr_arrref_expr != NULL) {
+#if VERBOSE
+          std::cerr << info_indent << "|| index[" << lvl_avalue++ << "] = " << rhs_expr->class_name() << " (" << rhs_expr << ")" << std::endl;
+#endif
+          collect(rhs_expr, info_indent + "    ", is_lvalue, true, false);
+
+          pntr_arrref_expr = isSgPntrArrRefExp(lhs_expr);
+          if (pntr_arrref_expr != NULL) {
+            lhs_expr = pntr_arrref_expr->get_lhs_operand_i();
+            rhs_expr = pntr_arrref_expr->get_rhs_operand_i();
+          }
+        }
+        collect(rhs_expr, info_indent + "    ", is_lvalue, is_index, lvl_avalue);
+      }
+      else if (assign_op != NULL) {
+        assert(!is_index);       // a[i=0]
+        assert(lvl_avalue == 0); // (a=b)[0]
+        collect(lhs_expr, info_indent + "    ",      true,    false, lvl_avalue);
+        collect(rhs_expr, info_indent + "    ", is_lvalue,    false, lvl_avalue);
+      }
+      else if (compound_assign_op != NULL) {
+        assert(!is_index);       // a[i+=1]
+        assert(lvl_avalue == 0); // (a+=b)[0]
+        collect(lhs_expr, info_indent + "    ",      true,    false, lvl_avalue);
+        collect(lhs_expr, info_indent + "    ", is_lvalue,    false, lvl_avalue);
+        collect(rhs_expr, info_indent + "    ", is_lvalue,    false, lvl_avalue);
+
+        operation_histogram[variant] += 1;
+        index_histogram[variant] += 1;
+      }
+      else {
+        collect(lhs_expr, info_indent + "    ", is_lvalue, is_index, lvl_avalue);
+        collect(rhs_expr, info_indent + "    ", is_lvalue, is_index, lvl_avalue);
+
+        operation_histogram[variant] += 1;
+        index_histogram[variant] += 1;
+      }
+
+      return;
+    }
+    else if (func_call_expr != NULL) {
+      // fail
+    }
+    else if (cond_expr != NULL) {
+      SgExpression * conditional_exp = cond_expr->get_conditional_exp();
+      SgExpression * true_exp = cond_expr->get_true_exp();
+      SgExpression * false_exp = cond_expr->get_false_exp();
+
+#if VERBOSE
+      std::cerr << info_indent << "|| conditional_exp = " << conditional_exp->class_name() << " (" << conditional_exp << ")" << std::endl;
+      std::cerr << info_indent << "|| true_exp = " << true_exp->class_name() << " (" << true_exp << ")" << std::endl;
+      std::cerr << info_indent << "|| false_exp = " << false_exp->class_name() << " (" << false_exp << ")" << std::endl;
+#endif
+
+      collect(conditional_exp, info_indent + "    ", is_lvalue, is_index, lvl_avalue);
+      collect(       true_exp, info_indent + "    ", is_lvalue, is_index, lvl_avalue);
+      collect(      false_exp, info_indent + "    ", is_lvalue, is_index, lvl_avalue);
+    }
+    else if (value_expr != NULL) {
+      operation_histogram[variant] += 1;
+      index_histogram[variant] += 1;
+      return;
+    }
+    else if (varref_expr != NULL) {
+      if (is_lvalue)
+        write_by_dimension[lvl_avalue] += 1;
+      else
+        read_by_dimension[lvl_avalue] += 1;
+      return;
+    }
+    else if (init_expr != NULL) {
+      // fail
+    }
+//  return;
+  }
+
+  std::cerr << "[Error] (collect) Unknown type of SgNode: " << node->class_name() << std::endl;
+  assert(false);
 }
 
 void stmt_t::toGraphViz(std::ostream & out, std::string indent) const {
-  out << indent << getGraphVizLabel() << " [label=\"" << statement->unparseToString() << "\"]" << std::endl;
+  out << indent << getGraphVizLabel() << " [label=\"";
+  {
+    feature_vector_SgNode_t fv_node;
+    fv_node.collect(statement, "[Info] (feature_vector_SgNode_t::collect) ");
+    fv_node.toGraphViz(out, indent);
+  }
+  out << "\"]" << std::endl;
+}
 
-  if (parent != NULL) {
-    out << indent + "  " << parent->getGraphVizLabel() << " -> " << getGraphVizLabel() << " [label=\"P\", contraint=false]" << std::endl;
-  }
-  else {
-    out << indent + "  " << parent->getGraphVizLabel() << " -> " << "node_null" << " [label=\"P\", contraint=false, color=red]" << std::endl;
-  }
+void stmt_t::toJSON(std::ostream & out, std::string indent) const {
+  feature_vector_SgNode_t fv_node;
+  fv_node.collect(statement, "[Info] (feature_vector_SgNode_t::collect) ");
+  fv_node.toJSON(out, indent);
 }
 
 void block_t::collectLoops(std::vector<Descriptor::loop_t *> & loops, std::map<const loop_t *, Descriptor::loop_t *> & loop_translation_map) const {

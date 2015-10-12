@@ -85,6 +85,7 @@ class Generator {
     API::call_interface_t call_interface;
 
     std::map<Kernel::kernel_t *, size_t> kernel_map;
+    std::map<size_t, Kernel::kernel_t *> kernel_rmap;
 
   protected:
     void loadModel(const std::string & klt_inc_dir);
@@ -119,6 +120,8 @@ class Generator {
   public:
     size_t getKernelID(Kernel::kernel_t * kernel);
     size_t getKernelID(Kernel::kernel_t * kernel) const;
+
+    Kernel::kernel_t * getKernelByID(size_t id) const;
 
     template <class language_tpl>
     SgBasicBlock * instanciateOnHost(typename language_tpl::directive_t * directive, Kernel::kernel_t * original, const std::vector<Descriptor::loop_t *> & loops) const;
@@ -266,48 +269,6 @@ bool Generator::createTiles(
   }
   return true;
 }
-
-namespace Utils {
-
-template <class language_tpl>
-void tiling_info_t<language_tpl>::toGraphViz(std::ostream & out) const {
-  // NOP ?
-}
-
-template <class language_tpl>
-void subkernel_result_t<language_tpl>::toGraphViz(std::ostream & out) const {
-  out << "digraph looptree {" << std::endl;
-  out << "  subgraph cluster_original {" << std::endl;
-  original->root->toGraphViz(out, "    ");
-  out << "  }" << std::endl;
-/*
-  size_t tiled_kernel_cnt = 0;
-  typename std::map<tiling_info_t<language_tpl> *, kernel_deps_map_t>::const_iterator it_tiled_kernel;
-  for (it_tiled_kernel = tiled.begin(); it_tiled_kernel != tiled.end(); it_tiled_kernel++) {
-    std::map<KLT::Kernel::kernel_t *, KLT::Descriptor::kernel_t *> translation_map;
-    std::map<KLT::Descriptor::kernel_t *, KLT::Kernel::kernel_t *> rtranslation_map;
-
-    tiling_info_t<language_tpl> * tiling_info = it_tiled_kernel->first;
-    const kernel_deps_map_t & subkernels = it_tiled_kernel->second;
-
-    out << "  subgraph cluster_k_" << tiled_kernel_cnt++ << " {" << std::endl;
-
-    tiling_info->toGraphViz(out);
-
-    size_t subkernel_cnt = 0;
-    kernel_deps_map_t::const_iterator it_kernel;
-    for (it_kernel = subkernels.begin(); it_kernel != subkernels.end(); it_kernel++) {
-      out << "    subgraph cluster_sk_" << subkernel_cnt++ << " {" << std::endl;
-      it_kernel->first->root->toGraphViz(out, "      ");
-      out << "    }" << std::endl;
-      out << "  }" << std::endl;
-    }
-    out << "}" << std::endl;
-  }
-*/
-}
-
-} // namespace KLT::Utils
 
 } // namespace KLT
 

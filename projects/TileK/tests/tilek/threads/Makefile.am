@@ -23,7 +23,7 @@ KLT_RTL=$(top_builddir)/src/midend/KLT/lib/rtl/libKLT-RTL-Threads.la
 ###################################################################################################
 
 ROSE_FLAGS= # -DSKIP_ROSE_BUILTIN_DECLARATIONS
-TILEK_FLAGS=--tilek-target=threads,opencl -I$(KLT_INC)
+TILEK_FLAGS=--tilek-target=threads -I$(KLT_INC)
 C_FLAGS=-O0 -g -I$(KLT_INC)
 LD_FLAGS=-lrt $(KLT_RTL)
 
@@ -54,8 +54,8 @@ check-test_0: test_0
 	./test_0
 
 clean-test_0:
-	rm -f test_0-host-kernel.c rose_test_0.c test_0-static.c
-	rm -f rose_test_0.o test_0-host-kernel.o test_0-static.o
+	rm -f test_0-host-kernel.c test_0-threads-kernel.c rose_test_0.c test_0-static.c
+	rm -f test_0-host-kernel.o test_0-threads-kernel.o rose_test_0.o test_0-static.o
 	rm -f test_0
 
 ###################################################################################################
@@ -85,8 +85,8 @@ check-test_1: test_1
 	./test_1
 
 clean-test_1:
-	rm -f test_1-host-kernel.c rose_test_1.c test_1-static.c
-	rm -f rose_test_1.o test_1-host-kernel.o test_1-static.o
+	rm -f test_1-host-kernel.c test_1-threads-kernel.c rose_test_1.c test_1-static.c
+	rm -f test_1-host-kernel.o test_1-threads-kernel.o rose_test_1.o test_1-static.o
 	rm -f test_1
 
 ###################################################################################################

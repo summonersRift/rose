@@ -194,6 +194,8 @@ struct SubKernelDesc {
 
 /* OUT:
       struct klt_subkernel_desc_t {
+        size_t id;
+        enum klt_device_e device_kind;
         struct klt_loop_container_t loop;
         int num_params;
         int * param_ids;

@@ -24,10 +24,13 @@
 #include "KLT/Core/api.hpp"
 #include "KLT/Core/data.hpp"
 
-#ifndef OUTPUT_SUBKERNELS_GRAPHVIZ
-#define OUTPUT_SUBKERNELS_GRAPHVIZ 1
+#ifndef OUTPUT_KERNELS_GRAPHVIZ
+#define OUTPUT_KERNELS_GRAPHVIZ 1
 #endif
-#if OUTPUT_SUBKERNELS_GRAPHVIZ
+#ifndef OUTPUT_KERNELS_JSON
+#define OUTPUT_KERNELS_JSON 1
+#endif
+#if OUTPUT_KERNELS_GRAPHVIZ || OUTPUT_KERNELS_JSON
 #include <iostream>
 #include <fstream>
 #include <sstream>
@@ -75,6 +78,8 @@ class Compiler : public ::DLX::Compiler<language_tpl> {
 
     std::string klt_rtl_path;
 
+    std::string basename;
+
     KLT::Generator generator;
 
     ::KLT::Descriptor::target_kind_e threads_target;
@@ -84,11 +89,12 @@ class Compiler : public ::DLX::Compiler<language_tpl> {
     Compiler(
       SgProject * project,
       const std::string & klt_rtl_path_,
-      const std::string & basename,
+      const std::string & basename_,
       ::KLT::Descriptor::target_kind_e threads_target_,
       ::KLT::Descriptor::target_kind_e accelerator_target_
     ) :
-      ::DLX::Compiler<language_tpl>(), driver(project), model_builder(driver), klt_rtl_path(klt_rtl_path_),
+      ::DLX::Compiler<language_tpl>(), driver(project), model_builder(driver),
+      klt_rtl_path(klt_rtl_path_), basename(basename_),
       generator(KLT::Generator(
         driver, model_builder, klt_rtl_path + "/include", basename,
         (threads_target_     == ::KLT::Descriptor::e_target_threads) ? true : false,
@@ -152,7 +158,8 @@ class Compiler : public ::DLX::Compiler<language_tpl> {
     void generateAllKernels(
       const std::map<directive_t *, SgForStatement *> & loop_directive_map,
       const std::map<directive_t *, extracted_kernel_t> & kernel_directives_map,
-      kernel_directive_translation_map_t & kernel_directive_translation_map
+      kernel_directive_translation_map_t & kernel_directive_translation_map,
+      std::map<size_t, std::map<size_t, KLT::Kernel::kernel_t *> > & all_subkernels
     );
 
   public:
@@ -397,7 +404,8 @@ template <class language_tpl>
 void Compiler<language_tpl>::generateAllKernels(
   const std::map<directive_t *, SgForStatement *> & loop_directive_map,
   const std::map<directive_t *, extracted_kernel_t> & kernel_directives_map,
-  kernel_directive_translation_map_t & kernel_directive_translation_map
+  kernel_directive_translation_map_t & kernel_directive_translation_map,
+  std::map<size_t, std::map<size_t, KLT::Kernel::kernel_t *> > & all_subkernels
 ) {
 
   typename std::map<directive_t *, extracted_kernel_t>::const_iterator it_kernel_directive;
@@ -407,6 +415,10 @@ void Compiler<language_tpl>::generateAllKernels(
 
     KLT::Kernel::kernel_t * kernel = it_kernel_directive->second.first;
     assert(kernel != NULL);
+
+    std::map<size_t, KLT::Kernel::kernel_t *> & kernel_subkernels = all_subkernels.insert(std::pair<size_t, std::map<size_t, KLT::Kernel::kernel_t *> >(
+                                                                        generator.getKernelID(kernel), std::map<size_t, KLT::Kernel::kernel_t *>()
+                                                                    )).first->second;
 
     // Link directives to loop-ID through SgForStatement
     std::map<directive_t *, size_t> directive_loop_id_map;
@@ -462,6 +474,8 @@ void Compiler<language_tpl>::generateAllKernels(
         // Call builder
         KLT::Descriptor::kernel_t * result = driver.build<KLT::Kernel::kernel_t>(kernel_desc);
 
+        kernel_subkernels.insert(std::pair<size_t, KLT::Kernel::kernel_t *>(result->id, subkernel));
+
         // Insert result in containers
         kernels.insert(std::pair<KLT::Descriptor::kernel_t *, std::vector<KLT::Descriptor::kernel_t *> >(result, std::vector<KLT::Descriptor::kernel_t *>()));
         translation_map.insert(std::pair<KLT::Kernel::kernel_t *, KLT::Descriptor::kernel_t *>(subkernel, result));
@@ -480,6 +494,7 @@ template <class language_tpl>
 void Compiler<language_tpl>::compile(SgNode * node) {
   std::map<directive_t *, extracted_dataenv_t> dataenv_directives_map;
   kernel_directive_translation_map_t kernel_directive_translation_map;
+  std::map<size_t, std::map<size_t, KLT::Kernel::kernel_t *> > all_subkernels;
 
   std::map<SgScopeStatement *, SgScopeStatement *> stmt_replacement_map;
 
@@ -494,19 +509,86 @@ void Compiler<language_tpl>::compile(SgNode * node) {
     extractDirectives(::DLX::Compiler<language_tpl>::frontend.directives, loop_directive_map, kernel_directives_map, dataenv_directives_map);
 
     // Apply tiling (and other transformations). Generate multiple versions of each kernel. Each version can be made of multiple subkernels.
-    generateAllKernels(loop_directive_map, kernel_directives_map, kernel_directive_translation_map);
+    generateAllKernels(loop_directive_map, kernel_directives_map, kernel_directive_translation_map, all_subkernels);
   }
+
+#if OUTPUT_KERNELS_GRAPHVIZ
+  {
+    std::map<size_t, std::map<size_t, KLT::Kernel::kernel_t *> >::const_iterator it_kernel;
+    std::map<size_t, KLT::Kernel::kernel_t *>::const_iterator it_subkernel;
+    for (it_kernel = all_subkernels.begin(); it_kernel != all_subkernels.end(); it_kernel++) {
+      size_t kernel_id = it_kernel->first;
+      {
+        Kernel::kernel_t * kernel = generator.getKernelByID(kernel_id);
+
+        std::ostringstream kernel_oss; kernel_oss << basename << "_kernel_" << kernel_id << ".dot";
+        std::ofstream kernel_out(kernel_oss.str().c_str(), std::ofstream::out);
+
+        kernel_out << "digraph kernel_" << kernel_id << " {" << std::endl;
+        kernel_out << "  rankdir=TB;" << std::endl;
+        kernel_out << "  label=\"Kernel #" << kernel_id << ": Original LoopTree\";" << std::endl;
+
+        kernel->root->toGraphViz(kernel_out, "  ");
+
+        kernel_out << "}" << std::endl;
+
+        kernel_out.close();
+      }
+
+      const std::map<size_t, KLT::Kernel::kernel_t *> & kernel_subkernels = it_kernel->second;
+      for (it_subkernel = kernel_subkernels.begin(); it_subkernel != kernel_subkernels.end(); it_subkernel++) {
+        size_t subkernel_id = it_subkernel->first;
+        KLT::Kernel::kernel_t * subkernel = it_subkernel->second;
+
+        std::ostringstream subkernel_oss; subkernel_oss << basename << "_kernel_" << kernel_id << "_subkernel_" << subkernel_id << ".dot";
+        std::ofstream subkernel_out(subkernel_oss.str().c_str(), std::ofstream::out);
+
+        subkernel_out << "digraph kernel_" << kernel_id << "_subkernel_" << subkernel_id << " {" << std::endl;
+        subkernel_out << "  rankdir=TB;" << std::endl;
+        subkernel_out << "  label=\"Kernel #" << kernel_id << ": Subkernel #" << subkernel_id << "\";" << std::endl;
+
+        subkernel->root->toGraphViz(subkernel_out, "  ");
+
+        subkernel_out << "}" << std::endl;
+
+        subkernel_out.close();
+
+      }
+    }
+  }
+#endif
+
+#if OUTPUT_KERNELS_JSON
+  {
+    std::map<size_t, std::map<size_t, KLT::Kernel::kernel_t *> >::const_iterator it_kernel;
+    std::map<size_t, KLT::Kernel::kernel_t *>::const_iterator it_subkernel;
+    for (it_kernel = all_subkernels.begin(); it_kernel != all_subkernels.end(); it_kernel++) {
+      size_t kernel_id = it_kernel->first;
+      {
+        Kernel::kernel_t * kernel = generator.getKernelByID(kernel_id);
+
+        std::ostringstream kernel_oss; kernel_oss << basename << "_kernel_" << kernel_id << ".json";
+        std::ofstream kernel_out(kernel_oss.str().c_str(), std::ofstream::out);
+        kernel->root->toJSON(kernel_out, "");
+        kernel_out.close();
+      }
+
+      const std::map<size_t, KLT::Kernel::kernel_t *> & kernel_subkernels = it_kernel->second;
+      for (it_subkernel = kernel_subkernels.begin(); it_subkernel != kernel_subkernels.end(); it_subkernel++) {
+        size_t subkernel_id = it_subkernel->first;
+        KLT::Kernel::kernel_t * subkernel = it_subkernel->second;
+
+        std::ostringstream subkernel_oss; subkernel_oss << basename << "_kernel_" << kernel_id << "_subkernel_" << subkernel_id << ".json";
+        std::ofstream subkernel_out(subkernel_oss.str().c_str(), std::ofstream::out);
+        subkernel->root->toJSON(subkernel_out, "");
+        subkernel_out.close();
+      }
+    }
+  }
+#endif
 
   {
     typename kernel_directive_translation_map_t::const_iterator it_directive;
-#if OUTPUT_SUBKERNELS_GRAPHVIZ
-    for (it_directive = kernel_directive_translation_map.begin(); it_directive != kernel_directive_translation_map.end(); it_directive++) {
-      std::ostringstream oss; oss << "subkernels_" << it_directive->first << ".dot";
-      std::ofstream out(oss.str().c_str(), std::ofstream::out);
-      it_directive->second.toGraphViz(out);
-      out.close();
-    }
-#endif
     // Replace kernel directives by host-code for generated kernel
     for (it_directive = kernel_directive_translation_map.begin(); it_directive != kernel_directive_translation_map.end(); it_directive++) {
       directive_t * directive = it_directive->first;
@@ -542,12 +624,6 @@ void Compiler<language_tpl>::compile(SgNode * node) {
 
   // Add the description of this kernel to the static data (all subkernels of all versions)
   generator.addToStaticData<language_tpl>(kernel_directive_translation_map);
-
-/*
-char * opencl_kernel_file = "/media/ssd/projects/rose-release-2015/rose/projects/TileK/tests/rtl/opencl/kernel_0.cl";
-char * opencl_kernel_options = "-I/media/ssd/projects/rose-release-2015/rose/src/midend/KLT/include/";
-char * opencl_klt_runtime_lib = "/media/ssd/projects/rose-release-2015/rose/src/midend/KLT/lib/rtl/context.c";
-*/
 
   if (accelerator_target == ::KLT::Descriptor::e_target_opencl) {
     MFB::file_id_t static_file_id = generator.getStaticFileID();

@@ -26,7 +26,7 @@ int loops_ids_k0_v0_0[1] = {0};
 int  deps_ids_k0_v0_0[0] = {};
 
 struct klt_subkernel_desc_t subkernels_k0_v0[1] = {
-  { e_klt_opencl, {1, 3, loops_k0_v0_0}, 2, param_ids_k0_v0_0, 1, data_ids_k0_v0_0, 1, loops_ids_k0_v0_0, 0, deps_ids_k0_v0_0, opencl_kernel_0 }
+  { 0, e_klt_opencl, {1, 3, loops_k0_v0_0}, 2, param_ids_k0_v0_0, 1, data_ids_k0_v0_0, 1, loops_ids_k0_v0_0, 0, deps_ids_k0_v0_0, opencl_kernel_0 }
 };
 
 struct klt_version_desc_t versions_k0[1] = {

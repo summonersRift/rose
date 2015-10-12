@@ -6,7 +6,7 @@ include $(top_srcdir)/config/Makefile.for.ROSE.includes.and.libs
 check-local: check-test_0 check-test_1
 
 clean-local: clean-test_0 clean-test_1
-	rm  -f *.dot
+	rm  -f *.dot *.svg *.json
 
 ###################################################################################################
 
@@ -23,7 +23,7 @@ KLT_RTL=$(top_builddir)/src/midend/KLT/lib/rtl/libKLT-RTL-Host.la
 ###################################################################################################
 
 ROSE_FLAGS= # -DSKIP_ROSE_BUILTIN_DECLARATIONS
-TILEK_FLAGS=--tilek-target=threads -I$(KLT_INC)
+TILEK_FLAGS=-I$(KLT_INC)
 C_FLAGS=-O0 -g -I$(KLT_INC)
 LD_FLAGS=-lrt $(KLT_RTL)
 
@@ -51,7 +51,7 @@ check-test_0: test_0
 
 clean-test_0:
 	rm -f test_0-host-kernel.c rose_test_0.c test_0-static.c
-	rm -f rose_test_0.o test_0-host-kernel.o test_0-static.o
+	rm -f test_0-host-kernel.o rose_test_0.o test_0-static.o
 	rm -f test_0
 
 ###################################################################################################
@@ -78,7 +78,7 @@ check-test_1: test_1
 
 clean-test_1:
 	rm -f test_1-host-kernel.c rose_test_1.c test_1-static.c
-	rm -f rose_test_1.o test_1-host-kernel.o test_1-static.o
+	rm -f test_1-host-kernel.o rose_test_1.o test_1-static.o
 	rm -f test_1
 
 ###################################################################################################

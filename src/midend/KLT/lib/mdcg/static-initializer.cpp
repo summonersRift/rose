@@ -325,52 +325,56 @@ SgExpression * SubKernelDesc::createFieldInitializer(
 ) {
   switch (field_id) {
     case 0:
+    { // size_t id;
+      return SageBuilder::buildIntVal(input.first->id);
+    }
+    case 1:
     { // enum klt_device_e device_kind;
       assert(input.first->target != ::KLT::Descriptor::e_target_unknown);
       return SageBuilder::buildIntVal(input.first->target);
     }
-    case 1:
+    case 2:
     { // struct klt_loop_container_t loop;
       ::MDCG::Model::class_t field_class = element->node->getBaseClass("loop", "klt_loop_container_t"); assert(field_class != NULL);
       return ::MDCG::Tools::StaticInitializer::createInitializer<LoopContainer>(driver, field_class, *input.first, scope, file_id, prepend);
     }
-    case 2:
+    case 3:
     { // int num_params;
       return SageBuilder::buildIntVal(input.first->parameters.size());
     }
-    case 3:
+    case 4:
     { // int * param_ids;
       std::ostringstream decl_name; decl_name << "ids_param_" << input.first;
       return createParamIds(driver, decl_name.str(), scope, file_id, prepend, input.first->parameters);
     }
-    case 4:
+    case 5:
     { // int num_data;
       return SageBuilder::buildIntVal(input.first->data.size());
     }
-    case 5:
+    case 6:
     { // int * data_ids;
       std::ostringstream decl_name; decl_name << "ids_data_" << input.first;
       return createDataIds(driver, decl_name.str(), scope, file_id, prepend, input.first->data);
     }
-    case 6:
+    case 7:
     { // int num_loops;
       return SageBuilder::buildIntVal(input.first->loops.size());
     }
-    case 7:
+    case 8:
     { // int * loop_ids;
       std::ostringstream decl_name; decl_name << "ids_loop_" << input.first;
       return createLoopIds(driver, decl_name.str(), scope, file_id, prepend, input.first->loops);
     }
-    case 8:
+    case 9:
     { // int num_deps;
       return SageBuilder::buildIntVal(input.second.size());
     }
-    case 9:
+    case 10:
     { // int * deps_ids;
       std::ostringstream decl_name; decl_name << "ids_deps_" << input.first;
       return createDepsIds(driver, decl_name.str(), scope, file_id, prepend, input.second);
     }
-    case 10:
+    case 11:
     { // void * descriptor;
       assert(element->node->type != NULL);
       assert(element->node->type->node->kind == ::MDCG::Model::node_t< ::MDCG::Model::e_model_type>::e_class_type);

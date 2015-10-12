@@ -20,6 +20,7 @@ struct klt_threads_workload_t {
 #endif
 
 struct klt_subkernel_desc_t {
+  size_t id;
   enum klt_device_e device_kind;
   struct klt_loop_container_t loop;
   int num_params;

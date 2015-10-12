@@ -31,7 +31,7 @@ Generator::Generator(
   host_kernel_file_id(driver.create(boost::filesystem::path(host_kernel_filename))),
   target_threads(target_threads_),
   threads_kernel_filename(basename + "-threads-kernel.c"),
-  threads_kernel_file_id(driver.create(boost::filesystem::path(threads_kernel_filename))),
+  threads_kernel_file_id(target_threads ? driver.create(boost::filesystem::path(threads_kernel_filename)) : -1),
   target_opencl(target_opencl_),
   opencl_kernel_filename(basename + "-opencl-kernel.cl"),
   opencl_kernel_file_id(target_opencl ? driver.create(boost::filesystem::path(opencl_kernel_filename)) : -1),
@@ -41,7 +41,7 @@ Generator::Generator(
   host_api(),
   kernel_api(),
   call_interface(driver, &kernel_api),
-  kernel_map()
+  kernel_map(), kernel_rmap()
 {
   std::cerr << "[Info] Create KLT::Core::Generator with " << target_threads << target_opencl << target_cuda << std::endl;
 
@@ -138,6 +138,7 @@ size_t Generator::getKernelID(Kernel::kernel_t * kernel) {
   if (it == kernel_map.end()) {
     size_t id = kernel_map.size();
     kernel_map.insert(std::pair<Kernel::kernel_t *, size_t>(kernel, id));
+    kernel_rmap.insert(std::pair<size_t, Kernel::kernel_t *>(id, kernel));
     return id;
   }
   else return it->second;
@@ -146,6 +147,12 @@ size_t Generator::getKernelID(Kernel::kernel_t * kernel) {
 size_t Generator::getKernelID(Kernel::kernel_t * kernel) const {
   std::map<Kernel::kernel_t *, size_t>::const_iterator it = kernel_map.find(kernel);
   assert(it != kernel_map.end());
+  return it->second;
+}
+
+Kernel::kernel_t * Generator::getKernelByID(size_t id) const {
+  std::map<size_t, Kernel::kernel_t *>::const_iterator it = kernel_rmap.find(id);
+  assert(it != kernel_rmap.end());
   return it->second;
 }
 
