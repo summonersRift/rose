@@ -365,16 +365,71 @@ void klt_execute_kernel(struct klt_kernel_t * kernel) {
 #endif /* KLT_KERNEL_TIMING */
 }
 
-void klt_dbg_dump_kernel(int idx) {
-  // TODO
+void klt_dbg_dump_kernel(size_t idx) {
+  size_t i, j, k, l;
+
+  printf("*\n");
+  printf("* Kernel #%zd\n", idx);
+  printf("*\n");
+
+  printf("* [%zd].num_parameters = %d\n", idx, klt_kernel_desc[idx].data.num_param);
+  for (i = 0; i < klt_kernel_desc[idx].data.num_param; i++) {
+    printf("* [%zd][%zd].size = %d\n", idx, i, klt_kernel_desc[idx].data.sizeof_param[i]);
+  }
+
+  printf("*\n");
+
+  printf("* [%zd].num_data:\n", idx, klt_kernel_desc[idx].data.num_data);
+  for (i = 0; i < klt_kernel_desc[idx].data.num_data; i++) {
+    printf("* [%zd][%zd].ndim = %d\n", idx, i, klt_kernel_desc[idx].data.sizeof_data[i]);
+    printf("* [%zd][%zd].size = %d\n", idx, i, klt_kernel_desc[idx].data.ndims_data[i]);
+  }
+
+  printf("*\n");
+
+  printf("* [%zd].num_loops = %d\n", idx, klt_kernel_desc[idx].loop.num_loops);
+  for (i = 0; i < klt_kernel_desc[idx].loop.num_loops; i++) {
+    printf("* [%zd][%zd].idx = %d\n", idx, i, klt_kernel_desc[idx].loop.loop_desc[i].idx);
+  }
+
+  printf("*\n");
+
+  printf("* [%zd].num_versions = %d\n", idx, klt_kernel_desc[idx].num_versions);
+  printf("* [%zd].versions :\n", idx);
+  for (i = 0; i < klt_kernel_desc[idx].num_versions; i++) {
+    printf("* [%zd][%zd].target = %lu\n", idx, i, klt_kernel_desc[idx].versions[i].device_kind);
+    // TODO struct klt_version_selector_t version_selector;
+
+    printf("* [%zd][%zd].num_subkernels = %d\n", idx, i, klt_kernel_desc[idx].versions[i].num_subkernels);
+    printf("* [%zd][%zd].subkernels :\n"       , idx, i, klt_kernel_desc[idx].versions[i].num_subkernels);
+    for (j = 0; j < klt_kernel_desc[idx].versions[i].num_subkernels; j++) {
+      printf("* [%zd][%zd][%zd].id        = %d\n", idx, i, j, klt_kernel_desc[idx].versions[i].subkernels[j].id);
+      printf("* [%zd][%zd][%zd].target    = %d\n", idx, i, j, klt_kernel_desc[idx].versions[i].subkernels[j].device_kind);
+      printf("* [%zd][%zd][%zd].num_loops = %d\n", idx, i, j, klt_kernel_desc[idx].versions[i].subkernels[j].loop.num_loops);
+      printf("* [%zd][%zd][%zd].num_tiles = %d\n", idx, i, j, klt_kernel_desc[idx].versions[i].subkernels[j].loop.num_tiles);
+      printf("* [%zd][%zd][%zd].loop_desc :\n"   , idx, i, j);
+      for (k = 0; k < klt_kernel_desc[idx].versions[i].subkernels[j].loop.num_loops; k++) {
+        printf("* [%zd][%zd][%zd][%zd].idx       = %d\n", idx, i, j, k, klt_kernel_desc[idx].versions[i].subkernels[j].loop.loop_desc[k].idx);
+        printf("* [%zd][%zd][%zd][%zd].num_tiles = %d\n", idx, i, j, k, klt_kernel_desc[idx].versions[i].subkernels[j].loop.loop_desc[k].num_tiles);
+        printf("* [%zd][%zd][%zd][%zd].tile_desc :\n"   , idx, i, j, k);
+        for (l = 0; l < klt_kernel_desc[idx].versions[i].subkernels[j].loop.loop_desc[k].num_tiles; l++) {
+          printf("* [%zd][%zd][%zd][%zd][%zd].idx   = %d\n" , idx, i, j, k, l, klt_kernel_desc[idx].versions[i].subkernels[j].loop.loop_desc[k].tile_desc[l].idx);
+          printf("* [%zd][%zd][%zd][%zd][%zd].kind  = %lu\n", idx, i, j, k, l, klt_kernel_desc[idx].versions[i].subkernels[j].loop.loop_desc[k].tile_desc[l].kind);
+          printf("* [%zd][%zd][%zd][%zd][%zd].param = %d\n" , idx, i, j, k, l, klt_kernel_desc[idx].versions[i].subkernels[j].loop.loop_desc[k].tile_desc[l].param);
+        }
+      }
+    }
+  }
+
+  printf("*\n");
 }
 
 void klt_dbg_dump_all_kernels() {
   size_t i;
-  printf("*****\n");
+  printf("*******\n");
   for (i = 0; i < klt_num_kernels; i++) {
     klt_dbg_dump_kernel(i);
-    printf("*****\n");
+    printf("*******\n");
   }
 }
 

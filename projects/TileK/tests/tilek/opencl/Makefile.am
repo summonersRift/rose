@@ -10,15 +10,16 @@ clean-local: clean-test_0 clean-test_1
 
 ###################################################################################################
 
+KLT_REL_PATH=src/midend/KLT
 TILEK_REL_PATH=../../..
 
 TILEK=$(builddir)/$(TILEK_REL_PATH)/src/tilek
 
 ###################################################################################################
 
-KLT_INC=$(top_srcdir)/src/midend/KLT/include
+KLT_INC=$(top_srcdir)/$(KLT_REL_PATH)/include
 
-KLT_RTL=$(top_builddir)/src/midend/KLT/lib/rtl/libKLT-RTL-OpenCL.la
+KLT_RTL=$(top_builddir)/$(KLT_REL_PATH)/lib/rtl/libKLT-RTL-OpenCL.la
 
 ###################################################################################################
 

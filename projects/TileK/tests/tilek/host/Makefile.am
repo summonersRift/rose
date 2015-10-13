@@ -10,15 +10,16 @@ clean-local: clean-test_0 clean-test_1
 
 ###################################################################################################
 
+KLT_REL_PATH=src/midend/KLT
 TILEK_REL_PATH=../../..
 
 TILEK=$(builddir)/$(TILEK_REL_PATH)/src/tilek
 
 ###################################################################################################
 
-KLT_INC=$(top_srcdir)/src/midend/KLT/include
+KLT_INC=$(top_srcdir)/$(KLT_REL_PATH)/include
 
-KLT_RTL=$(top_builddir)/src/midend/KLT/lib/rtl/libKLT-RTL-Host.la
+KLT_RTL=$(top_builddir)/$(KLT_REL_PATH)/lib/rtl/libKLT-RTL-Host.la
 
 ###################################################################################################
 
@@ -46,8 +47,14 @@ test_0-static.o: test_0-static.c
 test_0: rose_test_0.o test_0-host-kernel.o test_0-static.o $(KLT_RTL)
 	libtool --mode=link gcc rose_test_0.o test_0-host-kernel.o test_0-static.o $(LD_FLAGS) -o test_0
 
+dump_test_0: klt-dump-static.o test_0-host-kernel.o test_0-static.o $(KLT_RTL)
+	libtool --mode=link gcc klt-dump-static.o test_0-host-kernel.o test_0-static.o $(LD_FLAGS) -o dump_test_0
+
 check-test_0: test_0
 	./test_0
+
+check-dump_test_0: dump_test_0
+	./dump_test_0
 
 clean-test_0:
 	rm -f test_0-host-kernel.c rose_test_0.c test_0-static.c
@@ -73,8 +80,14 @@ test_1-static.o: test_1-static.c
 test_1: rose_test_1.o test_1-host-kernel.o test_1-static.o $(KLT_RTL)
 	libtool --mode=link gcc rose_test_1.o test_1-host-kernel.o test_1-static.o $(LD_FLAGS) -o test_1
 
+dump_test_1: klt-dump-static.o test_1-host-kernel.o test_1-static.o $(KLT_RTL)
+	libtool --mode=link gcc klt-dump-static.o test_1-host-kernel.o test_1-static.o $(LD_FLAGS) -o dump_test_1
+
 check-test_1: test_1
 	./test_1
+
+check-dump_test_1: dump_test_1
+	./dump_test_1
 
 clean-test_1:
 	rm -f test_1-host-kernel.c rose_test_1.c test_1-static.c
@@ -82,6 +95,9 @@ clean-test_1:
 	rm -f test_1
 
 ###################################################################################################
+
+klt-dump-static.o: $(top_srcdir)/$(KLT_REL_PATH)/tools/klt-dump-static.c
+	gcc $(C_FLAGS) -c $(top_srcdir)/$(KLT_REL_PATH)/tools/klt-dump-static.c -o klt-dump-static.o
 
 $(top_builddir)/$(KLT_REL_PATH)/lib/rtl/libKLT-RTL-Host.la:
 	make -C $(top_builddir)/$(KLT_REL_PATH)/lib/rtl libKLT-RTL-Host.la
