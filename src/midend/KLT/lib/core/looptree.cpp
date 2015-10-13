@@ -243,7 +243,8 @@ void block_t::toGraphViz(std::ostream & out, std::string indent) const {
 void block_t::toJSON(std::ostream & out, std::string indent) const {
   out << indent << "[";
   std::vector<node_t *>::const_iterator it = children.begin();
-  (*it)->toJSON(out, indent + "  ");it++;
+  (*it)->toJSON(out, indent + "  ");
+  it++;
   for (; it != children.end(); it++) {
     out << ",";
     (*it)->toJSON(out, indent + "  ");

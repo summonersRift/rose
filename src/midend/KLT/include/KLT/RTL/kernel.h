@@ -74,11 +74,16 @@ struct klt_kernel_t {
   size_t num_workers[3];
 };
 
+extern size_t klt_num_kernels;
 extern struct klt_kernel_desc_t klt_kernel_desc[];
 
 struct klt_kernel_t * klt_build_kernel(int idx);
 
 void klt_execute_kernel(struct klt_kernel_t * kernel);
+
+void klt_dbg_dump_kernel(int idx);
+
+void klt_dbg_dump_all_kernels();
 
 #endif /* __KLT_RTL_KERNEL_H__ */
 

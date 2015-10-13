@@ -96,7 +96,7 @@ class Compiler : public ::DLX::Compiler<language_tpl> {
       ::DLX::Compiler<language_tpl>(), driver(project), model_builder(driver),
       klt_rtl_path(klt_rtl_path_), basename(basename_),
       generator(KLT::Generator(
-        driver, model_builder, klt_rtl_path + "/include", basename,
+        driver, model_builder, klt_rtl_path, basename,
         (threads_target_     == ::KLT::Descriptor::e_target_threads) ? true : false,
         (accelerator_target_ == ::KLT::Descriptor::e_target_opencl)  ? true : false,
         (accelerator_target_ == ::KLT::Descriptor::e_target_cuda)    ? true : false
@@ -624,29 +624,6 @@ void Compiler<language_tpl>::compile(SgNode * node) {
 
   // Add the description of this kernel to the static data (all subkernels of all versions)
   generator.addToStaticData<language_tpl>(kernel_directive_translation_map);
-
-  if (accelerator_target == ::KLT::Descriptor::e_target_opencl) {
-    MFB::file_id_t static_file_id = generator.getStaticFileID();
-    SgType * char_ptr_type = SageBuilder::buildPointerType(SageBuilder::buildCharType());
-    ::MDCG::Tools::StaticInitializer::instantiateDeclaration(
-      driver, std::string("opencl_kernel_file"),
-      NULL, static_file_id, char_ptr_type,
-      SageBuilder::buildAssignInitializer(SageBuilder::buildStringVal(generator.getKernelFileName(accelerator_target))),
-      false
-    );
-    ::MDCG::Tools::StaticInitializer::instantiateDeclaration(
-      driver, std::string("opencl_kernel_options"),
-      NULL, static_file_id, char_ptr_type,
-      SageBuilder::buildAssignInitializer(SageBuilder::buildStringVal(std::string("-I") + klt_rtl_path + std::string("/include/"))),
-      false
-    );
-    ::MDCG::Tools::StaticInitializer::instantiateDeclaration(
-      driver, std::string("opencl_klt_runtime_lib"),
-      NULL, static_file_id, char_ptr_type,
-      SageBuilder::buildAssignInitializer(SageBuilder::buildStringVal(klt_rtl_path + std::string("/lib/rtl/context.c"))),
-      false
-    );
-  }
 
   // Removes all pragma from language_tpl
 

@@ -87,14 +87,16 @@ class Generator {
     std::map<Kernel::kernel_t *, size_t> kernel_map;
     std::map<size_t, Kernel::kernel_t *> kernel_rmap;
 
+    std::string klt_rtl_path;
+
   protected:
-    void loadModel(const std::string & klt_inc_dir);
+    void loadModel();
 
   public:
     Generator(
       MFB::Driver<MFB::KLT::KLT> & driver_,
       ::MDCG::Tools::ModelBuilder & model_builder_,
-      const std::string & klt_inc_dir,
+      const std::string & klt_rtl_path_,
       const std::string & basename,
       bool target_threads,
       bool target_opencl,
@@ -242,12 +244,39 @@ SgBasicBlock * Generator::instanciateOnHost(typename language_tpl::directive_t *
 
 template <class language_tpl>
 void Generator::addToStaticData(const std::map<typename language_tpl::directive_t *, Utils::subkernel_result_t<language_tpl> > & kernel_directive_translation_map) const {
+  SgType * size_t_type = ::KLT::MDCG::get_size_t_type(driver);
+  ::MDCG::Tools::StaticInitializer::instantiateDeclaration(
+    driver, std::string("klt_num_kernels"),
+    NULL, static_file_id, size_t_type,
+    SageBuilder::buildAssignInitializer(SageBuilder::buildIntVal(kernel_directive_translation_map.size())),
+    false
+  );
+
   ::MDCG::Model::class_t kernel_desc_class = model_builder.get(klt_model).lookup< ::MDCG::Model::class_t>("klt_kernel_desc_t");
   ::MDCG::Tools::StaticInitializer::addArrayDeclaration< ::KLT::MDCG::KernelContainer<language_tpl> >(
       driver, kernel_desc_class, kernel_directive_translation_map.size(),
       kernel_directive_translation_map.begin(), kernel_directive_translation_map.end(),
       NULL, static_file_id, false, std::string("klt_kernel_desc")
   );
+
+  if (target_opencl) {
+    SgType * char_ptr_type = SageBuilder::buildPointerType(SageBuilder::buildCharType());
+    ::MDCG::Tools::StaticInitializer::instantiateDeclaration(
+      driver, std::string("opencl_kernel_file"), NULL, static_file_id, char_ptr_type,
+      SageBuilder::buildAssignInitializer(SageBuilder::buildStringVal(opencl_kernel_filename)),
+      false
+    );
+    ::MDCG::Tools::StaticInitializer::instantiateDeclaration(
+      driver, std::string("opencl_kernel_options"), NULL, static_file_id, char_ptr_type,
+      SageBuilder::buildAssignInitializer(SageBuilder::buildStringVal(std::string("-I") + klt_rtl_path + std::string("/include/"))),
+      false
+    );
+    ::MDCG::Tools::StaticInitializer::instantiateDeclaration(
+      driver, std::string("opencl_klt_runtime_lib"), NULL, static_file_id, char_ptr_type,
+      SageBuilder::buildAssignInitializer(SageBuilder::buildStringVal(klt_rtl_path + std::string("/lib/rtl/context.c"))),
+      false
+    );
+  }
 }
 
 template <class language_tpl>

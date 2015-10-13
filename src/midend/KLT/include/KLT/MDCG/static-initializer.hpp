@@ -12,6 +12,8 @@ namespace KLT {
 
 namespace MDCG {
 
+SgType * get_size_t_type(MFB::Driver<MFB::Sage> & driver);
+
 struct DataContainer {
   typedef Kernel::kernel_t input_t;
 

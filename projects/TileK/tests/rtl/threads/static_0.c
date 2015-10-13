@@ -38,6 +38,7 @@ struct klt_loop_desc_t loop_desc_k0[1] = {
   {0, 0, 0}
 };
 
+size_t klt_num_kernels = 1;
 struct klt_kernel_desc_t klt_kernel_desc[1] = {
   {
     {2, sizeof_param_k0, 1, sizeof_data_k0, ndims_data_k0},

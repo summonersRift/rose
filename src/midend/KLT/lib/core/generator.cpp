@@ -17,7 +17,7 @@ namespace KLT {
 Generator::Generator(
   MFB::Driver<MFB::KLT::KLT> & driver_,
   ::MDCG::Tools::ModelBuilder & model_builder_,
-  const std::string & klt_inc_dir,
+  const std::string & klt_rtl_path_,
   const std::string & basename,
   bool target_threads_,
   bool target_opencl_,
@@ -41,11 +41,12 @@ Generator::Generator(
   host_api(),
   kernel_api(),
   call_interface(driver, &kernel_api),
-  kernel_map(), kernel_rmap()
+  kernel_map(), kernel_rmap(),
+  klt_rtl_path(klt_rtl_path_)
 {
   std::cerr << "[Info] Create KLT::Core::Generator with " << target_threads << target_opencl << target_cuda << std::endl;
 
-  loadModel(klt_inc_dir);
+  loadModel();
 
   driver.setUnparsedFile(static_file_id);
   driver.setCompiledFile(static_file_id);
@@ -72,13 +73,13 @@ Generator::Generator(
   }
 }
 
-void Generator::loadModel(const std::string & klt_inc_dir) {
-  model_builder.add(klt_model, "data-environment",    klt_inc_dir + "/KLT/RTL", "h");
-  model_builder.add(klt_model, "data",    klt_inc_dir + "/KLT/RTL", "h");
-  model_builder.add(klt_model, "tile",    klt_inc_dir + "/KLT/RTL", "h");
-  model_builder.add(klt_model, "loop",    klt_inc_dir + "/KLT/RTL", "h");
-  model_builder.add(klt_model, "kernel",  klt_inc_dir + "/KLT/RTL", "h");
-  model_builder.add(klt_model, "context", klt_inc_dir + "/KLT/RTL", "h");
+void Generator::loadModel() {
+  model_builder.add(klt_model, "data-environment", klt_rtl_path + "/include/KLT/RTL", "h");
+  model_builder.add(klt_model, "data", klt_rtl_path + "/include/KLT/RTL", "h");
+  model_builder.add(klt_model, "tile", klt_rtl_path + "/include/KLT/RTL", "h");
+  model_builder.add(klt_model, "loop", klt_rtl_path + "/include/KLT/RTL", "h");
+  model_builder.add(klt_model, "kernel", klt_rtl_path + "/include/KLT/RTL", "h");
+  model_builder.add(klt_model, "context", klt_rtl_path + "/include/KLT/RTL", "h");
 
   host_api.load(model_builder.get(klt_model));
 

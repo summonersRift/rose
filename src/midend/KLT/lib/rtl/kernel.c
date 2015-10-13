@@ -365,3 +365,16 @@ void klt_execute_kernel(struct klt_kernel_t * kernel) {
 #endif /* KLT_KERNEL_TIMING */
 }
 
+void klt_dbg_dump_kernel(int idx) {
+  // TODO
+}
+
+void klt_dbg_dump_all_kernels() {
+  size_t i;
+  printf("*****\n");
+  for (i = 0; i < klt_num_kernels; i++) {
+    klt_dbg_dump_kernel(i);
+    printf("*****\n");
+  }
+}
+
