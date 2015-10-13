@@ -16,6 +16,10 @@
 #include <string.h>
 #include <assert.h>
 
+#ifndef KLT_EXPORT_LOOP_CTX_TO_JSON
+#define KLT_EXPORT_LOOP_CTX_TO_JSON 1
+#endif
+
 struct klt_version_desc_t * klt_user_select_kernel_version(struct klt_kernel_t * kernel, size_t num_candidates, struct klt_version_desc_t ** candidates) {
   assert(num_candidates == 1);
   return candidates[0];
@@ -112,6 +116,50 @@ void iklt_execute_subkernels(
     assert(subkernel->device_kind == version->device_kind);
 
     struct klt_loop_context_t * klt_loop_context = klt_build_loop_context(&(subkernel->loop), kernel->loops, kernel);
+
+#if KLT_EXPORT_LOOP_CTX_TO_JSON
+    {
+      size_t k;
+      char * file_stem = "dump_loop_ctx";
+      char * file_ext = "json";
+      size_t kernel_id = (kernel->desc - klt_kernel_desc)/sizeof(struct klt_kernel_desc_t);
+      size_t version_id = (version - kernel->desc->versions)/sizeof(struct klt_version_desc_t);
+      size_t subkernel_id = i;
+      size_t filename_length = strlen(file_stem) + strlen(file_ext) + 20;
+
+      char * filename = malloc(filename_length * sizeof(char));
+      memset(filename, 0, filename_length * sizeof(char));
+      sprintf(filename, "%s_%zd_%zd_%zd.%s", file_stem, kernel_id, version_id, subkernel_id, file_ext);
+
+      FILE * loop_ctx_json = fopen(filename, "w");
+
+      int * ptr = klt_loop_context->data;
+
+      fprintf(loop_ctx_json, "{\n");
+      fprintf(loop_ctx_json, "  \"num_loops\": %d,\n", klt_loop_context->num_loops);
+      fprintf(loop_ctx_json, "  \"loops\": [\n");
+      fprintf(loop_ctx_json, "    { \"id\":0, \"lower\":%d, \"upper\":%d, \"stride\":%d }", *(ptr+0), *(ptr+1), *(ptr+2));
+      ptr += 3;
+      for (k = 1; k < klt_loop_context->num_loops; k++) {
+        fprintf(loop_ctx_json, ",\n    { \"id\":%zd, \"lower\":%d, \"upper\":%d, \"stride\":%d }", k, *(ptr+0), *(ptr+1), *(ptr+2));
+        ptr += 3;
+      }
+      fprintf(loop_ctx_json, "\n  ],\n");
+      fprintf(loop_ctx_json, "  \"num_tiles\": %d,\n", klt_loop_context->num_tiles);
+      fprintf(loop_ctx_json, "  \"tiles\": [\n");
+      fprintf(loop_ctx_json, "    { \"id\":0, \"length\":%d, \"stride\":%d }", *(ptr+0), *(ptr+1));
+      ptr += 2;
+      for (k = 1; k < klt_loop_context->num_tiles; k++) {
+        fprintf(loop_ctx_json, ",\n    { \"id\":%zd, \"length\":%d, \"stride\":%d }", k, *(ptr+0), *(ptr+1));
+        ptr += 2;
+      }
+      fprintf(loop_ctx_json, "\n  ]\n");
+      fprintf(loop_ctx_json, "}\n");
+
+      fclose(loop_ctx_json);
+    }
+#endif
+
     struct klt_data_context_t * klt_data_context = klt_build_data_context(subkernel->num_data);
 
     void ** local_param = (void **)malloc(subkernel->num_params * sizeof(void *));
@@ -372,17 +420,17 @@ void klt_dbg_dump_kernel(size_t idx) {
   printf("* Kernel #%zd\n", idx);
   printf("*\n");
 
-  printf("* [%zd].num_parameters = %d\n", idx, klt_kernel_desc[idx].data.num_param);
+  printf("* [%zd].num_parameters = %zd\n", idx, klt_kernel_desc[idx].data.num_param);
   for (i = 0; i < klt_kernel_desc[idx].data.num_param; i++) {
-    printf("* [%zd][%zd].size = %d\n", idx, i, klt_kernel_desc[idx].data.sizeof_param[i]);
+    printf("* [%zd][%zd].size = %zd\n", idx, i, klt_kernel_desc[idx].data.sizeof_param[i]);
   }
 
   printf("*\n");
 
-  printf("* [%zd].num_data:\n", idx, klt_kernel_desc[idx].data.num_data);
+  printf("* [%zd].num_data = %zd\n", idx, klt_kernel_desc[idx].data.num_data);
   for (i = 0; i < klt_kernel_desc[idx].data.num_data; i++) {
-    printf("* [%zd][%zd].ndim = %d\n", idx, i, klt_kernel_desc[idx].data.sizeof_data[i]);
-    printf("* [%zd][%zd].size = %d\n", idx, i, klt_kernel_desc[idx].data.ndims_data[i]);
+    printf("* [%zd][%zd].ndim = %zd\n", idx, i, klt_kernel_desc[idx].data.sizeof_data[i]);
+    printf("* [%zd][%zd].size = %zd\n", idx, i, klt_kernel_desc[idx].data.ndims_data[i]);
   }
 
   printf("*\n");
@@ -397,25 +445,25 @@ void klt_dbg_dump_kernel(size_t idx) {
   printf("* [%zd].num_versions = %d\n", idx, klt_kernel_desc[idx].num_versions);
   printf("* [%zd].versions :\n", idx);
   for (i = 0; i < klt_kernel_desc[idx].num_versions; i++) {
-    printf("* [%zd][%zd].target = %lu\n", idx, i, klt_kernel_desc[idx].versions[i].device_kind);
+    printf("* [%zd][%zd].target = %u\n", idx, i, klt_kernel_desc[idx].versions[i].device_kind);
     // TODO struct klt_version_selector_t version_selector;
 
     printf("* [%zd][%zd].num_subkernels = %d\n", idx, i, klt_kernel_desc[idx].versions[i].num_subkernels);
-    printf("* [%zd][%zd].subkernels :\n"       , idx, i, klt_kernel_desc[idx].versions[i].num_subkernels);
+    printf("* [%zd][%zd].subkernels :\n"       , idx, i);
     for (j = 0; j < klt_kernel_desc[idx].versions[i].num_subkernels; j++) {
-      printf("* [%zd][%zd][%zd].id        = %d\n", idx, i, j, klt_kernel_desc[idx].versions[i].subkernels[j].id);
-      printf("* [%zd][%zd][%zd].target    = %d\n", idx, i, j, klt_kernel_desc[idx].versions[i].subkernels[j].device_kind);
-      printf("* [%zd][%zd][%zd].num_loops = %d\n", idx, i, j, klt_kernel_desc[idx].versions[i].subkernels[j].loop.num_loops);
-      printf("* [%zd][%zd][%zd].num_tiles = %d\n", idx, i, j, klt_kernel_desc[idx].versions[i].subkernels[j].loop.num_tiles);
-      printf("* [%zd][%zd][%zd].loop_desc :\n"   , idx, i, j);
+      printf("* [%zd][%zd][%zd].id        = %zd\n", idx, i, j, klt_kernel_desc[idx].versions[i].subkernels[j].id);
+      printf("* [%zd][%zd][%zd].target    = %d\n",  idx, i, j, klt_kernel_desc[idx].versions[i].subkernels[j].device_kind);
+      printf("* [%zd][%zd][%zd].num_loops = %d\n",  idx, i, j, klt_kernel_desc[idx].versions[i].subkernels[j].loop.num_loops);
+      printf("* [%zd][%zd][%zd].num_tiles = %d\n",  idx, i, j, klt_kernel_desc[idx].versions[i].subkernels[j].loop.num_tiles);
+      printf("* [%zd][%zd][%zd].loop_desc :\n"   ,  idx, i, j);
       for (k = 0; k < klt_kernel_desc[idx].versions[i].subkernels[j].loop.num_loops; k++) {
         printf("* [%zd][%zd][%zd][%zd].idx       = %d\n", idx, i, j, k, klt_kernel_desc[idx].versions[i].subkernels[j].loop.loop_desc[k].idx);
         printf("* [%zd][%zd][%zd][%zd].num_tiles = %d\n", idx, i, j, k, klt_kernel_desc[idx].versions[i].subkernels[j].loop.loop_desc[k].num_tiles);
         printf("* [%zd][%zd][%zd][%zd].tile_desc :\n"   , idx, i, j, k);
         for (l = 0; l < klt_kernel_desc[idx].versions[i].subkernels[j].loop.loop_desc[k].num_tiles; l++) {
-          printf("* [%zd][%zd][%zd][%zd][%zd].idx   = %d\n" , idx, i, j, k, l, klt_kernel_desc[idx].versions[i].subkernels[j].loop.loop_desc[k].tile_desc[l].idx);
-          printf("* [%zd][%zd][%zd][%zd][%zd].kind  = %lu\n", idx, i, j, k, l, klt_kernel_desc[idx].versions[i].subkernels[j].loop.loop_desc[k].tile_desc[l].kind);
-          printf("* [%zd][%zd][%zd][%zd][%zd].param = %d\n" , idx, i, j, k, l, klt_kernel_desc[idx].versions[i].subkernels[j].loop.loop_desc[k].tile_desc[l].param);
+          printf("* [%zd][%zd][%zd][%zd][%zd].idx   = %d\n", idx, i, j, k, l, klt_kernel_desc[idx].versions[i].subkernels[j].loop.loop_desc[k].tile_desc[l].idx);
+          printf("* [%zd][%zd][%zd][%zd][%zd].kind  = %u\n", idx, i, j, k, l, klt_kernel_desc[idx].versions[i].subkernels[j].loop.loop_desc[k].tile_desc[l].kind);
+          printf("* [%zd][%zd][%zd][%zd][%zd].param = %d\n", idx, i, j, k, l, klt_kernel_desc[idx].versions[i].subkernels[j].loop.loop_desc[k].tile_desc[l].param);
         }
       }
     }

@@ -6,15 +6,15 @@
 
 #include <stdlib.h>
 
+#include "utils.c"
+
 int main() {
   int i;
 
   int n = 16;
   float b = 3.5;
 
-  float * v = malloc(n * sizeof(float));
-  for (i = 0; i < n; i++)
-    v[i] = i;
+  float * v = tilek_rnd_1D(n, 0, 1);
 
   {
     klt_push_data_environment();
@@ -52,6 +52,8 @@ int main() {
 
     klt_pop_data_environment();
   }
+
+  free(v);
 
   return 0;
 }

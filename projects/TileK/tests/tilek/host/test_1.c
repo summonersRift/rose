@@ -2,6 +2,8 @@
 #include <stdint.h>
 #include <stdlib.h>
 
+#include "utils.c"
+
 void kernel_doitgen(size_t R, size_t Q, size_t P, float *** A, float *** sum, float ** C4) {
   int r, q, p, s;
 
@@ -35,5 +37,25 @@ void kernel_doitgen(size_t R, size_t Q, size_t P, float *** A, float *** sum, fl
 
 
 int main() {
+  size_t R = 16;
+  size_t Q = 16;
+  size_t P = 16;
+  float *** A = tilek_rnd_3D(R, Q, P, 0, 1);
+  float *** sum = tilek_rnd_3D(R, Q, P, 0, 0);
+  float ** C4 = tilek_rnd_2D(P, P, -1, 1);
+
+  kernel_doitgen(R, Q, P, A, sum, C4);
+
+  free(**A);
+  free(*A);
+  free(A);
+
+  free(**sum);
+  free(*sum);
+  free(sum);
+
+  free(*C4);
+  free(C4);
+
   return 0;
 }

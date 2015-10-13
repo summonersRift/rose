@@ -24,8 +24,8 @@ KLT_RTL=$(top_builddir)/$(KLT_REL_PATH)/lib/rtl/libKLT-RTL-Host.la
 ###################################################################################################
 
 ROSE_FLAGS= # -DSKIP_ROSE_BUILTIN_DECLARATIONS
-TILEK_FLAGS=-I$(KLT_INC)
-C_FLAGS=-O0 -g -I$(KLT_INC)
+TILEK_FLAGS=-I$(KLT_INC) -I$(srcdir)/../..
+C_FLAGS=-O0 -g -I$(KLT_INC) -I$(srcdir)/../..
 LD_FLAGS=-lrt $(KLT_RTL)
 
 ###################################################################################################
