@@ -10,6 +10,10 @@
 # define VERBOSE 0
 #endif
 
+#ifndef USE_SAGE_NODE_CLASS_NAME
+# define USE_SAGE_NODE_CLASS_NAME 0
+#endif
+
 namespace KLT {
 
 namespace LoopTree {
@@ -241,7 +245,7 @@ void block_t::toGraphViz(std::ostream & out, std::string indent) const {
 }
 
 void block_t::toJSON(std::ostream & out, std::string indent) const {
-  out << indent << "[";
+  out << "[";
   std::vector<node_t *>::const_iterator it = children.begin();
   (*it)->toJSON(out, indent + "  ");
   it++;
@@ -339,27 +343,34 @@ struct feature_vector_SgNode_t {
   std::map<VariantT, size_t> operation_histogram;
   std::map<VariantT, size_t> index_histogram;
 
+#if USE_SAGE_NODE_CLASS_NAME
   std::map<VariantT, std::string> variant_label;
+#endif
 
   void collect(
     SgNode * node, std::string info_indent = std::string(),
     bool is_lvalue = false, bool is_index = false, size_t lvl_avalue = 0
   );
 
-  void toGraphViz(std::ostream & out, std::string indent);
+  void toGraphViz(std::ostream & out, std::string indent, SgStatement * stmt);
 
   void mapVariantToJSON(const std::map<VariantT, size_t> & map, std::string name, std::ostream & out, const std::string & indent);
   void mapSizeToJSON(const std::map<size_t, size_t> & map, std::string name, std::ostream & out, const std::string & indent);
 
-  void toJSON(std::ostream & out, std::string indent);
+  void toJSON(std::ostream & out, std::string indent, SgStatement * stmt);
 };
 
-void feature_vector_SgNode_t::toGraphViz(std::ostream & out, std::string indent) {
+void feature_vector_SgNode_t::toGraphViz(std::ostream & out, std::string indent, SgStatement * stmt) {
   std::map<VariantT, size_t>::const_iterator varit;
   std::map<size_t, size_t>::const_iterator dimit;
+  out << "code: \\\"" << stmt->unparseToString() << "\\\"\\n";
   out << "node_histogram: ";
   for (varit = node_histogram.begin(); varit != node_histogram.end(); varit++) {
+#if USE_SAGE_NODE_CLASS_NAME
     out << variant_label[varit->first] << ":" << varit->second << ",";
+#else
+    out << varit->first << ":" << varit->second << ",";
+#endif
   }
   out << "\\n";
   out << "read_by_dimension: ";
@@ -374,12 +385,20 @@ void feature_vector_SgNode_t::toGraphViz(std::ostream & out, std::string indent)
   out << "\\n";
   out << "operation_histogram: ";
   for (varit = operation_histogram.begin(); varit != operation_histogram.end(); varit++) {
+#if USE_SAGE_NODE_CLASS_NAME
     out << variant_label[varit->first] << ":" << varit->second << ",";
+#else
+    out << varit->first << ":" << varit->second << ",";
+#endif
   }
   out << "\\n";
   out << "index_histogram: ";
   for (varit = index_histogram.begin(); varit != index_histogram.end(); varit++) {
+#if USE_SAGE_NODE_CLASS_NAME
     out << variant_label[varit->first] << ":" << varit->second << ",";
+#else
+    out << varit->first << ":" << varit->second << ",";
+#endif
   }
   out << "\\n";
 }
@@ -388,10 +407,18 @@ void feature_vector_SgNode_t::mapVariantToJSON(const std::map<VariantT, size_t> 
   out << indent << "\"" << name << "\": {";
   std::map<VariantT, size_t>::const_iterator it = map.begin();
   if (it != map.end()) {
+#if USE_SAGE_NODE_CLASS_NAME
     out << "\"" << variant_label[it->first] << "\":" << it->second;
+#else
+    out << "\"" << it->first << "\":" << it->second;
+#endif
     it++;
     for (; it != map.end(); it++) {
+#if USE_SAGE_NODE_CLASS_NAME
       out << ", \"" << variant_label[it->first] << "\":" << it->second;
+#else
+      out << ", \"" << it->first << "\":" << it->second;
+#endif
     }
   }
   out << "}";
@@ -410,10 +437,11 @@ void feature_vector_SgNode_t::mapSizeToJSON(const std::map<size_t, size_t> & map
   out << "}";
 }
 
-void feature_vector_SgNode_t::toJSON(std::ostream & out, std::string indent) {
+void feature_vector_SgNode_t::toJSON(std::ostream & out, std::string indent, SgStatement * stmt) {
   std::map<VariantT, size_t>::const_iterator varit;
   std::map<size_t, size_t>::const_iterator dimit;
   out << "{" << std::endl;
+  out << indent << "  \"code\":\"" << stmt->unparseToString() << "\"," << std::endl;
   mapVariantToJSON(node_histogram, "node_histogram", out, indent + "  ");
   out << "," << std::endl;
   mapSizeToJSON(read_by_dimension, "read_by_dimension", out, indent + "  ");
@@ -437,10 +465,6 @@ void feature_vector_SgNode_t::collect(
   std::cerr << info_indent << "|+ is_lvalue  = " << is_lvalue << " , is_index   = " << is_index << " , lvl_avalue  = " << lvl_avalue << std::endl;
 #endif
 
-  VariantT variant = node->variantT();
-  node_histogram[variant] += 1;
-  variant_label[variant] = node->class_name();
-
   SgStatement * stmt = isSgStatement(node);
   SgExpression * expr = isSgExpression(node);
 
@@ -456,6 +480,12 @@ void feature_vector_SgNode_t::collect(
     }
   }
   else if (expr != NULL) {
+    VariantT variant = node->variantT();
+    node_histogram[variant] += 1;
+#if USE_SAGE_NODE_CLASS_NAME
+    variant_label[variant] = node->class_name();
+#endif
+
     SgUnaryOp * una_op = isSgUnaryOp(expr);
     SgBinaryOp * bin_op = isSgBinaryOp(expr);
     SgFunctionCallExp * func_call_expr = isSgFunctionCallExp(expr);
@@ -489,12 +519,12 @@ void feature_vector_SgNode_t::collect(
 
       if (pntr_arrref_expr != NULL) {
         assert(lvl_avalue == 0); // (a[0])[0]
-        pntr_arrref_expr = isSgPntrArrRefExp(lhs_expr);
         while (pntr_arrref_expr != NULL) {
 #if VERBOSE
-          std::cerr << info_indent << "|| index[" << lvl_avalue++ << "] = " << rhs_expr->class_name() << " (" << rhs_expr << ")" << std::endl;
+          std::cerr << info_indent << "|| index[" << lvl_avalue << "] = " << rhs_expr->class_name() << " (" << rhs_expr << ")" << std::endl;
 #endif
-          collect(rhs_expr, info_indent + "    ", is_lvalue, true, false);
+          collect(rhs_expr, info_indent + "    ", is_lvalue, true, 0);
+          lvl_avalue++;
 
           pntr_arrref_expr = isSgPntrArrRefExp(lhs_expr);
           if (pntr_arrref_expr != NULL) {
@@ -502,7 +532,8 @@ void feature_vector_SgNode_t::collect(
             rhs_expr = pntr_arrref_expr->get_rhs_operand_i();
           }
         }
-        collect(rhs_expr, info_indent + "    ", is_lvalue, is_index, lvl_avalue);
+        assert(lvl_avalue > 0);
+        collect(lhs_expr, info_indent + "    ", is_lvalue, is_index, lvl_avalue);
       }
       else if (assign_op != NULL) {
         assert(!is_index);       // a[i=0]
@@ -518,14 +549,15 @@ void feature_vector_SgNode_t::collect(
         collect(rhs_expr, info_indent + "    ", is_lvalue,    false, lvl_avalue);
 
         operation_histogram[variant] += 1;
-        index_histogram[variant] += 1;
       }
       else {
         collect(lhs_expr, info_indent + "    ", is_lvalue, is_index, lvl_avalue);
         collect(rhs_expr, info_indent + "    ", is_lvalue, is_index, lvl_avalue);
 
-        operation_histogram[variant] += 1;
-        index_histogram[variant] += 1;
+        if (is_index)
+          index_histogram[variant] += 1;
+        else
+          operation_histogram[variant] += 1;
       }
 
       return;
@@ -549,8 +581,10 @@ void feature_vector_SgNode_t::collect(
       collect(      false_exp, info_indent + "    ", is_lvalue, is_index, lvl_avalue);
     }
     else if (value_expr != NULL) {
-      operation_histogram[variant] += 1;
-      index_histogram[variant] += 1;
+      if (is_index)
+        index_histogram[variant] += 1;
+      else
+        operation_histogram[variant] += 1;
       return;
     }
     else if (varref_expr != NULL) {
@@ -575,7 +609,7 @@ void stmt_t::toGraphViz(std::ostream & out, std::string indent) const {
   {
     feature_vector_SgNode_t fv_node;
     fv_node.collect(statement, "[Info] (feature_vector_SgNode_t::collect) ");
-    fv_node.toGraphViz(out, indent);
+    fv_node.toGraphViz(out, indent, statement);
   }
   out << "\"]" << std::endl;
 }
@@ -583,7 +617,7 @@ void stmt_t::toGraphViz(std::ostream & out, std::string indent) const {
 void stmt_t::toJSON(std::ostream & out, std::string indent) const {
   feature_vector_SgNode_t fv_node;
   fv_node.collect(statement, "[Info] (feature_vector_SgNode_t::collect) ");
-  fv_node.toJSON(out, indent);
+  fv_node.toJSON(out, indent, statement);
 }
 
 void block_t::collectLoops(std::vector<Descriptor::loop_t *> & loops, std::map<const loop_t *, Descriptor::loop_t *> & loop_translation_map) const {

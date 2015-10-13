@@ -521,7 +521,7 @@ void Compiler<language_tpl>::compile(SgNode * node) {
       {
         Kernel::kernel_t * kernel = generator.getKernelByID(kernel_id);
 
-        std::ostringstream kernel_oss; kernel_oss << basename << "_kernel_" << kernel_id << ".dot";
+        std::ostringstream kernel_oss; kernel_oss << basename << "_kernel_" << kernel_id << "_looptree.dot";
         std::ofstream kernel_out(kernel_oss.str().c_str(), std::ofstream::out);
 
         kernel_out << "digraph kernel_" << kernel_id << " {" << std::endl;
@@ -540,7 +540,7 @@ void Compiler<language_tpl>::compile(SgNode * node) {
         size_t subkernel_id = it_subkernel->first;
         KLT::Kernel::kernel_t * subkernel = it_subkernel->second;
 
-        std::ostringstream subkernel_oss; subkernel_oss << basename << "_kernel_" << kernel_id << "_subkernel_" << subkernel_id << ".dot";
+        std::ostringstream subkernel_oss; subkernel_oss << basename << "_kernel_" << kernel_id << "_subkernel_" << subkernel_id << "_looptree.dot";
         std::ofstream subkernel_out(subkernel_oss.str().c_str(), std::ofstream::out);
 
         subkernel_out << "digraph kernel_" << kernel_id << "_subkernel_" << subkernel_id << " {" << std::endl;
@@ -567,7 +567,7 @@ void Compiler<language_tpl>::compile(SgNode * node) {
       {
         Kernel::kernel_t * kernel = generator.getKernelByID(kernel_id);
 
-        std::ostringstream kernel_oss; kernel_oss << basename << "_kernel_" << kernel_id << ".json";
+        std::ostringstream kernel_oss; kernel_oss << basename << "_kernel_" << kernel_id << "_looptree.json";
         std::ofstream kernel_out(kernel_oss.str().c_str(), std::ofstream::out);
         kernel->root->toJSON(kernel_out, "");
         kernel_out.close();
@@ -578,7 +578,7 @@ void Compiler<language_tpl>::compile(SgNode * node) {
         size_t subkernel_id = it_subkernel->first;
         KLT::Kernel::kernel_t * subkernel = it_subkernel->second;
 
-        std::ostringstream subkernel_oss; subkernel_oss << basename << "_kernel_" << kernel_id << "_subkernel_" << subkernel_id << ".json";
+        std::ostringstream subkernel_oss; subkernel_oss << basename << "_kernel_" << kernel_id << "_subkernel_" << subkernel_id << "_looptree.json";
         std::ofstream subkernel_out(subkernel_oss.str().c_str(), std::ofstream::out);
         subkernel->root->toJSON(subkernel_out, "");
         subkernel_out.close();

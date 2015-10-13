@@ -6,7 +6,7 @@ include $(top_srcdir)/config/Makefile.for.ROSE.includes.and.libs
 check-local: check-test_0 check-test_1
 
 clean-local: clean-test_0 clean-test_1
-	rm  -f *.dot *.svg *.json
+	rm  -f *.dot *.svg *.json klt-dump-static.o 
 
 ###################################################################################################
 
@@ -59,7 +59,7 @@ check-dump_test_0: dump_test_0
 clean-test_0:
 	rm -f test_0-host-kernel.c rose_test_0.c test_0-static.c
 	rm -f test_0-host-kernel.o rose_test_0.o test_0-static.o
-	rm -f test_0
+	rm -f test_0 dump_test_0
 
 ###################################################################################################
 
@@ -92,7 +92,7 @@ check-dump_test_1: dump_test_1
 clean-test_1:
 	rm -f test_1-host-kernel.c rose_test_1.c test_1-static.c
 	rm -f test_1-host-kernel.o rose_test_1.o test_1-static.o
-	rm -f test_1
+	rm -f test_1 dump_test_1
 
 ###################################################################################################
 

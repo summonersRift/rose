@@ -20,6 +20,8 @@
 #define KLT_EXPORT_LOOP_CTX_TO_JSON 1
 #endif
 
+extern char * klt_file_stem;
+
 struct klt_version_desc_t * klt_user_select_kernel_version(struct klt_kernel_t * kernel, size_t num_candidates, struct klt_version_desc_t ** candidates) {
   assert(num_candidates == 1);
   return candidates[0];
@@ -120,16 +122,15 @@ void iklt_execute_subkernels(
 #if KLT_EXPORT_LOOP_CTX_TO_JSON
     {
       size_t k;
-      char * file_stem = "dump_loop_ctx";
       char * file_ext = "json";
       size_t kernel_id = (kernel->desc - klt_kernel_desc)/sizeof(struct klt_kernel_desc_t);
       size_t version_id = (version - kernel->desc->versions)/sizeof(struct klt_version_desc_t);
       size_t subkernel_id = i;
-      size_t filename_length = strlen(file_stem) + strlen(file_ext) + 20;
+      size_t filename_length = strlen(klt_file_stem) + strlen(file_ext) + 40;
 
       char * filename = malloc(filename_length * sizeof(char));
       memset(filename, 0, filename_length * sizeof(char));
-      sprintf(filename, "%s_%zd_%zd_%zd.%s", file_stem, kernel_id, version_id, subkernel_id, file_ext);
+      sprintf(filename, "%s_kernel_%zd_subkernel_%zd_loop_ctx.%s", klt_file_stem, kernel_id, subkernel_id, file_ext);
 
       FILE * loop_ctx_json = fopen(filename, "w");
 

@@ -42,7 +42,8 @@ Generator::Generator(
   kernel_api(),
   call_interface(driver, &kernel_api),
   kernel_map(), kernel_rmap(),
-  klt_rtl_path(klt_rtl_path_)
+  klt_rtl_path(klt_rtl_path_),
+  klt_file_stem(basename)
 {
   std::cerr << "[Info] Create KLT::Core::Generator with " << target_threads << target_opencl << target_cuda << std::endl;
 
