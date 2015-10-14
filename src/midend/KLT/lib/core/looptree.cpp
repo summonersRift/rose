@@ -322,17 +322,16 @@ void tile_t::toJSON(std::ostream & out, std::string indent) const {
   out << indent << "  \"kind\":" << kind << "," << std::endl;
   out << indent << "  \"order\":" << order << "," << std::endl;
   out << indent << "  \"loop->id\":" << loop->id << "," << std::endl;
-  out << indent << "  \"param\":" << param << "," << std::endl;
   out << indent << "  \"tile_id\":" << tile_id << "," << std::endl;
   if (param != NULL)
     out << indent << "  \"param\":\"" << param->unparseToString() << "\"," << std::endl;
   if (next_tile != NULL) {
-    out << indent << "  \"next_tile\":";
+    out << indent << "  \"next\":";
     next_tile->toJSON(out, indent + "  ");
     out << std::endl;
   }
   if (next_node != NULL) {
-    out << indent << "  \"next_node\":";
+    out << indent << "  \"next\":";
     next_node->toJSON(out, indent + "  ");
     out << std::endl;
   }
@@ -446,6 +445,7 @@ void feature_vector_SgNode_t::toJSON(std::ostream & out, std::string indent, SgS
   std::map<VariantT, size_t>::const_iterator varit;
   std::map<size_t, size_t>::const_iterator dimit;
   out << "{" << std::endl;
+  out << indent << "  \"type\":\"stmt\"," << std::endl;
   out << indent << "  \"code\":\"" << stmt->unparseToString() << "\"," << std::endl;
   mapVariantToJSON(node_histogram, "node_histogram", out, indent + "  ");
   out << "," << std::endl;
