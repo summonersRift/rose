@@ -8,11 +8,11 @@ void kernel_doitgen(size_t R, size_t Q, size_t P, float *** A, float *** sum, fl
   int r, q, p, s;
 
   #pragma tilek dataenv alloc(  A[0:R][0:Q][0:P], mode:rw, live:inout, device:0) \
-                        alloc( C4[0:P][0:P]     , mode:rw, live:in   , device:0) \
+                        alloc( C4[0:P][0:P]     , mode:r , live:in   , device:0) \
                         alloc(sum[0:R][0:Q][0:P], mode:rw, live:not  , device:0)
   {
     #pragma tilek kernel device(host, 0) data(  A[0:R][0:Q][0:P], mode:rw, live:inout) \
-                                         data( C4[0:P][0:P]     , mode:rw, live:in) \
+                                         data( C4[0:P][0:P]     , mode:r , live:in) \
                                          data(sum[0:R][0:Q][0:P], mode:rw, live:not)
     {
       #pragma tilek loop tile[0](dynamic)

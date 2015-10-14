@@ -3,9 +3,9 @@ include $(top_srcdir)/config/Makefile.for.ROSE.includes.and.libs
 
 ###################################################################################################
 
-check-local: check-test_0 check-test_1
+check-local: check-test_0 check-test_1 check-test_2
 
-clean-local: clean-test_0 clean-test_1
+clean-local: clean-test_0 clean-test_1 clean-test_2
 	rm  -f *.dot *.svg *.json klt-dump-static.o 
 
 ###################################################################################################
@@ -93,6 +93,39 @@ clean-test_1:
 	rm -f test_1-host-kernel.c rose_test_1.c test_1-static.c
 	rm -f test_1-host-kernel.o rose_test_1.o test_1-static.o
 	rm -f test_1 dump_test_1
+
+###################################################################################################
+
+test_2-host-kernel.c: rose_test_2.c
+test_2-static.c: rose_test_2.c
+rose_test_2.c: $(srcdir)/test_2.c $(TILEK)
+	$(TILEK) $(TILEK_FLAGS) $(ROSE_FLAGS) -c $(srcdir)/test_2.c
+
+rose_test_2.o: rose_test_2.c
+	gcc $(C_FLAGS) -c rose_test_2.c -o rose_test_2.o
+
+test_2-host-kernel.o: test_2-host-kernel.c
+	gcc $(C_FLAGS) -c test_2-host-kernel.c -o test_2-host-kernel.o
+
+test_2-static.o: test_2-static.c
+	gcc $(C_FLAGS) -c test_2-static.c -o test_2-static.o
+
+test_2: rose_test_2.o test_2-host-kernel.o test_2-static.o $(KLT_RTL)
+	libtool --mode=link gcc rose_test_2.o test_2-host-kernel.o test_2-static.o $(LD_FLAGS) -o test_2
+
+dump_test_2: klt-dump-static.o test_2-host-kernel.o test_2-static.o $(KLT_RTL)
+	libtool --mode=link gcc klt-dump-static.o test_2-host-kernel.o test_2-static.o $(LD_FLAGS) -o dump_test_2
+
+check-test_2: test_2
+	./test_2
+
+check-dump_test_2: dump_test_2
+	./dump_test_2
+
+clean-test_2:
+	rm -f test_2-host-kernel.c rose_test_2.c test_2-static.c
+	rm -f test_2-host-kernel.o rose_test_2.o test_2-static.o
+	rm -f test_2 dump_test_2
 
 ###################################################################################################
 

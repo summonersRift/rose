@@ -86,7 +86,7 @@ struct node_t {
 
   virtual node_t * finalize() = 0;
 
-  std::string getGraphVizLabel() const;
+  virtual std::string getGraphVizLabel() const;
 
   virtual void toGraphViz(std::ostream & out, std::string indent) const = 0;
   virtual void toJSON(std::ostream & out, std::string indent) const = 0;
@@ -152,6 +152,8 @@ struct loop_t : public node_t {
   static loop_t * extract(SgStatement * stmt, extraction_context_t & ctx);
 
   virtual node_t * finalize();
+
+  virtual std::string getGraphVizLabel() const;
 
   virtual void toGraphViz(std::ostream & out, std::string indent) const;
   virtual void toJSON(std::ostream & out, std::string indent) const;

@@ -277,6 +277,11 @@ void cond_t::toJSON(std::ostream & out, std::string indent) const {
   out << indent << "}";
 }
 
+std::string loop_t::getGraphVizLabel() const {
+  std::ostringstream oss; oss << "loop_" << id;
+  return oss.str();
+}
+
 void loop_t::toGraphViz(std::ostream & out, std::string indent) const {
   out << indent << getGraphVizLabel() << " [label=\"Loop#" << id << "\\niterator=" << iterator->get_name().getString() << "\\nlower=" << lower_bound->unparseToString() << "\\nupper=" << upper_bound->unparseToString() << "\\nstride=" << stride->unparseToString() << "\\n\"]" << std::endl;
   body->toGraphViz(out, indent + "  ");

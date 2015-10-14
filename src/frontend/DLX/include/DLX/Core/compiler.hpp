@@ -11,10 +11,10 @@
 
 #include "DLX/Core/frontend.hpp"
 
-#ifndef OUTPUT_DIRECTIVES_GRAPHVIZ
-#define OUTPUT_DIRECTIVES_GRAPHVIZ 1
+#ifndef DLX_OUTPUT_DIRECTIVES_GRAPHVIZ
+#define DLX_OUTPUT_DIRECTIVES_GRAPHVIZ 0
 #endif
-#if OUTPUT_DIRECTIVES_GRAPHVIZ
+#if DLX_OUTPUT_DIRECTIVES_GRAPHVIZ
 #include <iostream>
 #include <fstream>
 #include <sstream>
@@ -36,7 +36,7 @@ class Compiler {
 
     bool parse(SgNode * node) {
       bool res = frontend.parseDirectives(node);
-#if OUTPUT_DIRECTIVES_GRAPHVIZ
+#if DLX_OUTPUT_DIRECTIVES_GRAPHVIZ
       std::ostringstream oss; oss << "directives_" << node << ".dot";
       std::ofstream out(oss.str().c_str(), std::ofstream::out);
       frontend.toGraphViz(out);

@@ -24,13 +24,13 @@
 #include "KLT/Core/api.hpp"
 #include "KLT/Core/data.hpp"
 
-#ifndef OUTPUT_KERNELS_GRAPHVIZ
-#define OUTPUT_KERNELS_GRAPHVIZ 1
+#ifndef KLT_OUTPUT_KERNELS_GRAPHVIZ
+#define KLT_OUTPUT_KERNELS_GRAPHVIZ 1
 #endif
-#ifndef OUTPUT_KERNELS_JSON
-#define OUTPUT_KERNELS_JSON 1
+#ifndef KLT_OUTPUT_KERNELS_JSON
+#define KLT_OUTPUT_KERNELS_JSON 1
 #endif
-#if OUTPUT_KERNELS_GRAPHVIZ || OUTPUT_KERNELS_JSON
+#if KLT_OUTPUT_KERNELS_GRAPHVIZ || KLT_OUTPUT_KERNELS_JSON
 #include <iostream>
 #include <fstream>
 #include <sstream>
@@ -512,7 +512,7 @@ void Compiler<language_tpl>::compile(SgNode * node) {
     generateAllKernels(loop_directive_map, kernel_directives_map, kernel_directive_translation_map, all_subkernels);
   }
 
-#if OUTPUT_KERNELS_GRAPHVIZ
+#if KLT_OUTPUT_KERNELS_GRAPHVIZ
   {
     std::map<size_t, std::map<size_t, KLT::Kernel::kernel_t *> >::const_iterator it_kernel;
     std::map<size_t, KLT::Kernel::kernel_t *>::const_iterator it_subkernel;
@@ -558,7 +558,7 @@ void Compiler<language_tpl>::compile(SgNode * node) {
   }
 #endif
 
-#if OUTPUT_KERNELS_JSON
+#if KLT_OUTPUT_KERNELS_JSON
   {
     std::map<size_t, std::map<size_t, KLT::Kernel::kernel_t *> >::const_iterator it_kernel;
     std::map<size_t, KLT::Kernel::kernel_t *>::const_iterator it_subkernel;
