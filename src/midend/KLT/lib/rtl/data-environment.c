@@ -8,6 +8,7 @@
 #  include "KLT/RTL/opencl-utils.h"
 #endif
 
+#include <stdio.h>
 #include <stdlib.h>
 
 #include <assert.h>
@@ -34,6 +35,7 @@ struct klt_data_environment_t * klt_data_environment = NULL;
 
 ///
 
+struct klt_data_environment_t * klt_build_data_environment(struct klt_data_environment_t * parent);
 struct klt_data_environment_t * klt_build_data_environment(struct klt_data_environment_t * parent) {
   struct klt_data_environment_t * res = malloc(sizeof(struct klt_data_environment_t));
 
@@ -44,6 +46,7 @@ struct klt_data_environment_t * klt_build_data_environment(struct klt_data_envir
   return res;
 }
 
+void klt_clear_data_environment(struct klt_data_environment_t * data_env);
 void klt_clear_data_environment(struct klt_data_environment_t * data_env) {
   size_t i, j;
   for (i = 0; i < data_env->num_data; i++) {
@@ -84,7 +87,7 @@ void klt_clear_data_environment(struct klt_data_environment_t * data_env) {
             clFinish(data_env->allocations[i].allocations[j].memloc->device->descriptor.opencl->queue);
           }
           status = clReleaseMemObject((cl_mem)data_env->allocations[i].allocations[j].allocation->descriptor);
-          printf("clReleaseMemObject: %x\n", data_env->allocations[i].allocations[j].allocation->descriptor);
+          printf("clReleaseMemObject: %p\n", data_env->allocations[i].allocations[j].allocation->descriptor);
           assert(status == CL_SUCCESS);
           break;
 #else /* KLT_OPENCL_ENABLED */
@@ -122,11 +125,11 @@ void klt_clear_data_environment(struct klt_data_environment_t * data_env) {
 
 ///
 
-void klt_push_data_environment() {
+void klt_push_data_environment(void) {
   klt_data_environment = klt_build_data_environment(klt_data_environment);
 }
 
-void klt_pop_data_environment() {
+void klt_pop_data_environment(void) {
   struct klt_data_environment_t * tmp = klt_data_environment;
   klt_data_environment = klt_data_environment->parent;
   klt_clear_data_environment(tmp);
@@ -134,6 +137,7 @@ void klt_pop_data_environment() {
 
 ///
 
+struct iklt_data_map_t * iklt_get_data_map(struct klt_data_environment_t * data_env, struct klt_data_t * data);
 struct iklt_data_map_t * iklt_get_data_map(struct klt_data_environment_t * data_env, struct klt_data_t * data) {
   size_t i;
   for (i = 0; i < data_env->num_data; i++)
@@ -142,6 +146,7 @@ struct iklt_data_map_t * iklt_get_data_map(struct klt_data_environment_t * data_
   return NULL;
 }
 
+struct iklt_data_map_t * iklt_lookup_data_deep(struct klt_data_t * data, struct klt_data_environment_t ** data_env_ptr);
 struct iklt_data_map_t * iklt_lookup_data_deep(struct klt_data_t * data, struct klt_data_environment_t ** data_env_ptr) {
   assert(data_env_ptr != &klt_data_environment); // just to make sure
 
@@ -153,11 +158,13 @@ struct iklt_data_map_t * iklt_lookup_data_deep(struct klt_data_t * data, struct 
   return NULL;
 }
 
+struct iklt_data_map_t * iklt_lookup_data(struct klt_data_t * data);
 struct iklt_data_map_t * iklt_lookup_data(struct klt_data_t * data) {
   struct klt_data_environment_t * data_env = klt_data_environment;
   return iklt_lookup_data_deep(data, &data_env);
 }
 
+struct klt_allocation_t * iklt_get_data_from_map(struct klt_data_t * data, struct klt_memloc_t * memloc, struct iklt_data_map_t * data_map);
 struct klt_allocation_t * iklt_get_data_from_map(struct klt_data_t * data, struct klt_memloc_t * memloc, struct iklt_data_map_t * data_map) {
   size_t i;
   for (i = 0; i < data_map->num_allocations; i++)
@@ -179,6 +186,7 @@ struct klt_allocation_t * klt_get_data(struct klt_data_t * data, size_t device_i
 
 ///
 
+struct iklt_data_map_t * iklt_declare_data(struct klt_data_t * data);
 struct iklt_data_map_t * iklt_declare_data(struct klt_data_t * data) {
   klt_data_environment->num_data++;
   klt_data_environment->allocations = realloc(klt_data_environment->allocations, klt_data_environment->num_data * sizeof(struct iklt_data_map_t));
@@ -206,7 +214,7 @@ void klt_allocate_data(struct klt_data_t * data, size_t device_id) {
   assert(memloc != NULL);
 
   // Look for existing allocation
-  struct iklt_data_map_t * data_map;
+  struct iklt_data_map_t * data_map = NULL;
   while (data_env != NULL) {
     data_map = iklt_lookup_data_deep(data, &data_env);
     if (data_map == NULL) break;

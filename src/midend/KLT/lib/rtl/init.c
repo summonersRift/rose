@@ -14,7 +14,8 @@
 
 #include <assert.h>
 
-void klt_host_init() {
+void klt_host_init(void);
+void klt_host_init(void) {
   size_t device_id = iklt_increase_alloc_devices();
   assert(device_id == 0);
 
@@ -42,7 +43,8 @@ void klt_host_init() {
 }
 
 #if KLT_THREADS_ENABLED
-void klt_threads_init() {
+void klt_threads_init(void);
+void klt_threads_init(void) {
   size_t num_threads = 8; // TODO get number from environment or system-call
   struct klt_threads_device_t * threads_device = iklt_build_threads_device(num_threads);
 
@@ -81,13 +83,14 @@ extern char * opencl_kernel_file;
 extern char * opencl_kernel_options;
 extern char * opencl_klt_runtime_lib;
 
-void klt_opencl_init() {
+void klt_opencl_init(void);
+void klt_opencl_init(void) {
   size_t i, j;
   cl_int status;
 
   // Sources and Options
 
-  char * sources[2] = { klt_read_file(opencl_kernel_file) , klt_read_file(opencl_klt_runtime_lib) };
+  const char * sources[2] = { klt_read_file(opencl_kernel_file) , klt_read_file(opencl_klt_runtime_lib) };
 
   size_t opts_length = strlen(opencl_kernel_options) + 1;
 
@@ -195,18 +198,19 @@ void klt_opencl_init() {
   }
   free(platforms);
   free(options);
-  free(sources[0]);
-  free(sources[1]);
+  free((void*)sources[0]);
+  free((void*)sources[1]);
 }
 #endif /* KLT_OPENCL_ENABLED */
 
 #if KLT_CUDA_ENABLED
-void klt_cuda_init() {
+void klt_cuda_init(void);
+void klt_cuda_init(void) {
   // TODO
 }
 #endif /* KLT_CUDA_ENABLED */
 
-void klt_init() {
+void klt_init(void) {
   klt_host_init();
 
 #if KLT_THREADS_ENABLED
@@ -222,22 +226,25 @@ void klt_init() {
 #endif /* KLT_CUDA_ENABLED */
 }
 
-void klt_host_exit() {
+void klt_host_exit(void);
+void klt_host_exit(void) {
   // TODO
 }
 
 #if KLT_THREADS_ENABLED
-void klt_threads_exit() {
+void klt_threads_exit(void);
+void klt_threads_exit(void) {
   // TODO
 }
 #endif /* KLT_THREADS_ENABLED */
 
 #if KLT_OPENCL_ENABLED
-void klt_opencl_exit() {
+void klt_opencl_exit(void);
+void klt_opencl_exit(void) {
   size_t i;
   for (i = 0; i < klt_devices_count; i++)
     if (klt_devices[i]->kind == e_klt_opencl) {
-      printf("klt_opencl_exit : device #%d\n", i);
+      printf("klt_opencl_exit : device #%zd\n", i);
       clFinish(klt_devices[i]->descriptor.opencl->queue);
       klt_check_opencl_status("[Error] clReleaseContext returns:", clReleaseContext(klt_devices[i]->descriptor.opencl->context));
       klt_check_opencl_status("[Error] clReleaseCommandQueue returns:", clReleaseCommandQueue(klt_devices[i]->descriptor.opencl->queue));
@@ -247,12 +254,13 @@ void klt_opencl_exit() {
 #endif /* KLT_OPENCL_ENABLED */
 
 #if KLT_CUDA_ENABLED
-void klt_cuda_exit() {
+void klt_cuda_exit(void);
+void klt_cuda_exit(void) {
   // TODO
 }
 #endif /* KLT_CUDA_ENABLED */
 
-void klt_exit() {
+void klt_exit(void) {
 #if KLT_OPENCL_ENABLED
   klt_opencl_exit();
 #endif /* KLT_OPENCL_ENABLED */

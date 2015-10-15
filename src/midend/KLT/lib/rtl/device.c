@@ -4,6 +4,10 @@
 #include "KLT/RTL/data.h"
 #include "KLT/RTL/kernel.h"
 
+#include <unistd.h>
+
+#include <stdio.h>
+
 #include <stdlib.h>
 
 #include <assert.h>
@@ -11,7 +15,7 @@
 size_t klt_devices_count = 0;
 struct klt_device_t ** klt_devices = NULL;
 
-size_t iklt_increase_alloc_devices() {
+size_t iklt_increase_alloc_devices(void) {
   size_t res = klt_devices_count;
   klt_devices_count += 1;
   klt_devices = realloc(klt_devices, klt_devices_count * sizeof(struct klt_device_t *));
@@ -80,8 +84,8 @@ struct klt_device_t * klt_create_subdevice(size_t parent_id, enum klt_device_e k
 }
 
 #if KLT_THREADS_ENABLED
+void * iklt_threads_worker(void * arg);
 void * iklt_threads_worker(void * arg) {
-  size_t i;
   struct klt_threads_t * thread = (struct klt_threads_t *)arg;
 
   usleep(10);
@@ -151,7 +155,6 @@ struct klt_threads_device_t * iklt_build_threads_device(size_t num_threads) {
   pthread_attr_init(&threads_attr);
   pthread_attr_setdetachstate(&threads_attr, PTHREAD_CREATE_JOINABLE);
 
-  void * status;
   int rc;
 
   size_t i;
@@ -181,6 +184,7 @@ struct klt_threads_device_t * iklt_build_threads_device(size_t num_threads) {
   return res;
 }
 
+void iklt_destroy_threads_device(struct klt_threads_device_t * device);
 void iklt_destroy_threads_device(struct klt_threads_device_t * device) {
   klt_threads_wait_for_completion(device);
 
@@ -203,13 +207,7 @@ void iklt_destroy_threads_device(struct klt_threads_device_t * device) {
 #endif /* KLT_THREADS_ENABLED */
 
 #if KLT_OPENCL_ENABLED
-struct klt_opencl_device_t * klt_build_opencl_device(cl_platform_id platform, cl_device_id device, size_t num_sources, char ** sources, char * options) {
-  /*size_t i;
-  for (i = 0; i < num_sources; i++) {
-    printf("%s\n", sources[i]);
-  }
-  printf("%s\n", options);*/
-
+struct klt_opencl_device_t * klt_build_opencl_device(cl_platform_id platform, cl_device_id device, size_t num_sources, const char ** sources, char * options) {
   cl_int status;
   struct klt_opencl_device_t * res = malloc(sizeof(struct klt_opencl_device_t));
 
@@ -227,11 +225,55 @@ struct klt_opencl_device_t * klt_build_opencl_device(cl_platform_id platform, cl
 
   status = clBuildProgram(res->program, 1, &(res->device), options, NULL, NULL);
   if (status == CL_BUILD_PROGRAM_FAILURE) {
-    klt_get_ocl_build_log(&(res->device), res->program);
+    klt_get_ocl_build_log(res->device, res->program);
   }
   assert(status == CL_SUCCESS);
 
   return res;
 }
 #endif /* KLT_OPENCL_ENABLED */
+
+void klt_dbg_dump_device(size_t id) {
+  struct klt_device_t * device = klt_devices[id];
+  printf("  {");
+  printf( "\n    \"id\":%zd", device->device_id);
+  printf(",\n    \"kind\":%u", device->kind);
+  switch (device->kind) {
+    case e_klt_host: break; /* NOP */
+#if KLT_THREADS_ENABLED
+    case e_klt_threads:
+    {
+      printf(",\n    \"num_threads\":%zd", device->descriptor.threads->num_threads);
+      break;
+    }
+#endif
+#if KLT_OPENCL_ENABLED
+    case e_klt_opencl:
+    {
+      assert(0); // TODO struct klt_opencl_device_t * opencl;
+      break;
+    }
+#endif
+#if KLT_CUDA_ENABLED
+    case e_klt_cuda:
+    {
+      assert(0); // TODO struct klt_cuda_device_t * cuda;
+      break;
+    }
+#endif
+    default:
+      assert(0);
+  }
+  printf("\n  }");
+}
+
+void klt_dbg_dump_all_devices(void) {
+  size_t i;
+  printf("[\n");
+  for (i = 0; i < klt_devices_count; i++) {
+    if (i > 0) printf(",\n");
+    klt_dbg_dump_device(i);
+  }
+  printf("\n]\n");
+}
 

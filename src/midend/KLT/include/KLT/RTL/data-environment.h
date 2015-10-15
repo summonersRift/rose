@@ -8,10 +8,10 @@ struct klt_allocation_t;
 struct klt_data_t;
 
 /// Create a new data-environment and stack it on top of the existing ones
-void klt_push_data_environment();
+void klt_push_data_environment(void);
 
 /// Clear the current data-environment and pop it out of the stack
-void klt_pop_data_environment();
+void klt_pop_data_environment(void);
 
 /// Return an allocation of 'data' for the device. Search the data-environments recursively
 struct klt_allocation_t * klt_get_data(struct klt_data_t * data, size_t device_id);

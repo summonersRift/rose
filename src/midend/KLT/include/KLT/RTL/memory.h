@@ -23,7 +23,7 @@ struct klt_memloc_t {
 extern size_t klt_memlocs_count;
 extern struct klt_memloc_t ** klt_memlocs;
 
-size_t iklt_increase_alloc_memlocs();
+size_t iklt_increase_alloc_memlocs(void);
 
 struct klt_memloc_t * klt_get_memloc_by_id(size_t id);
 

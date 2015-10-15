@@ -83,7 +83,7 @@ void klt_execute_kernel(struct klt_kernel_t * kernel);
 
 void klt_dbg_dump_kernel(size_t idx);
 
-void klt_dbg_dump_all_kernels();
+void klt_dbg_dump_all_kernels(void);
 
 #endif /* __KLT_RTL_KERNEL_H__ */
 

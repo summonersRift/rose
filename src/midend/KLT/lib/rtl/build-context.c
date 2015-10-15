@@ -11,6 +11,7 @@
 
 #include <assert.h>
 
+int iklt_get_tile_length(struct klt_kernel_t * kernel, enum klt_tile_kind_e kind, unsigned long param);
 int iklt_get_tile_length(struct klt_kernel_t * kernel, enum klt_tile_kind_e kind, unsigned long param) {
   switch (kind) {
     case e_klt_tile_static:
@@ -30,6 +31,7 @@ int iklt_get_tile_length(struct klt_kernel_t * kernel, enum klt_tile_kind_e kind
   }
 }
 
+void klt_solve_one_loop(struct klt_loop_desc_t * loop_desc, struct klt_loop_context_t * loop_ctx, struct klt_kernel_t * kernel, int loop_it);
 void klt_solve_one_loop(struct klt_loop_desc_t * loop_desc, struct klt_loop_context_t * loop_ctx, struct klt_kernel_t * kernel, int loop_it) {
   int loop_idx = loop_desc[loop_it].idx;
 
@@ -82,14 +84,16 @@ void klt_solve_one_loop(struct klt_loop_desc_t * loop_desc, struct klt_loop_cont
 //dump_loop_ctx(loop_ctx);
 }
 
+void klt_solve_loop_context(int num_loops, struct klt_loop_desc_t * loop_desc, struct klt_loop_context_t * loop_ctx, struct klt_kernel_t * kernel);
 void klt_solve_loop_context(int num_loops, struct klt_loop_desc_t * loop_desc, struct klt_loop_context_t * loop_ctx, struct klt_kernel_t * kernel) {
-  int loop_it, tile_it;
+  int loop_it;
 
   for (loop_it = 0; loop_it < num_loops; loop_it++)
     if (loop_desc[loop_it].num_tiles > 0)
       klt_solve_one_loop(loop_desc, loop_ctx, kernel, loop_it);
 }
 
+void dump_loop_ctx(struct klt_loop_context_t * loop_ctx);
 void dump_loop_ctx(struct klt_loop_context_t * loop_ctx) {
   int i;
   int * ptr = loop_ctx->data;

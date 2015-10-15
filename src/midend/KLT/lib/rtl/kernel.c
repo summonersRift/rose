@@ -6,6 +6,7 @@
 #include "KLT/RTL/tile.h"
 #include "KLT/RTL/context.h"
 #include "KLT/RTL/build-context.h"
+#include "KLT/RTL/data-environment.h"
 
 #if KLT_OPENCL_ENABLED
 #  include "KLT/RTL/opencl-utils.h"
@@ -22,11 +23,13 @@
 
 extern char * klt_file_stem;
 
+struct klt_version_desc_t * klt_user_select_kernel_version(struct klt_kernel_t * kernel, size_t num_candidates, struct klt_version_desc_t ** candidates);
 struct klt_version_desc_t * klt_user_select_kernel_version(struct klt_kernel_t * kernel, size_t num_candidates, struct klt_version_desc_t ** candidates) {
   assert(num_candidates == 1);
   return candidates[0];
 }
 
+struct klt_version_desc_t * iklt_select_kernel_version(struct klt_kernel_t * kernel, enum klt_device_e device_kind);
 struct klt_version_desc_t * iklt_select_kernel_version(struct klt_kernel_t * kernel, enum klt_device_e device_kind) {
   assert(kernel->desc->num_versions > 0);
 
@@ -79,6 +82,7 @@ struct klt_kernel_t * klt_build_kernel(int idx) {
   return res;
 }
 
+void ** klt_copy_pointers_array(size_t n, void ** arr);
 void ** klt_copy_pointers_array(size_t n, void ** arr) {
   void ** res = (void **)malloc(n * sizeof(void *));
   memcpy(res, arr, n * sizeof(void *));
@@ -86,6 +90,13 @@ void ** klt_copy_pointers_array(size_t n, void ** arr) {
 }
 
 #if KLT_THREADS_ENABLED
+struct klt_threads_workload_t * klt_create_threads_workload(
+  klt_threads_kernel_func_ptr kernel_func,
+  size_t num_param, void ** local_param,
+  size_t num_data,  void ** local_data,
+  struct klt_loop_context_t * loop_context,
+  struct klt_data_context_t * data_context
+);
 struct klt_threads_workload_t * klt_create_threads_workload(
   klt_threads_kernel_func_ptr kernel_func,
   size_t num_param, void ** local_param,
@@ -103,9 +114,8 @@ struct klt_threads_workload_t * klt_create_threads_workload(
 }
 #endif
 
-void iklt_execute_subkernels(
-  struct klt_kernel_t * kernel, struct klt_version_desc_t * version
-) {
+void iklt_execute_subkernels(struct klt_kernel_t * kernel, struct klt_version_desc_t * version);
+void iklt_execute_subkernels(struct klt_kernel_t * kernel, struct klt_version_desc_t * version) {
   assert(kernel->device_id < klt_devices_count);
   struct klt_device_t * device = klt_devices[kernel->device_id];
   assert(device != NULL);
@@ -124,7 +134,7 @@ void iklt_execute_subkernels(
       size_t k;
       char * file_ext = "json";
       size_t kernel_id = (kernel->desc - klt_kernel_desc)/sizeof(struct klt_kernel_desc_t);
-      size_t version_id = (version - kernel->desc->versions)/sizeof(struct klt_version_desc_t);
+//    size_t version_id = (version - kernel->desc->versions)/sizeof(struct klt_version_desc_t);
       size_t subkernel_id = i;
       size_t filename_length = strlen(klt_file_stem) + strlen(file_ext) + 40;
 
@@ -473,7 +483,7 @@ void klt_dbg_dump_kernel(size_t idx) {
   printf("*\n");
 }
 
-void klt_dbg_dump_all_kernels() {
+void klt_dbg_dump_all_kernels(void) {
   size_t i;
   printf("*******\n");
   for (i = 0; i < klt_num_kernels; i++) {
