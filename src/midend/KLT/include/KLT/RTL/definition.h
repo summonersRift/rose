@@ -2,6 +2,10 @@
 #ifndef __KLT_RTL_DEFINITION_H__
 #define __KLT_RTL_DEFINITION_H__
 
+#ifndef VERBOSE
+#define VERBOSE 0
+#endif
+
 #ifndef KLT_KERNEL_TIMING
 #define KLT_KERNEL_TIMING 0
 #endif

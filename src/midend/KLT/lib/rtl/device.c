@@ -1,4 +1,6 @@
 
+#include "KLT/RTL/definition.h"
+
 #include "KLT/RTL/device.h"
 #include "KLT/RTL/memory.h"
 #include "KLT/RTL/data.h"
@@ -215,19 +217,27 @@ struct klt_opencl_device_t * klt_build_opencl_device(cl_platform_id platform, cl
   res->device = device;
 
   res->context = clCreateContext(0, 1, &(res->device), NULL, NULL, &status);
-  assert(status == CL_SUCCESS);
+  klt_check_opencl_status("[Error] clCreateContext returns:", status);
 
   res->queue = clCreateCommandQueue(res->context, device, 0, &status);
-  assert(status == CL_SUCCESS);
+  klt_check_opencl_status("[Error] clCreateCommandQueue returns:", status);
 
-  res->program = clCreateProgramWithSource(res->context, num_sources, sources, NULL, &status);
-  assert(status == CL_SUCCESS);
+  if (num_sources > 1) { 
+    res->program = clCreateProgramWithSource(res->context, num_sources, sources, NULL, &status);
+    klt_check_opencl_status("[Error] clCreateProgramWithSource returns:", status);
 
-  status = clBuildProgram(res->program, 1, &(res->device), options, NULL, NULL);
-  if (status == CL_BUILD_PROGRAM_FAILURE) {
-    klt_get_ocl_build_log(res->device, res->program);
+    status = clBuildProgram(res->program, 1, &(res->device), options, NULL, NULL);
+    if (status == CL_BUILD_PROGRAM_FAILURE) {
+      klt_get_ocl_build_log(res->device, res->program);
+    }
+    klt_check_opencl_status("[Error] clBuildProgram returns:", status);
   }
-  assert(status == CL_SUCCESS);
+  else {
+    res->program = NULL;
+#if VERBOSE
+    printf("[Warning] No OpenCL sources found. The device's program was not initialized!\n");
+#endif
+  }
 
   return res;
 }
@@ -250,7 +260,8 @@ void klt_dbg_dump_device(size_t id) {
 #if KLT_OPENCL_ENABLED
     case e_klt_opencl:
     {
-      assert(0); // TODO struct klt_opencl_device_t * opencl;
+      printf(",\n    \"opencl\":");
+      klt_opencl_device_to_JSON(device->descriptor.opencl->platform, device->descriptor.opencl->device, "    ");
       break;
     }
 #endif

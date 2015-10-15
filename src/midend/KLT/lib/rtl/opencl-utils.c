@@ -7,6 +7,12 @@
 
 #include <assert.h>
 
+void klt_opencl_device_to_JSON(cl_platform_id platform, cl_device_id device, const char * indent) {
+  printf("{\n");
+  printf("%s  TODO", indent);
+  printf("\n%s}", indent);
+}
+
 char * klt_read_file(const char * filename) {
 
    FILE *fp;
@@ -17,38 +23,38 @@ char * klt_read_file(const char * filename) {
 
    fp = fopen(filename, "rb");
    if(fp == NULL) {
-      printf("Could not open kernel file: %s\n", filename);
-      assert(0);
+      printf("[Error] Could not open kernel file: %s\n", filename);
+      return NULL;
    }
    
    err = fseek(fp, 0, SEEK_END);
    if(err != 0) {
-      printf("Error seeking to end of file\n");
-      assert(0);
+      printf("[Error] Seeking to end of file: %s\n", filename);
+      return NULL;
    }
 
    size = ftell(fp);
    if(size < 0) {
-      printf("Error getting file position\n");
-      assert(0);
+      printf("[Error] Getting position in file: %s\n", filename);
+      return NULL;
    }
 
    err = fseek(fp, 0, SEEK_SET);
    if(err != 0) {
-      printf("Error seeking to start of file\n");
-      assert(0);
+      printf("[Error] Seeking to start of file: %s\n", filename);
+      return NULL;
    }
 
    source = (char*)malloc(size+1);
    if(source == NULL) {
-      printf("Error allocating %d bytes for the program source\n", size+1);
+      printf("[Error] Allocating %d bytes to read file: %s\n", size+1, filename);
       assert(0);
    }
 
    err = fread(source, 1, size, fp);
    if(err != size) {
-      printf("only read %d bytes\n", err);
-      assert(0);
+      printf("[Error] only read %d/%d bytes in file: %s\n", err, size, filename);
+      return NULL;
    }
 
    source[size] = '\0';

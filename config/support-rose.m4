@@ -2057,6 +2057,7 @@ projects/TileK/include/RTL/Kernel/OpenCL/Makefile
 projects/TileK/include/RTL/Kernel/CUDA/Makefile
 projects/TileK/lib/Makefile
 projects/TileK/src/Makefile
+projects/TileK/tests/rtl/tools/Makefile
 projects/TileK/tests/rtl/host/Makefile
 projects/TileK/tests/rtl/threads/Makefile
 projects/TileK/tests/rtl/opencl/Makefile

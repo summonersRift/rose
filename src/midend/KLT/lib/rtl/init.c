@@ -90,9 +90,14 @@ void klt_opencl_init(void) {
 
   // Sources and Options
 
-  const char * sources[2] = { klt_read_file(opencl_kernel_file) , klt_read_file(opencl_klt_runtime_lib) };
+  const char * sources[2] = { NULL , NULL };
+  size_t num_sources = 0;
 
-  size_t opts_length = strlen(opencl_kernel_options) + 1;
+  if (opencl_kernel_file != NULL)     sources[num_sources++] = klt_read_file(opencl_kernel_file);
+  if (opencl_klt_runtime_lib != NULL) sources[num_sources++] = klt_read_file(opencl_klt_runtime_lib);
+
+  size_t opts_length = 1;
+  if (opencl_kernel_options != NULL) opts_length += strlen(opencl_kernel_options);
 
   char * context_storage_modifier = " -DCOMPILE_FOR_KERNEL=1 -DSTORAGE_MODIFIER=__constant -DDEVICE_FUNCTION_MODIFIER=";
   opts_length += strlen(context_storage_modifier);
@@ -105,7 +110,8 @@ void klt_opencl_init(void) {
   char * options = (char *)malloc(opts_length * sizeof(char));
   memset(options, 0, opts_length * sizeof(char));
 
-  strcat(options, opencl_kernel_options);
+  if (opencl_kernel_options != NULL)
+    strcat(options, opencl_kernel_options);
   strcat(options, context_storage_modifier);
 #if COMPILE_OPENCL_KERNEL_WITH_DEBUG == 1
   strcat(options, debug_flags);
@@ -152,7 +158,7 @@ void klt_opencl_init(void) {
       size_t device_idx, device_id, memloc_idx, memloc_id;
 
       /// platforms[i] / devices[j]
-      struct klt_opencl_device_t * opencl_device = klt_build_opencl_device(platforms[i], devices[j], 2, sources, options);
+      struct klt_opencl_device_t * opencl_device = klt_build_opencl_device(platforms[i], devices[j], num_sources, sources, options);
 
       device_idx = iklt_device_increase_alloc_subdevices(klt_devices[0]);
       device_id = iklt_increase_alloc_devices();
@@ -246,9 +252,12 @@ void klt_opencl_exit(void) {
     if (klt_devices[i]->kind == e_klt_opencl) {
       printf("klt_opencl_exit : device #%zd\n", i);
       clFinish(klt_devices[i]->descriptor.opencl->queue);
-      klt_check_opencl_status("[Error] clReleaseContext returns:", clReleaseContext(klt_devices[i]->descriptor.opencl->context));
-      klt_check_opencl_status("[Error] clReleaseCommandQueue returns:", clReleaseCommandQueue(klt_devices[i]->descriptor.opencl->queue));
-      klt_check_opencl_status("[Error] clReleaseProgram returns:", clReleaseProgram(klt_devices[i]->descriptor.opencl->program));
+      if (klt_devices[i]->descriptor.opencl->context != NULL)
+        klt_check_opencl_status("[Error] clReleaseContext returns:", clReleaseContext(klt_devices[i]->descriptor.opencl->context));
+      if (klt_devices[i]->descriptor.opencl->queue != NULL)
+        klt_check_opencl_status("[Error] clReleaseCommandQueue returns:", clReleaseCommandQueue(klt_devices[i]->descriptor.opencl->queue));
+      if (klt_devices[i]->descriptor.opencl->program != NULL)
+        klt_check_opencl_status("[Error] clReleaseProgram returns:", clReleaseProgram(klt_devices[i]->descriptor.opencl->program));
     }
 }
 #endif /* KLT_OPENCL_ENABLED */

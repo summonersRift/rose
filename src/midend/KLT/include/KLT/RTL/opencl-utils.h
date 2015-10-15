@@ -10,6 +10,8 @@
 
 char * klt_read_file(const char * filename);
 
+void klt_opencl_device_to_JSON(cl_platform_id platform, cl_device_id device, const char * indent);
+
 void klt_get_ocl_build_log(cl_device_id device, cl_program program);
 
 void klt_print_opencl_status(cl_int status);

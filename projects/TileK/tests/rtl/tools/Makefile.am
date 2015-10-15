@@ -4,8 +4,11 @@ include $(top_srcdir)/config/Makefile.for.ROSE.includes.and.libs
 ###################################################################################################
 
 check-local: klt-dump-host-devices klt-dump-opencl-devices
+	./klt-dump-host-devices
+	./klt-dump-opencl-devices
+
 clean-local:
-	rm -f klt-dump-host-devices klt-dump-opencl-devices
+	rm -f klt-dump-devices.o klt-dump-host-devices klt-dump-opencl-devices
 
 ###################################################################################################
 
@@ -25,14 +28,17 @@ LD_FLAGS=-lrt
 
 ###################################################################################################
 
-klt-dump-devices.o: klt-dump-devices.c
-	libtool --mode=link gcc $(C_FLAGS) -c klt-dump-devices.c -o klt-dump-devices.o
+klt-dump-devices.o: $(top_srcdir)/$(KLT_REL_PATH)/tools/klt-dump-devices.c
+	gcc $(C_FLAGS) -c $(top_srcdir)/$(KLT_REL_PATH)/tools/klt-dump-devices.c -o klt-dump-devices.o
 
-klt-dump-opencl-devices: klt-dump-devices.o $(KLT_HOST_RTL)
-	libtool --mode=link gcc klt-dump-devices.o $(LD_FLAGS) $(KLT_HOST_RTL) -o klt-dump-host-devices
+empty-static.o: $(srcdir)/empty-static.c
+	gcc $(C_FLAGS) -c $(srcdir)/empty-static.c -o empty-static.o
 
-klt-dump-opencl-devices: klt-dump-devices.o $(KLT_OPENCL_RTL)
-	libtool --mode=link gcc klt-dump-devices.o $(LD_FLAGS) $(KLT_OPENCL_RTL) -o klt-dump-opencl-devices
+klt-dump-host-devices: klt-dump-devices.o empty-static.o $(KLT_HOST_RTL)
+	libtool --mode=link gcc klt-dump-devices.o empty-static.o -lrt $(KLT_HOST_RTL) -o klt-dump-host-devices
+
+klt-dump-opencl-devices: klt-dump-devices.o empty-static.o $(KLT_OPENCL_RTL)
+	libtool --mode=link gcc klt-dump-devices.o empty-static.o -lrt -lOpenCL $(KLT_OPENCL_RTL) -o klt-dump-opencl-devices
 
 ###################################################################################################
 
