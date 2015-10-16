@@ -47,14 +47,18 @@ test_0-static.o: test_0-static.c
 test_0: rose_test_0.o test_0-host-kernel.o test_0-static.o $(KLT_RTL)
 	libtool --mode=link gcc rose_test_0.o test_0-host-kernel.o test_0-static.o $(LD_FLAGS) -o test_0
 
-dump_test_0: klt-dump-static.o test_0-host-kernel.o test_0-static.o $(KLT_RTL)
-	libtool --mode=link gcc klt-dump-static.o test_0-host-kernel.o test_0-static.o $(LD_FLAGS) -o dump_test_0
-
 check-test_0: test_0
 	./test_0
 
+##################################
+
+dump_test_0: klt-dump-static.o test_0-host-kernel.o test_0-static.o $(KLT_RTL)
+	libtool --mode=link gcc klt-dump-static.o test_0-host-kernel.o test_0-static.o $(LD_FLAGS) -o dump_test_0
+
 check-dump_test_0: dump_test_0
 	./dump_test_0
+
+##################################
 
 clean-test_0:
 	rm -f test_0-host-kernel.c rose_test_0.c test_0-static.c
@@ -80,14 +84,18 @@ test_1-static.o: test_1-static.c
 test_1: rose_test_1.o test_1-host-kernel.o test_1-static.o $(KLT_RTL)
 	libtool --mode=link gcc rose_test_1.o test_1-host-kernel.o test_1-static.o $(LD_FLAGS) -o test_1
 
-dump_test_1: klt-dump-static.o test_1-host-kernel.o test_1-static.o $(KLT_RTL)
-	libtool --mode=link gcc klt-dump-static.o test_1-host-kernel.o test_1-static.o $(LD_FLAGS) -o dump_test_1
-
 check-test_1: test_1
 	./test_1
 
+##################################
+
+dump_test_1: klt-dump-static.o test_1-host-kernel.o test_1-static.o $(KLT_RTL)
+	libtool --mode=link gcc klt-dump-static.o test_1-host-kernel.o test_1-static.o $(LD_FLAGS) -o dump_test_1
+
 check-dump_test_1: dump_test_1
 	./dump_test_1
+
+##################################
 
 clean-test_1:
 	rm -f test_1-host-kernel.c rose_test_1.c test_1-static.c
@@ -113,14 +121,20 @@ test_2-static.o: test_2-static.c
 test_2: rose_test_2.o test_2-host-kernel.o test_2-static.o $(KLT_RTL)
 	libtool --mode=link gcc rose_test_2.o test_2-host-kernel.o test_2-static.o $(LD_FLAGS) -o test_2
 
-dump_test_2: klt-dump-static.o test_2-host-kernel.o test_2-static.o $(KLT_RTL)
-	libtool --mode=link gcc klt-dump-static.o test_2-host-kernel.o test_2-static.o $(LD_FLAGS) -o dump_test_2
+
 
 check-test_2: test_2
 	./test_2
 
+##################################
+
+dump_test_2: klt-dump-static.o test_2-host-kernel.o test_2-static.o $(KLT_RTL)
+	libtool --mode=link gcc klt-dump-static.o test_2-host-kernel.o test_2-static.o $(LD_FLAGS) -o dump_test_2
+
 check-dump_test_2: dump_test_2
 	./dump_test_2
+
+##################################
 
 clean-test_2:
 	rm -f test_2-host-kernel.c rose_test_2.c test_2-static.c
