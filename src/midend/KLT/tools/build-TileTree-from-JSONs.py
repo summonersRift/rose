@@ -23,10 +23,11 @@ def traverse(looptree, tiles):
 
 			traverse(looptree["next"], tiles)
 
-			del looptree["id"]
-			del looptree["kind"]
-			del looptree["order"]
+			looptree["loop"] = looptree["loop->id"];
 			del looptree["loop->id"]
+
+			del looptree["id"]
+			del looptree["order"]
 			del looptree["tile_id"]
 			del looptree["param"]
 		elif looptree["type"] == "stmt":
