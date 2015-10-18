@@ -36,7 +36,6 @@ INC_PATHS= $(KLT_INC_PATHS) $(TILEK_INC_PATHS) $(ROSE_INCLUDES)
 
 KLT_LIBS=-lDLX-Core -lMFB-Sage -lMFB-KLT -lMFB-Utils -lMDCG-Model -lMDCG-Tools -lKLT-Core -lKLT-MDCG
 
-
 cxxflags=-g -DVERBOSE=1 -O0
 
 TILEK_cxxflags=$(cxxflags) $(INC_PATHS) -DKLT_PATH=\"$(abs_top_srcdir)/$(KLT_REL_PATH)\"

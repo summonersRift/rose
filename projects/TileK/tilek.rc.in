@@ -1,0 +1,19 @@
+#!/bin/bash
+
+source @abs_top_builddir@/src/midend/KLT/klt.rc
+
+export TILEK_SRCDIR=@abs_srcdir@
+export TILEK_BUILDDIR=@abs_builddir@
+
+export TILEK_FLAGS_THREADS="--tilek-target=threads"
+export TILEK_FLAGS_OPENCL="--tilek-target=opencl"
+export TILEK_FLAGS_ALL="--tilek-target=threads,opencl"
+
+alias tilek=$TILEK_BUILDDIR/src/tilek
+
+alias tilek-compile=$TILEK_SRCDIR/tools/compile.sh
+alias tilek-eval=$TILEK_SRCDIR/tools/eval.sh
+alias tilek-collect=$TILEK_SRCDIR/tools/collect-TileTree.sh
+
+export TILEK="source $TILEK_BUILDDIR/tilek.rc"
+

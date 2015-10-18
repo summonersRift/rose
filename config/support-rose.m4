@@ -1749,6 +1749,7 @@ src/midend/MDCG/include/MDCG/Tools/Makefile
 src/midend/MDCG/lib/model/Makefile
 src/midend/MDCG/lib/tools/Makefile
 src/midend/KLT/Makefile
+src/midend/KLT/klt.rc
 src/midend/KLT/include/KLT/Core/Makefile
 src/midend/KLT/include/KLT/MDCG/Makefile
 src/midend/KLT/include/KLT/DLX/Makefile
@@ -2051,6 +2052,7 @@ projects/Viz/src/Makefile
 projects/Viz/tools/Makefile
 projects/Viz/examples/Makefile
 projects/TileK/Makefile
+projects/TileK/tilek.rc
 projects/TileK/include/DLX/TileK/Makefile
 projects/TileK/include/RTL/Host/Makefile
 projects/TileK/include/RTL/Kernel/OpenCL/Makefile
