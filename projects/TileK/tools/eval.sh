@@ -45,12 +45,12 @@ if [ "$1" == "-h" ]; then
 fi
 while [ ! -z $1 ]; do
   if   [ "$1" == "--stem"    ]; then stem=$2    ; shift 2
-  elif [ "$1" == "--config" ];  then config=$2  ; shift 2
   elif [ "$1" == "--bindir"  ]; then bindir=$2  ; shift 2
-  elif [ "$1" == "--binary"  ]; then binary=$2  ; shift 2
   elif [ "$1" == "--argdir"  ]; then argdir=$2  ; shift 2
   elif [ "$1" == "--args"    ]; then args=$2    ; shift 2
-  elif [ "$1" == "--outdir"  ]; then outdir=$2  ; shift 2
+  elif [ "$1" == "--cfgdir"  ]; then cfgdir=$2  ; shift 2
+  elif [ "$1" == "--configs" ]; then configs=$2 ; shift 2
+  elif [ "$1" == "--rundir"  ]; then rundir=$2  ; shift 2
   elif [ "$1" == "--timeout" ]; then timeout=$2 ; shift 2
   elif [ "$1" == "--reps"    ]; then reps=$2    ; shift 2
   else
@@ -60,6 +60,8 @@ while [ ! -z $1 ]; do
   fi
 done
 
+#####
+
 echo "####################"
 
 echo "TileK Eval Script"
@@ -67,23 +69,34 @@ echo "TileK Eval Script"
 [ -z "$stem" ] && usage && exit 1
 echo " > stem    = $stem"
 
-[ -z "$config" ] && usage && exit 1
-echo " > config    = $config"
+# bindir
 
-[ -z "$bindir" ]  && bindir=$(pwd)/$stem/$config
+[ -z "$bindir" ]  && bindir=$(pwd)
 echo " > bindir  = $bindir"
 
-[ -z "$binary" ]  && binary=$bindir/$stem-$config
-echo " > binary  = $binary"
+# Rundir
 
-[ -z "$outdir" ]  && outdir=$(pwd)/$stem/$config
-echo " > outdir  = $outdir"
+[ -z "$rundir" ]  && rundir=$(pwd)
+echo " > rundir  = $rundir"
+
+# Configuration
+
+[ -z "$cfgdir" ]  && cfgdir=$(pwd)
+echo " > cfgdir  = $cfgdir"
+
+[ -z "$configs" ]    && configs=$cfgdir/$stem-configs.csv
+configs=$(readlink -f $configs)
+
+# Arguments
 
 [ -z "$argdir" ]  && argdir=$(pwd)
 echo " > argdir  = $argdir"
 
-[ -z "$args" ]    && args=$argdir/$stem.csv
+[ -z "$args" ]    && args=$argdir/$stem-args.csv
+args=$(readlink -f $args)
 echo " > args    = $args"
+
+# Parameters
 
 [ -z "$timeout" ] && timeout="1m"
 echo " > timeout = $timeout"
@@ -93,24 +106,24 @@ echo " > reps    = $reps"
 
 #####
 
-[ ! -e $binary ] && echo "Error: $binary does not exist." && exit 3
 [ ! -e $args ]   && echo "Error: $args does not exist."   && exit 3
 
 #####
 
 echo "####################"
 
-mkdir -p $outdir
-pushd $outdir > /dev/null
-
+for config in $(cat $configs); do
 for arg in $(cat $args); do
+
   tag=$(echo $arg | cut -d',' -f1)
   arguments=$(echo $arg | cut -d',' -f2- | tr ',' ' ')
 
-  mkdir -p $tag
-  pushd $tag > /dev/null
+  binary=$(readlink -f $bindir/$stem/$config/$stem-$config)
 
-  echo "Execute \"$tag\": \"$arguments\""
+  mkdir -p $rundir/$stem/$config/$tag
+  pushd $rundir/$stem/$config/$tag > /dev/null
+
+  echo "Execute \"$config\" \"$tag\": \"$arguments\""
 
   for i in $(seq 1 $reps); do
     timeout $timeout $binary $arguments
@@ -120,8 +133,7 @@ for arg in $(cat $args); do
 
   popd > /dev/null
 done
-
-popd > /dev/null
+done
 
 echo "####################"
 

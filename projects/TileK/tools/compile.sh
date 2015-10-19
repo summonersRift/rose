@@ -39,10 +39,11 @@ if [ "$1" == "-h" ]; then
   exit 0
 fi
 while [ ! -z $1 ]; do
-  if   [ "$1" == "--stem" ];    then stem=$2    ; shift 2
-  elif [ "$1" == "--config" ];  then config=$2  ; shift 2
-  elif [ "$1" == "--outdir" ];  then outdir=$2  ; shift 2
+  if   [ "$1" == "--stem"    ]; then stem=$2    ; shift 2
   elif [ "$1" == "--srcdir" ];  then srcdir=$2  ; shift 2
+  elif [ "$1" == "--bindir"  ]; then bindir=$2  ; shift 2
+  elif [ "$1" == "--cfgdir"  ]; then cfgdir=$2  ; shift 2
+  elif [ "$1" == "--configs" ]; then configs=$2 ; shift 2
   elif [ "$1" == "--targets" ]; then targets=$2 ; shift 2
   elif [ "$1" == "--opts" ];    then opts=$2    ; shift 2
   elif [ "$1" == "--debug" ];   then dbg=$2     ; shift 2
@@ -62,19 +63,34 @@ echo "TileK Compile Script"
 [ -z "$stem" ] && usage && exit 1
 echo " > stem    = $stem"
 
-[ -z "$config" ] && usage && exit 1
-echo " > config    = $config"
-
-[ -z "$outdir" ] && outdir=$(pwd)/$stem/$config
-echo " > outdir  = $directory"
+# Source directory
 
 [ -z "$srcdir" ] && srcdir=$(pwd)
 echo " > srcdir  = $srcdir"
 
+# bindir
+
+[ -z "$bindir" ]  && bindir=$(pwd)
+echo " > bindir  = $bindir"
+
+# Configuration
+
+[ -z "$cfgdir" ]  && cfgdir=$(pwd)
+echo " > cfgdir  = $cfgdir"
+
+[ -z "$configs" ]    && configs=$cfgdir/$stem-configs.csv
+configs=$(readlink -f $configs)
+
+# Target
+
+echo " > targets = $targets"
+
+# Options
+
 options=$(echo $opts | tr ',' ' ')
 echo " > options = $options"
 
-echo " > targets = $targets"
+# Debug
 
 debug=$(echo $dbg | tr ',' ' ')
 echo " > debug = $debug"
@@ -85,46 +101,40 @@ shopt -s expand_aliases
 
 [ -z "$TILEK" ] && echo "Error: environment variable \$TILEK is not defined!" && exit 2
 
-echo "$TILEK"
 $TILEK
 
 alias tilek > /dev/null
 
 #####
 
-infile=$srcdir/$stem-$config.c
-[ ! -e $infile ] && echo "Error: cannot find $infile" && exit 3
-
-echo " > infile  = $infile"
-
-#####
-
 echo "####################"
-
-mkdir -p $outdir
-pushd $outdir > /dev/null
 
 KLT_LD_FLAGS="-lrt"
 KLT_LD_FLAGS="$KLT_LD_FLAGS $KLT_RTL_HOST"
 
 C_FLAGS="$debug $KLT_INCPATH $options"
 
-echo "tilek --tilek-target=$targets $C_FLAGS $infile &> tilek-$stem-$config.log"
-tilek --tilek-target=$targets $C_FLAGS $infile &> tilek-$stem-$config.log
+for config in $(cat $configs); do
+  mkdir -p $bindir/$stem/$config
+  pushd $bindir/$stem/$config > /dev/null
 
-echo "gcc $C_FLAGS -c rose_$stem-$config.c -o rose_$stem-$config.o &> gcc-rose_$stem-$config.log"
-gcc $C_FLAGS -c rose_$stem-$config.c -o rose_$stem-$config.o &> gcc-rose_$stem-$config.log
+  echo "tilek --tilek-target=$targets $C_FLAGS $srcdir/$stem-$config.c &> $bindir/$stem/tilek-$config.log"
+  tilek --tilek-target=$targets $C_FLAGS $srcdir/$stem-$config.c &> $bindir/$stem/tilek-$config.log
 
-echo "gcc $C_FLAGS -c $stem-$config-host-kernel.c -o $stem-$config-host-kernel.o &> gcc-$stem-$config-host-kernel.log"
-gcc $C_FLAGS -c $stem-$config-host-kernel.c -o $stem-$config-host-kernel.o &> gcc-$stem-$config-host-kernel.log
+  echo "gcc $C_FLAGS -c rose_$stem-$config.c -o rose_$stem-$config.o &> $bindir/$stem/gcc-rose_$stem-$config.log"
+  gcc $C_FLAGS -c rose_$stem-$config.c -o rose_$stem-$config.o &> $bindir/$stem/gcc-rose_$stem-$config.log
 
-echo "gcc $C_FLAGS -c $stem-$config-static.c -o $stem-$config-static.o &> gcc-$stem-$config-static.log"
-gcc $C_FLAGS -c $stem-$config-static.c -o $stem-$config-static.o &> gcc-$stem-$config-static.log
+  echo "gcc $C_FLAGS -c $stem-$config-host-kernel.c -o $stem-$config-host-kernel.o &> $bindir/$stem/gcc-$config-host-kernel.log"
+  gcc $C_FLAGS -c $stem-$config-host-kernel.c -o $stem-$config-host-kernel.o &> $bindir/$stem/gcc-$config-host-kernel.log
 
-echo "libtool --mode=link gcc $debug rose_$stem-$config.o $stem-$config-host-kernel.o $stem-$config-static.o $KLT_LD_FLAGS -o $stem-$config &> libtool-$stem-$config.log"
-libtool --mode=link gcc $debug rose_$stem-$config.o $stem-$config-host-kernel.o $stem-$config-static.o $KLT_LD_FLAGS -o $stem-$config &> libtool-$stem-$config.log
+  echo "gcc $C_FLAGS -c $stem-$config-static.c -o $stem-$config-static.o &> $bindir/$stem/gcc-$config-static.log"
+  gcc $C_FLAGS -c $stem-$config-static.c -o $stem-$config-static.o &> $bindir/$stem/gcc-$config-static.log
 
-popd > /dev/null
+  echo "libtool --mode=link gcc $debug rose_$stem-$config.o $stem-$config-host-kernel.o $stem-$config-static.o $KLT_LD_FLAGS -o $stem-$config &> $bindir/$stem/libtool-$config.log"
+  libtool --mode=link gcc $debug rose_$stem-$config.o $stem-$config-host-kernel.o $stem-$config-static.o $KLT_LD_FLAGS -o $stem-$config &> $bindir/$stem/libtool-$config.log
+
+  popd > /dev/null
+done
 
 echo "####################"
 

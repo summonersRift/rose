@@ -14,7 +14,7 @@ export KLT_RTL_HOST="$KLT_RTL_PATH/libKLT-RTL-Host.la"
 export KLT_RTL_THREADS="$KLT_RTL_PATH/libKLT-RTL-Threads.la"
 export KLT_RTL_OPENCL="$KLT_RTL_PATH/libKLT-RTL-OpenCL.la"
 
-alias klt-build-TileTree-JSONs=$KLT_SRCDIR/tools/build-TileTree-JSONs.py
+alias klt-build-TileTree-JSONs=$KLT_SRCDIR/tools/build-TileTree-from-JSONs.py
 alias klt-TileTree-JSON-to-GraphViz=$KLT_SRCDIR/tools/TileTree-JSON-to-GraphViz.py
 
 export KLT="source $KLT_BUILDDIR/klt.rc"

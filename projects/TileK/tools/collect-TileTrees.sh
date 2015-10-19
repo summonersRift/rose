@@ -20,9 +20,11 @@ function usage() {
   echo "   -o: "
 }
 
-indir=""
-binary=""
-arguments=""
+stem=""
+config=""
+argdir=""
+args=""
+rundir=""
 outdir=""
 
 if [ -z $1 ]; then
@@ -34,10 +36,13 @@ if [ "$1" == "-h" ]; then
   exit 0
 fi
 while [ ! -z $1 ]; do
-  if   [ "$1" == "-i" ]; then indir=$2 ; shift 2
-  elif [ "$1" == "-b" ]; then binary=$2     ; shift 2
-  elif [ "$1" == "-a" ]; then arguments=$2 ; shift 2
-  elif [ "$1" == "-o" ]; then outdir=$2 ; shift 2
+  if   [ "$1" == "--stem"    ]; then stem=$2    ; shift 2
+  elif [ "$1" == "--argdir"  ]; then argdir=$2  ; shift 2
+  elif [ "$1" == "--args"    ]; then args=$2    ; shift 2
+  elif [ "$1" == "--cfgdir"  ]; then cfgdir=$2  ; shift 2
+  elif [ "$1" == "--configs" ]; then configs=$2 ; shift 2
+  elif [ "$1" == "--rundir"  ]; then rundir=$2  ; shift 2
+  elif [ "$1" == "--outdir"  ]; then outdir=$2  ; shift 2
   else
     echo "Error unrecognized option: $1"
     usage
@@ -45,21 +50,74 @@ while [ ! -z $1 ]; do
   fi
 done
 
-[ -z "$indir" ]     && echo "Error: Need input directory (-i)" && exit 1
-[ -z "$binary" ]    && echo "Error: Need input binary (-b)" && exit 1
-[ -z "$arguments" ] && echo "Error: Need arguments CSV (-a)" && exit 1
-[ -z "$outdir" ]    && echo "Error: Need output directory (-o)" && exit 1
+#####
+
+echo "####################"
+
+echo "TileK Collect TileTree Script"
+
+[ -z "$stem" ] && usage && exit 1
+echo " > stem    = $stem"
+
+# Arguments
+
+[ -z "$argdir" ]  && argdir=$(pwd)
+echo " > argdir  = $argdir"
+
+[ -z "$args" ]    && args=$argdir/$stem-args.csv
+args=$(readlink -f $args)
+echo " > args    = $args"
+
+# Configuration
+
+[ -z "$cfgdir" ]  && cfgdir=$(pwd)
+echo " > cfgdir  = $cfgdir"
+
+[ -z "$configs" ]    && configs=$cfgdir/$stem-configs.csv
+configs=$(readlink -f $configs)
+
+# bindir
+
+[ -z "$bindir" ]  && bindir=$(pwd)
+echo " > bindir  = $bindir"
+
+# Rundir
+
+[ -z "$rundir" ]  && rundir=$(pwd)
+echo " > rundir  = $rundir"
+
+# Output
+
+[ -z "$outdir" ]  && outdir=$(pwd)
+echo " > outdir  = $outdir"
 
 #####
 
+[ ! -e $args ] && echo "Error: $args does not exist." && exit 3
 
+#####
+
+shopt -s expand_aliases
+
+[ -z "$KLT" ] && echo "Error: environment variable \$KLT is not defined!" && exit 2
+
+$KLT
 
 #####
 
 mkdir -p $outdir
-pushd $outdir > /dev/null
 
+for config in $(cat $configs); do
+for arg in $(cat $args); do
+  tag=$(echo $arg | cut -d',' -f1)
 
+  looptree=$bindir/$stem/$config/$stem-$config\_kernel_0_subkernel_0_looptree.json
+  loop_ctx=$rundir/$stem/$config/$tag/$stem-$config\_kernel_0_subkernel_0_loop_ctx.json
+  tiletree=$outdir/$stem-$config-$tag-tiletree
 
-popd > /dev/null
+  klt-build-TileTree-JSONs $looptree $loop_ctx $tiletree.json
+  klt-TileTree-JSON-to-GraphViz $tiletree.json > $tiletree.dot
+  dot -Tsvg $tiletree.dot -o $tiletree.svg
+done
+done
 

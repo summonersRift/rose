@@ -13,7 +13,7 @@ alias tilek=$TILEK_BUILDDIR/src/tilek
 
 alias tilek-compile=$TILEK_SRCDIR/tools/compile.sh
 alias tilek-eval=$TILEK_SRCDIR/tools/eval.sh
-alias tilek-collect=$TILEK_SRCDIR/tools/collect-TileTree.sh
+alias tilek-collect=$TILEK_SRCDIR/tools/collect-TileTrees.sh
 
 export TILEK="source $TILEK_BUILDDIR/tilek.rc"
 
