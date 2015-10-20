@@ -4,6 +4,8 @@
 #include "KLT/RTL/tile.h"
 #include "KLT/RTL/data.h"
 
+char * klt_file_stem = "test_0";
+
 extern void kernel_k0_v0_0(void **, void **, struct klt_loop_context_t *, struct klt_data_context_t *);
 
 struct klt_tile_desc_t tile_desc_k0_v0_0_l0[1] = {

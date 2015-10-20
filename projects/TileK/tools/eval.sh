@@ -112,7 +112,8 @@ echo " > reps    = $reps"
 
 echo "####################"
 
-for config in $(cat $configs); do
+cat $configs | while read config; do
+config=$(echo $config | cut -d'|' -f1)
 for arg in $(cat $args); do
 
   tag=$(echo $arg | cut -d',' -f1)

@@ -24,6 +24,7 @@ stem=""
 config=""
 argdir=""
 args=""
+bindir=""
 rundir=""
 outdir=""
 
@@ -41,6 +42,7 @@ while [ ! -z $1 ]; do
   elif [ "$1" == "--args"    ]; then args=$2    ; shift 2
   elif [ "$1" == "--cfgdir"  ]; then cfgdir=$2  ; shift 2
   elif [ "$1" == "--configs" ]; then configs=$2 ; shift 2
+  elif [ "$1" == "--bindir"  ]; then bindir=$2  ; shift 2
   elif [ "$1" == "--rundir"  ]; then rundir=$2  ; shift 2
   elif [ "$1" == "--outdir"  ]; then outdir=$2  ; shift 2
   else
@@ -107,7 +109,12 @@ $KLT
 
 mkdir -p $outdir
 
-for config in $(cat $configs); do
+config=$(head -n 1 $configs | cut -d'|' -f1)
+dot -Tsvg $bindir/$stem/$config/$stem-$config\_kernel_0_looptree.dot -o $outdir/$stem-$config-looptree.svg
+dot -Tpng $bindir/$stem/$config/$stem-$config\_kernel_0_looptree.dot -o $outdir/$stem-$config-looptree.png
+
+cat $configs | while read config; do
+config=$(echo $config | cut -d'|' -f1)
 for arg in $(cat $args); do
   tag=$(echo $arg | cut -d',' -f1)
 
@@ -117,7 +124,7 @@ for arg in $(cat $args); do
 
   klt-build-TileTree-JSONs $looptree $loop_ctx $tiletree.json
   klt-TileTree-JSON-to-GraphViz $tiletree.json > $tiletree.dot
-  dot -Tsvg $tiletree.dot -o $tiletree.svg
+  dot -Tpng $tiletree.dot -o $tiletree.png
 done
 done
 

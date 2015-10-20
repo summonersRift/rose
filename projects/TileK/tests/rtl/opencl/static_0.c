@@ -4,6 +4,8 @@
 #include "KLT/RTL/tile.h"
 #include "KLT/RTL/data.h"
 
+char * klt_file_stem = "test_0";
+
 char * opencl_kernel_file = "/media/ssd/projects/rose-release-2015/rose/projects/TileK/tests/rtl/opencl/kernel_0.cl";
 char * opencl_kernel_options = "-I/media/ssd/projects/rose-release-2015/rose/src/midend/KLT/include/";
 char * opencl_klt_runtime_lib = "/media/ssd/projects/rose-release-2015/rose/src/midend/KLT/lib/rtl/context.c";

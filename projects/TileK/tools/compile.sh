@@ -13,21 +13,17 @@ script_dir=$(readlink -f $(dirname $0))
 function usage() {
   echo "Usage:"
   echo " > $0 -h"
-  echo " > $0 --stem stem --config config [ --outdir \$(pwd) ] [ --srcdir \$(pwd) ] [ --targets \"\" ] [ --opts \"\" ] [--debug \"\"]"
-  echo "   --outdir: "
-  echo "   --srcdir: "
-  echo "   --targets: "
-  echo "   --opts: "
-  echo "   --debug: "
+  echo " > $0 --stem stem [...]"
   echo "[ script_dir=$script_dir ]"
 }
 
 stem=""
-config=""
-outdir=""
 srcdir=""
-opts=""
+bindir=""
+cfgdir=""
+configs=""
 target=""
+opts=""
 dbg=""
 
 if [ -z $1 ]; then
@@ -114,7 +110,9 @@ KLT_LD_FLAGS="$KLT_LD_FLAGS $KLT_RTL_HOST"
 
 C_FLAGS="$debug $KLT_INCPATH $options"
 
-for config in $(cat $configs); do
+cat $configs | while read config; do
+  config=$(echo $config | cut -d'|' -f1)
+
   mkdir -p $bindir/$stem/$config
   pushd $bindir/$stem/$config > /dev/null
 
