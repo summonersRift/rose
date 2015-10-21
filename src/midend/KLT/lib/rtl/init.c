@@ -14,6 +14,10 @@
 
 #include <assert.h>
 
+extern char * klt_file_stem;
+char * klt_runtime_incpath = NULL;
+char * klt_runtime_libdir = NULL;
+
 void klt_host_init(void);
 void klt_host_init(void) {
   size_t device_id = iklt_increase_alloc_devices();
@@ -79,43 +83,82 @@ void klt_threads_init(void) {
 #endif /* KLT_THREADS_ENABLED */
 
 #if KLT_OPENCL_ENABLED
-extern char * opencl_kernel_file;
-extern char * opencl_kernel_options;
-extern char * opencl_klt_runtime_lib;
+
+char * klt_opencl_runtime_lib = "rtl/context.c";
+
+char * klt_opencl_kernel_dir = NULL;
+char * klt_opencl_kernel_suffix = "-opencl-kernel.cl";
 
 void klt_opencl_init(void);
 void klt_opencl_init(void) {
+  if (klt_opencl_kernel_dir == NULL) {
+    char * env = getenv("KLT_OPENCL_KERNEL_DIR");
+    if (env != NULL && env[0] != '\0') {
+      klt_opencl_kernel_dir = malloc(strlen(env) + 1);
+      strcat(klt_opencl_kernel_dir, env);
+    }
+    else {
+      klt_opencl_kernel_dir = malloc(3);
+      strcat(klt_opencl_kernel_dir, "./");
+    }
+  }
+
   size_t i, j;
   cl_int status;
 
   // Sources and Options
 
+  char * options = NULL;
   const char * sources[2] = { NULL , NULL };
   size_t num_sources = 0;
 
-  if (opencl_kernel_file != NULL)     sources[num_sources++] = klt_read_file(opencl_kernel_file);
-  if (opencl_klt_runtime_lib != NULL) sources[num_sources++] = klt_read_file(opencl_klt_runtime_lib);
+  {
+    size_t length = strlen(klt_opencl_kernel_dir) + strlen(klt_file_stem) + strlen(klt_opencl_kernel_suffix) + 20; // 20 for margin...
+    char * filename = malloc(length);
+    memset(filename, 0, length * sizeof(char));
+    strcat(filename, klt_opencl_kernel_dir);
+    strcat(filename, "/");
+    strcat(filename, klt_file_stem);
+    strcat(filename, klt_opencl_kernel_suffix);
 
-  size_t opts_length = 1;
-  if (opencl_kernel_options != NULL) opts_length += strlen(opencl_kernel_options);
+    char * source = klt_read_file(filename);
+    if (source != NULL)
+      sources[num_sources++] = source;
 
-  char * context_storage_modifier = " -DCOMPILE_FOR_KERNEL=1 -DSTORAGE_MODIFIER=__constant -DDEVICE_FUNCTION_MODIFIER=";
-  opts_length += strlen(context_storage_modifier);
+    free(source);
+  }
+  {
+    size_t length = strlen(klt_runtime_libdir) + strlen(klt_opencl_runtime_lib) + 20; // 20 for margin...
+    char * filename = malloc(length);
+    memset(filename, 0, length * sizeof(char));
+    strcat(filename, klt_runtime_libdir);
+    strcat(filename, "/");
+    strcat(filename, klt_opencl_runtime_lib);
 
+    char * source = klt_read_file(filename);
+    if (source != NULL)
+      sources[num_sources++] = source;
+
+    free(source);
+  }
+  {
+    char * context_storage_modifier = " -DCOMPILE_FOR_KERNEL=1 -DSTORAGE_MODIFIER=__constant -DDEVICE_FUNCTION_MODIFIER=";
+
+    size_t length = strlen(klt_runtime_incpath) + strlen(context_storage_modifier) + 20; // 20 for margin...
 #if COMPILE_OPENCL_KERNEL_WITH_DEBUG == 1
-  char * debug_flags = " -g";
-  opts_length += strlen(debug_flags);
+    char * debug_flags = " -g";
+    length += strlen(debug_flags);
 #endif
 
-  char * options = (char *)malloc(opts_length * sizeof(char));
-  memset(options, 0, opts_length * sizeof(char));
+    options = (char *)malloc(length * sizeof(char));
+    memset(options, 0, length * sizeof(char));
 
-  if (opencl_kernel_options != NULL)
-    strcat(options, opencl_kernel_options);
-  strcat(options, context_storage_modifier);
+    strcat(options, klt_runtime_incpath);
+    strcat(options, context_storage_modifier);
 #if COMPILE_OPENCL_KERNEL_WITH_DEBUG == 1
-  strcat(options, debug_flags);
+    strcat(options, debug_flags);
 #endif
+  }
 
   // Iterate over OpenCL's Platforms & Devices
 
@@ -217,6 +260,27 @@ void klt_cuda_init(void) {
 #endif /* KLT_CUDA_ENABLED */
 
 void klt_init(void) {
+  if (klt_runtime_incpath == NULL) {
+    char * env = getenv("KLT_INCPATH");
+    if (env != NULL && env[0] != '\0') {
+      klt_runtime_incpath = malloc(strlen(env) + 1);
+      strcat(klt_runtime_incpath, env);
+    }
+    else {
+      assert(0);
+    }
+  }
+  if (klt_runtime_libdir == NULL) {
+    char * env = getenv("KLT_LIBDIR");
+    if (env != NULL && env[0] != '\0') {
+      klt_runtime_libdir = malloc(strlen(env) + 1);
+      strcat(klt_runtime_libdir, env);
+    }
+    else {
+      assert(0);
+    }
+  }
+
   klt_host_init();
 
 #if KLT_THREADS_ENABLED

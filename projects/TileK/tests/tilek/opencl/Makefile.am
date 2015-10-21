@@ -3,7 +3,13 @@ include $(top_srcdir)/config/Makefile.for.ROSE.includes.and.libs
 
 ###################################################################################################
 
-check-local: check-test_0 check-test_1
+if ROSE_HAVE_OPENCL_LIB
+TARGETS=check-test_0 check-test_1
+else
+TARGETS=rose_test_0.o test_0-host-kernel.o test_0-static.o rose_test_1.o test_1-host-kernel.o test_1-static.o
+endif
+
+check-local: $(TARGETS)
 
 clean-local: clean-test_0 clean-test_1
 	rm  -f *.dot

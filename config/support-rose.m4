@@ -1055,6 +1055,8 @@ ROSE_CHECK_CUDA
 # Check: --with-opencl-inc, --with-opencl-lib
 ROSE_CHECK_OPENCL
 
+ROSE_SUPPORT_KLT_RTL
+
 # *****************************************************************
 #            Option to define DOXYGEN SUPPORT
 # *****************************************************************
