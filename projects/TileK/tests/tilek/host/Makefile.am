@@ -21,6 +21,8 @@ KLT_INC=$(top_srcdir)/$(KLT_REL_PATH)/include
 
 KLT_RTL=$(top_builddir)/$(KLT_REL_PATH)/lib/rtl/libKLT-RTL-Host.la
 
+tilek_rc=$(builddir)/../../../tilek.rc
+
 ###################################################################################################
 
 ROSE_FLAGS= # -DSKIP_ROSE_BUILTIN_DECLARATIONS
@@ -48,7 +50,7 @@ test_0: rose_test_0.o test_0-host-kernel.o test_0-static.o $(KLT_RTL)
 	libtool --mode=link gcc rose_test_0.o test_0-host-kernel.o test_0-static.o $(LD_FLAGS) -o test_0
 
 check-test_0: test_0
-	./test_0
+	source $(tilek_rc) ; ./test_0
 
 ##################################
 
@@ -93,7 +95,7 @@ dump_test_1: klt-dump-static.o test_1-host-kernel.o test_1-static.o $(KLT_RTL)
 	libtool --mode=link gcc klt-dump-static.o test_1-host-kernel.o test_1-static.o $(LD_FLAGS) -o dump_test_1
 
 check-dump_test_1: dump_test_1
-	./dump_test_1
+	source $(tilek_rc) ; ./dump_test_1
 
 ##################################
 
@@ -121,10 +123,8 @@ test_2-static.o: test_2-static.c
 test_2: rose_test_2.o test_2-host-kernel.o test_2-static.o $(KLT_RTL)
 	libtool --mode=link gcc rose_test_2.o test_2-host-kernel.o test_2-static.o $(LD_FLAGS) -o test_2
 
-
-
 check-test_2: test_2
-	./test_2
+	source $(tilek_rc) ; ./test_2
 
 ##################################
 
