@@ -5,14 +5,25 @@ export KLT_BUILDDIR=@abs_builddir@
 
 export KLT_INCPATH="-I$KLT_SRCDIR/include/"
 
-export KLT_LIBDIR="$KLT_BUILDDIR/lib/"
+export KLT_CFLAGS_HOST="$KLT_INCPATH"
+export KLT_CFLAGS_THREADS="$KLT_INCPATH"
+export KLT_CFLAGS_OPENCL="$KLT_INCPATH -I@OPENCL_INC_DIR@"
+export KLT_CFLAGS="$KLT_INCPATH -I@OPENCL_INC_DIR@"
 
+export KLT_LIBDIR="$KLT_BUILDDIR/lib/"
 export KLT_RTL_PATH="$KLT_BUILDDIR/lib/rtl/"
 
-export KLT_RTL="$KLT_RTL_PATH/libKLT-RTL.la"
-export KLT_RTL_HOST="$KLT_RTL_PATH/libKLT-RTL-Host.la"
-export KLT_RTL_THREADS="$KLT_RTL_PATH/libKLT-RTL-Threads.la"
-export KLT_RTL_OPENCL="$KLT_RTL_PATH/libKLT-RTL-OpenCL.la"
+export KLT_LDFLAGS_HOST=""
+export KLT_LIBS_HOST="$KLT_RTL_PATH/libKLT-RTL-Host.la -lrt"
+
+export KLT_LDFLAGS_THREADS=""
+export KLT_LIBS_THREADS="$KLT_RTL_PATH/libKLT-RTL-Threads.la -lrt"
+
+export KLT_LDFLAGS_OPENCL="-L@OPENCL_LIB_DIR@"
+export KLT_LIBS_OPENCL="$KLT_RTL_PATH/libKLT-RTL-OpenCL.la -lOpenCL -lrt"
+
+export KLT_LDFLAGS="-L@OPENCL_LIB_DIR@"
+export KLT_LIBS="$KLT_RTL_PATH/libKLT-RTL.la -lrt -lOpenCL -lrt"
 
 alias klt-build-TileTree-JSONs=$KLT_SRCDIR/tools/build-TileTree-from-JSONs.py
 alias klt-TileTree-JSON-to-GraphViz=$KLT_SRCDIR/tools/TileTree-JSON-to-GraphViz.py

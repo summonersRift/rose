@@ -110,20 +110,25 @@ alias tilek > /dev/null
 
 echo "####################"
 
-KLT_LD_FLAGS="-lrt"
-if [ "$targets" = "threads" ]; then
-  KLT_LD_FLAGS="$KLT_LD_FLAGS $KLT_RTL_THREADS"
-elif [ "$targets" = "opencl" ]; then
-  KLT_LD_FLAGS="$KLT_LD_FLAGS $KLT_RTL_OPENCL"
-elif [ "$targets" = "threads,opencl" ]; then
-  KLT_LD_FLAGS="$KLT_LD_FLAGS $KLT_RTL"
-elif [ "$targets" = "opencl,threads" ]; then
-  KLT_LD_FLAGS="$KLT_LD_FLAGS $KLT_RTL"
-else
-  KLT_LD_FLAGS="$KLT_LD_FLAGS $KLT_RTL_HOST"
-fi
+C_FLAGS="$debug $options"
 
-C_FLAGS="$debug $KLT_INCPATH $options"
+if [ "$targets" = "threads" ]; then
+  C_FLAGS="$C_FLAGS $KLT_CFLAGS_THREADS"
+  LDFLAGS=$KLT_LDFLAGS_THREADS
+  LIBS=$KLT_LIBS_THREADS
+elif [ "$targets" = "opencl" ]; then
+  C_FLAGS="$C_FLAGS $KLT_CFLAGS_OPENCL"
+  LDFLAGS=$KLT_LDFLAGS_OPENCL
+  LIBS=$KLT_LIBS_OPENCL
+elif [ "$targets" = "threads,opencl" ] || [ "$targets" = "threads,opencl" ]; then
+  C_FLAGS="$C_FLAGS $KLT_CFLAGS"
+  LDFLAGS=$KLT_LDFLAGS
+  LIBS=$KLT_LIBS
+else
+  C_FLAGS="$C_FLAGS $KLT_CFLAGS_HOST"
+  LDFLAGS=$KLT_LDFLAGS_HOST
+  LIBS=$KLT_LIBS_HOST
+fi
 
 cat $configs | while read config; do
   config=$(echo $config | cut -d'|' -f1)
@@ -133,35 +138,29 @@ cat $configs | while read config; do
 
   echo -ne "\r                                                   \rCompile \"$config\""
 
-# echo "tilek --tilek-target=$targets $C_FLAGS $srcdir/$stem-$config.c &> $bindir/$stem/tilek-$config.log"
   tilek --tilek-target=$targets $C_FLAGS $srcdir/$stem-$config.c &> $bindir/$stem/tilek-$config.log
 
   file=rose_$stem-$config
-# echo "gcc $C_FLAGS -c $file.c -o $file.o &> $bindir/$stem/gcc-$file.log"
   gcc $C_FLAGS -c $file.c -o $file.o &> $bindir/$stem/gcc-$file.log
   objects="$file.o"
 
   file=$stem-$config-static
-# echo "gcc $C_FLAGS -c $file.c -o $file.o &> $bindir/$stem/gcc-$file.log"
   gcc $C_FLAGS -c $file.c -o $file.o &> $bindir/$stem/gcc-$file.log
   objects=$objects" $file.o "
 
   file=$stem-$config-host-kernel
   if [ -e $file.c ]; then
-#   echo "gcc $C_FLAGS -c $file.c -o $file.o &> $bindir/$stem/gcc-$file.log"
     gcc $C_FLAGS -c $file.c -o $file.o &> $bindir/$stem/gcc-$file.log
     objects=$objects" $file.o "
   fi
 
   file=$stem-$config-threads-kernel
   if [ -e $file.c ]; then
-#   echo "gcc $C_FLAGS -c $file.c -o $file.o &> $bindir/$stem/gcc-$file.log"
     gcc $C_FLAGS -c $file.c -o $file.o &> $bindir/$stem/gcc-$file.log
     objects=$objects" $file.o "
   fi
 
-# echo "libtool --mode=link gcc $debug $objects $KLT_LD_FLAGS -o $stem-$config &> $bindir/$stem/libtool-$config.log"
-  libtool --mode=link gcc $debug $objects $KLT_LD_FLAGS -o $stem-$config &> $bindir/$stem/libtool-$config.log
+  libtool --mode=link gcc $LDFLAGS $objects $LIBS -o $stem-$config &> $bindir/$stem/libtool-$config.log
 
   popd > /dev/null
 done
