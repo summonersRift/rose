@@ -84,15 +84,16 @@ echo " > rundir  = $rundir"
 [ -z "$cfgdir" ]  && cfgdir=$(pwd)
 echo " > cfgdir  = $cfgdir"
 
-[ -z "$configs" ]    && configs=$cfgdir/$stem-configs.csv
+[ -z "$configs" ]    && configs=$cfgdir/$stem.csv
 configs=$(readlink -f $configs)
+echo " > configs = $configs"
 
 # Arguments
 
 [ -z "$argdir" ]  && argdir=$(pwd)
 echo " > argdir  = $argdir"
 
-[ -z "$args" ]    && args=$argdir/$stem-args.csv
+[ -z "$args" ]    && args=$argdir/$stem.csv
 args=$(readlink -f $args)
 echo " > args    = $args"
 
@@ -106,7 +107,8 @@ echo " > reps    = $reps"
 
 #####
 
-[ ! -e $args ]   && echo "Error: $args does not exist."   && exit 3
+[ ! -e $configs ] && echo "Error: $configs does not exist." && exit 3
+[ ! -e $args ] && echo "Error: $args does not exist." && exit 3
 
 #####
 
@@ -121,20 +123,24 @@ for arg in $(cat $args); do
 
   binary=$(readlink -f $bindir/$stem/$config/$stem-$config)
 
+  test -x $binary
+
   mkdir -p $rundir/$stem/$config/$tag
   pushd $rundir/$stem/$config/$tag > /dev/null
 
-  echo "Execute \"$config\" \"$tag\": \"$arguments\""
+  export KLT_OPENCL_KERNEL_DIR=$(readlink -f $bindir/$stem/$config)
 
   for i in $(seq 1 $reps); do
-    timeout $timeout $binary $arguments
-    echo -ne "\r         \r    $i/$reps"
+    echo -ne "\r                                                   \rEvaluate \"$config\" \"$tag\" $i/$reps"
+    set +e
+    timeout $timeout $binary $arguments > $stem-$config-$tag-$i.log
+    set -e
   done
-  echo
 
   popd > /dev/null
 done
 done
 
+echo
 echo "####################"
 

@@ -1,5 +1,6 @@
 
 ###################################################################################################
+
 if ROSE_HAVE_OPENCL_LIB
 TARGETS=check-test_0
 else
@@ -40,7 +41,7 @@ test_0: test_0.o test_0-host-kernel.o test_0-static.o $(KLT_RTL)
 	libtool --mode=link gcc $(LD_FLAGS) test_0.o test_0-host-kernel.o test_0-static.o $(EXTRA_LIBS) -o test_0
 
 check-test_0: test_0
-	source $(tilek_rc) ; ./test_0
+	source $(tilek_rc) ; KLT_OPENCL_KERNEL_DIR=$(abs_srcdir) ./test_0
 
 clean-test_0:
 	rm -f test_0.o test_0-host-kernel.o test_0-static.o test_0

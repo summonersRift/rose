@@ -122,10 +122,7 @@ void klt_opencl_init(void) {
     strcat(filename, klt_opencl_kernel_suffix);
 
     char * source = klt_read_file(filename);
-    if (source != NULL)
-      sources[num_sources++] = source;
-
-    free(source);
+    if (source != NULL) sources[num_sources++] = source;
   }
   {
     size_t length = strlen(klt_runtime_libdir) + strlen(klt_opencl_runtime_lib) + 20; // 20 for margin...
@@ -136,10 +133,7 @@ void klt_opencl_init(void) {
     strcat(filename, klt_opencl_runtime_lib);
 
     char * source = klt_read_file(filename);
-    if (source != NULL)
-      sources[num_sources++] = source;
-
-    free(source);
+    if (source != NULL) sources[num_sources++] = source;
   }
   {
     char * context_storage_modifier = " -DCOMPILE_FOR_KERNEL=1 -DSTORAGE_MODIFIER=__constant -DDEVICE_FUNCTION_MODIFIER=";
@@ -159,6 +153,19 @@ void klt_opencl_init(void) {
     strcat(options, debug_flags);
 #endif
   }
+
+/*{
+    printf("*******************************************\n");
+    size_t i;
+    printf("// %d input sources\n", num_sources);
+    for (i = 0; i < num_sources; i++) {
+      printf("// sources[%zd]:\n", i);
+      printf("%s\n", sources[i]);
+    }
+    printf("*******************************************\n");
+    printf("options: \"%s\"\n", options);
+    printf("*******************************************\n");
+  }*/
 
   // Iterate over OpenCL's Platforms & Devices
 
@@ -245,10 +252,13 @@ void klt_opencl_init(void) {
     }
     free(devices);
   }
-  free(platforms);
-  free(options);
-  free((void*)sources[0]);
-  free((void*)sources[1]);
+  {
+    free(platforms);
+    size_t i;
+    for (i = 0; i < num_sources; i++)
+      free(sources[i]);
+    free(options);
+  }
 }
 #endif /* KLT_OPENCL_ENABLED */
 
@@ -299,12 +309,16 @@ void klt_init(void) {
 void klt_host_exit(void);
 void klt_host_exit(void) {
   // TODO
+
+  printf("[Info] klt_host_exit\n");
 }
 
 #if KLT_THREADS_ENABLED
 void klt_threads_exit(void);
 void klt_threads_exit(void) {
   // TODO
+
+  printf("[Info] klt_threads_exit\n");
 }
 #endif /* KLT_THREADS_ENABLED */
 
@@ -314,7 +328,6 @@ void klt_opencl_exit(void) {
   size_t i;
   for (i = 0; i < klt_devices_count; i++)
     if (klt_devices[i]->kind == e_klt_opencl) {
-      printf("klt_opencl_exit : device #%zd\n", i);
       clFinish(klt_devices[i]->descriptor.opencl->queue);
       if (klt_devices[i]->descriptor.opencl->context != NULL)
         klt_check_opencl_status("[Error] clReleaseContext returns:", clReleaseContext(klt_devices[i]->descriptor.opencl->context));
@@ -323,6 +336,7 @@ void klt_opencl_exit(void) {
       if (klt_devices[i]->descriptor.opencl->program != NULL)
         klt_check_opencl_status("[Error] clReleaseProgram returns:", clReleaseProgram(klt_devices[i]->descriptor.opencl->program));
     }
+  printf("[Info] klt_opencl_exit\n");
 }
 #endif /* KLT_OPENCL_ENABLED */
 
@@ -347,5 +361,7 @@ void klt_exit(void) {
 #endif /* KLT_THREADS_ENABLED */
 
   klt_host_exit();
+
+  printf("[Info] klt_exit\n");
 }
 

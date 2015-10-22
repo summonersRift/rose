@@ -87,7 +87,7 @@ void klt_clear_data_environment(struct klt_data_environment_t * data_env) {
             clFinish(data_env->allocations[i].allocations[j].memloc->device->descriptor.opencl->queue);
           }
           status = clReleaseMemObject((cl_mem)data_env->allocations[i].allocations[j].allocation->descriptor);
-          printf("clReleaseMemObject: %p\n", data_env->allocations[i].allocations[j].allocation->descriptor);
+//        printf("clReleaseMemObject: %p\n", data_env->allocations[i].allocations[j].allocation->descriptor);
           assert(status == CL_SUCCESS);
           break;
 #else /* KLT_OPENCL_ENABLED */

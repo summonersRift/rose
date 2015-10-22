@@ -66,7 +66,7 @@ echo " > stem    = $stem"
 [ -z "$argdir" ]  && argdir=$(pwd)
 echo " > argdir  = $argdir"
 
-[ -z "$args" ]    && args=$argdir/$stem-args.csv
+[ -z "$args" ]    && args=$argdir/$stem.csv
 args=$(readlink -f $args)
 echo " > args    = $args"
 
@@ -75,8 +75,9 @@ echo " > args    = $args"
 [ -z "$cfgdir" ]  && cfgdir=$(pwd)
 echo " > cfgdir  = $cfgdir"
 
-[ -z "$configs" ]    && configs=$cfgdir/$stem-configs.csv
+[ -z "$configs" ]    && configs=$cfgdir/$stem.csv
 configs=$(readlink -f $configs)
+echo " > configs = $configs"
 
 # bindir
 
@@ -95,6 +96,7 @@ echo " > outdir  = $outdir"
 
 #####
 
+[ ! -e $configs ] && echo "Error: $configs does not exist." && exit 3
 [ ! -e $args ] && echo "Error: $args does not exist." && exit 3
 
 #####
@@ -107,6 +109,8 @@ $KLT
 
 #####
 
+echo "####################"
+
 mkdir -p $outdir
 
 config=$(head -n 1 $configs | cut -d'|' -f1)
@@ -118,6 +122,8 @@ config=$(echo $config | cut -d'|' -f1)
 for arg in $(cat $args); do
   tag=$(echo $arg | cut -d',' -f1)
 
+  echo -ne "\r                                                   \rCollect \"$config\" \"$tag\""
+
   looptree=$bindir/$stem/$config/$stem-$config\_kernel_0_subkernel_0_looptree.json
   loop_ctx=$rundir/$stem/$config/$tag/$stem-$config\_kernel_0_subkernel_0_loop_ctx.json
   tiletree=$outdir/$stem-$config-$tag-tiletree
@@ -127,4 +133,7 @@ for arg in $(cat $args); do
   dot -Tpng $tiletree.dot -o $tiletree.png
 done
 done
+
+echo
+echo "####################"
 

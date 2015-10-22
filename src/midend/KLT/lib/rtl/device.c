@@ -222,7 +222,18 @@ struct klt_opencl_device_t * klt_build_opencl_device(cl_platform_id platform, cl
   res->queue = clCreateCommandQueue(res->context, device, 0, &status);
   klt_check_opencl_status("[Error] clCreateCommandQueue returns:", status);
 
-  if (num_sources > 1) { 
+/*{
+    printf("*******************************************\n");
+    size_t i;
+    printf("// %d input sources\n", num_sources);
+    for (i = 0; i < num_sources; i++) {
+      printf("// sources[%zd]:\n", i);
+      printf("%s\n", sources[i]);
+    }
+    printf("*******************************************\n");
+  }*/
+
+  if (num_sources > 1) {
     res->program = clCreateProgramWithSource(res->context, num_sources, sources, NULL, &status);
     klt_check_opencl_status("[Error] clCreateProgramWithSource returns:", status);
 
