@@ -22,7 +22,7 @@ tilek_rc=$(builddir)/../../../tilek.rc
 
 C_FLAGS=-O0 -g -I@OPENCL_INC_DIR@ -I$(KLT_INC) -I$(srcdir)/../..
 if ROSE_HAVE_OPENCL_LIB
-LD_FLAGS=-I@OPENCL_LIB_DIR@
+LD_FLAGS=-L@OPENCL_LIB_DIR@
 endif
 EXTRA_LIBS= $(KLT_RTL) -lrt -lOpenCL
 

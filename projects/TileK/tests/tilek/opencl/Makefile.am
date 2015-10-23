@@ -33,8 +33,12 @@ tilek_rc=$(builddir)/../../../tilek.rc
 
 ROSE_FLAGS= # -DSKIP_ROSE_BUILTIN_DECLARATIONS
 TILEK_FLAGS=--tilek-target=opencl -I$(KLT_INC) -I$(srcdir)/../..
-C_FLAGS=-O0 -g -I$(KLT_INC) -I$(srcdir)/../..
-LD_FLAGS=-lrt -lOpenCL $(KLT_RTL)
+
+C_FLAGS=-O0 -g -I@OPENCL_INC_DIR@ -I$(KLT_INC) -I$(srcdir)/../..
+if ROSE_HAVE_OPENCL_LIB
+LD_FLAGS=-L@OPENCL_LIB_DIR@
+endif
+EXTRA_LIBS= $(KLT_RTL) -lrt -lOpenCL
 
 ###################################################################################################
 
