@@ -4,6 +4,18 @@
 # The base class for DLX unparsing. Mainly used for some defines, which could come in handy
 # when unparsing DLX
 class DLXUnparser:
+
+    def __init__(self):
+        self.lang_t_ = "language_t"
+        self.tmpSpcz_ = "template <>"
+        self.genCons_t_ = "generic_construct_t"
+        self.genClause_t_ = "generic_clause_t"
+        self.consKinds_e_ = "construct_kinds_e"
+        self.clauseKinds_e_ = "clause_kinds_e"
+        self.relKinds_e_= "relation_kinds_e"
+        self.assocNodes_t_ = "assoc_nodes_t"
+        self.params_t_ = "parameters_t"
+
     def namespace(self, name, content):
         return "namespace " + name + " {\n" + content + "\n}"
 

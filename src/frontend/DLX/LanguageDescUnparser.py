@@ -4,18 +4,9 @@ import LanguageDesc
 # The class unparses the (specialized) language.hpp file
 class HeaderUnparser(DLXUnparser):
     def __init__(self, languageDesc):
+        DLXUnparser.__init__(self)
         self.DLXIncludes_ = ["directives.hpp", "constructs.hpp", "clauses.hpp", "parser.hpp", "frontend.hpp", "compiler.hpp"]
         self.lD_ = languageDesc
-        self.lang_t_ = "language_t"
-        self.tmpSpcz_ = "template <>"
-        self.genCons_t_ = "generic_construct_t"
-        self.genClause_t_ = "generic_clause_t"
-        self.consKinds_e_ = "construct_kinds_e"
-        self.clauseKinds_e_ = "clause_kinds_e"
-        self.relKinds_e_= "relation_kinds_e"
-        self.assocNodes_t_ = "assoc_nodes_t"
-        self.params_t_ = "parameters_t"
-
 
     def includeGuard(self):
         return "__DLX_INSTANCE_GENERATED_" + self.lD_.name_.upper() + "_H\n"
@@ -110,3 +101,8 @@ class HeaderUnparser(DLXUnparser):
 
         out += "#endif\n"
         print(out)
+
+
+class SourceUnparser(DLXUnparser):
+    def foo(self):
+        return ""
