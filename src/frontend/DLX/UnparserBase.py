@@ -11,7 +11,7 @@ class DLXUnparser:
         return "typedef " + a + " " + b
 
     def stmt(self, content):
-        return content + ";"
+        return content + ";\n"
 
     def templatize(self, iden, tmplArg):
         return iden + "<" + tmplArg + ">"

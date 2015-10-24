@@ -6,12 +6,14 @@ class HeaderUnparser(DLXUnparser):
     def __init__(self, languageDesc):
         self.DLXIncludes_ = ["directives.hpp", "constructs.hpp", "clauses.hpp", "parser.hpp", "frontend.hpp", "compiler.hpp"]
         self.lD_ = languageDesc
-        self.lang_t = "language_t"
-        self.tmpSpcz = "template <>"
-        self.genCons_t = "generic_construct_t"
-        self.genClause_t = "generic_clause_t"
-        self.consKinds_e = "construct_kinds_e"
-        self.clauseKinds_e = "clause_kinds_e"
+        self.lang_t_ = "language_t"
+        self.tmpSpcz_ = "template <>"
+        self.genCons_t_ = "generic_construct_t"
+        self.genClause_t_ = "generic_clause_t"
+        self.consKinds_e_ = "construct_kinds_e"
+        self.clauseKinds_e_ = "clause_kinds_e"
+        self.relKinds_e_= "relation_kinds_e"
+        self.assocNodes_t_ = "assoc_nodes_t"
 
 
     def includeGuard(self):
@@ -19,31 +21,37 @@ class HeaderUnparser(DLXUnparser):
 
     def generateLanguageStructDefinition(self):
         out = ""
-        out += self.stmt(self.enum(self.consKinds_e, self.lD_.constructs_))
+        out += self.stmt(self.enum(self.consKinds_e_, self.lD_.constructs_))
         out += "\n"
-        out += self.stmt(self.enum("clause_kinds_e", self.lD_.clauses_))
+        out += self.stmt(self.enum(self.clauseKinds_e_, self.lD_.clauses_))
         out += "\n"
-        out += self.stmt(self.enum("relation_kinds_e", self.lD_.relations_))
+        out += self.stmt(self.enum(self.relKinds_e_, self.lD_.relations_))
         out += "\n"
         # TODO Do we need to generate the static data member at this point?
         return out
 
     def generateBuildTemplates(self):
         out = ""
-        langTmplStr = self.lD_.name_ + "::" + self.lang_t
-        tStr = self.tmpSpcz + " " + self.templatize(self.genCons_t, langTmplStr)
+        langTmplStr = self.lD_.name_ + "::" + self.lang_t_
+        tStr = self.tmpSpcz_ + " " + self.templatize(self.genCons_t_, langTmplStr)
         tStr += " * " + self.templatize("buildConstruct", langTmplStr)
-        tStr += "(" + langTmplStr + "::" + self.consKinds_e + " kind)"
+        tStr += "(" + langTmplStr + "::" + self.consKinds_e_ + " kind)"
         out += self.stmt(tStr) + "\n"
-        tStr = self.tmpSpcz + " " + self.templatize(self.genClause_t, langTmplStr)
+        tStr = self.tmpSpcz_ + " " + self.templatize(self.genClause_t_, langTmplStr)
         tStr += " * " + self.templatize("buildClause", langTmplStr)
-        tStr += "(" + langTmplStr + "::" + self.clauseKinds_e + " kind)"
-        out += self.stmt(tStr) + "\n"
+        tStr += "(" + langTmplStr + "::" + self.clauseKinds_e_ + " kind)"
+        out += self.stmt(tStr) + "\n\n"
         return out
 
     def generateAssocNodesTemplates(self):
         out = ""
-        
+        genConsTmplParam = self.lD_.name_ + "::" + self.lang_t_
+        structName = self.templatize(self.genCons_t_, genConsTmplParam) + "::" + self.assocNodes_t_
+        for co in self.lD_.constructs_:
+            anTmplParam = self.lD_.name_ + "::" + self.lang_t_ + "::" + co
+            anTmplStr = self.templatize(structName, anTmplParam)
+            out += self.stmt(self.struct(anTmplStr, "", 2))
+       
         return out
 
 
@@ -53,7 +61,7 @@ class HeaderUnparser(DLXUnparser):
         # body gets embedded into the namespace
         langNSBody = ""
         structBody = self.generateLanguageStructDefinition()
-        langNSBody += self.struct(self.lang_t, structBody, 0)
+        langNSBody += self.struct(self.lang_t_, structBody, 0)
         out += self.namespace(self.lD_.name_, langNSBody)
 
         directivesNSBody = ""
