@@ -10,13 +10,15 @@ TARGET+=check-klt-dump-opencl-devices
 endif
 endif
 
+tilek_rc=$(builddir)/../../../tilek.rc
+
 check-local: $(TARGET)
 
 check-klt-dump-host-devices: klt-dump-host-devices
-	./klt-dump-host-devices
+	source $(tilek_rc) ; ./klt-dump-host-devices
 
 check-klt-dump-opencl-devices: klt-dump-opencl-devices
-	./klt-dump-opencl-devices
+	source $(tilek_rc) ; ./klt-dump-opencl-devices
 
 clean-local:
 	rm -f klt-dump-devices.o klt-dump-host-devices klt-dump-opencl-devices

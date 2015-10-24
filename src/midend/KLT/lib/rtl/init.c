@@ -95,10 +95,12 @@ void klt_opencl_init(void) {
     char * env = getenv("KLT_OPENCL_KERNEL_DIR");
     if (env != NULL && env[0] != '\0') {
       klt_opencl_kernel_dir = malloc(strlen(env) + 1);
+      memset(klt_opencl_kernel_dir, 0, strlen(env) + 1);
       strcat(klt_opencl_kernel_dir, env);
     }
     else {
       klt_opencl_kernel_dir = malloc(3);
+      memset(klt_opencl_kernel_dir, 0, 3);
       strcat(klt_opencl_kernel_dir, "./");
     }
   }
@@ -274,6 +276,7 @@ void klt_init(void) {
     char * env = getenv("KLT_INCPATH");
     if (env != NULL && env[0] != '\0') {
       klt_runtime_incpath = malloc(strlen(env) + 1);
+      memset(klt_runtime_incpath, 0, strlen(env) + 1);
       strcat(klt_runtime_incpath, env);
     }
     else {
@@ -284,6 +287,7 @@ void klt_init(void) {
     char * env = getenv("KLT_LIBDIR");
     if (env != NULL && env[0] != '\0') {
       klt_runtime_libdir = malloc(strlen(env) + 1);
+      memset(klt_runtime_libdir, 0, strlen(env) + 1);
       strcat(klt_runtime_libdir, env);
     }
     else {
