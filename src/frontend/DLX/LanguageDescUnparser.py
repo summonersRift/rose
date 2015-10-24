@@ -14,10 +14,15 @@ class HeaderUnparser(DLXUnparser):
         self.clauseKinds_e_ = "clause_kinds_e"
         self.relKinds_e_= "relation_kinds_e"
         self.assocNodes_t_ = "assoc_nodes_t"
+        self.params_t_ = "parameters_t"
 
 
     def includeGuard(self):
         return "__DLX_INSTANCE_GENERATED_" + self.lD_.name_.upper() + "_H\n"
+
+    def langTmplSpecialization(self):
+        return self.lD_.name_ + "::" + self.lang_t_
+
 
     def generateLanguageStructDefinition(self):
         out = ""
@@ -32,7 +37,7 @@ class HeaderUnparser(DLXUnparser):
 
     def generateBuildTemplates(self):
         out = ""
-        langTmplStr = self.lD_.name_ + "::" + self.lang_t_
+        langTmplStr = self.langTmplSpecialization()
         tStr = self.tmpSpcz_ + " " + self.templatize(self.genCons_t_, langTmplStr)
         tStr += " * " + self.templatize("buildConstruct", langTmplStr)
         tStr += "(" + langTmplStr + "::" + self.consKinds_e_ + " kind)"
@@ -45,15 +50,25 @@ class HeaderUnparser(DLXUnparser):
 
     def generateAssocNodesTemplates(self):
         out = ""
-        genConsTmplParam = self.lD_.name_ + "::" + self.lang_t_
+        genConsTmplParam = self.langTmplSpecialization()
         structName = self.templatize(self.genCons_t_, genConsTmplParam) + "::" + self.assocNodes_t_
         for co in self.lD_.constructs_:
-            anTmplParam = self.lD_.name_ + "::" + self.lang_t_ + "::" + co
+            anTmplParam = self.langTmplSpecialization() + "::" + co
             anTmplStr = self.templatize(structName, anTmplParam)
             out += self.stmt(self.struct(anTmplStr, "", 2))
        
         return out
 
+    def generateParametersTTemplates(self):
+        out = ""
+        genClauseTmplParam = self.langTmplSpecialization()
+        structName = self.templatize(self.genClause_t_, genClauseTmplParam) + "::" + self.params_t_
+        for cl in self.lD_.clauses_:
+            ptTmplParam = self.langTmplSpecialization() + "::" + cl
+            ptTmplStr = self.templatize(structName, ptTmplParam)
+            out += self.stmt(self.struct(ptTmplStr, "", 2))
+
+        return out
 
     def unparseDefinitions(self):
         out = ""
@@ -68,6 +83,8 @@ class HeaderUnparser(DLXUnparser):
         directivesNSBody += self.generateBuildTemplates()
 
         directivesNSBody += self.generateAssocNodesTemplates()
+
+        directivesNSBody += self.generateParametersTTemplates()
 
         out += self.namespace("Directives", directivesNSBody)
 
