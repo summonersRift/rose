@@ -34,7 +34,6 @@ test_0: test_0.o test_0-host-kernel.o test_0-static.o $(KLT_RTL)
 	libtool --mode=link gcc $(LD_FLAGS) test_0.o test_0-host-kernel.o test_0-static.o $(EXTRA_LIBS) -o test_0
 
 check-test_0: test_0
-#	KLT_INCPATH="-I/media/ssd/ROSE/repos/tv-tilek-dev/src/midend/KLT/include/" KLT_LIBDIR="/media/ssd/ROSE/build/tv-tilek-dev/src/midend/KLT/lib/" ./test_0
 	source $(tilek_rc) ; ./test_0
 
 clean-test_0:

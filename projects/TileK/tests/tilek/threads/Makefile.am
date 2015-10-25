@@ -27,8 +27,10 @@ tilek_rc=$(builddir)/../../../tilek.rc
 
 ROSE_FLAGS= # -DSKIP_ROSE_BUILTIN_DECLARATIONS
 TILEK_FLAGS=--tilek-target=threads -I$(KLT_INC) -I$(srcdir)/../..
+
 C_FLAGS=-O0 -g -I$(KLT_INC) -I$(srcdir)/../..
-LD_FLAGS=-lrt $(KLT_RTL)
+LD_FLAGS=
+EXTRA_LIBS= $(KLT_RTL) -lrt
 
 ###################################################################################################
 
@@ -51,7 +53,7 @@ test_0-static.o: test_0-static.c
 	gcc $(C_FLAGS) -c test_0-static.c -o test_0-static.o
 
 test_0: rose_test_0.o test_0-host-kernel.o test_0-threads-kernel.o test_0-static.o $(KLT_RTL)
-	libtool --mode=link gcc rose_test_0.o test_0-host-kernel.o test_0-threads-kernel.o test_0-static.o $(LD_FLAGS) -o test_0
+	libtool --mode=link gcc $(LD_FLAGS) rose_test_0.o test_0-host-kernel.o test_0-threads-kernel.o test_0-static.o $(EXTRA_LIBS) -o test_0
 
 check-test_0: test_0
 	source $(tilek_rc) ; ./test_0
@@ -82,7 +84,7 @@ test_1-static.o: test_1-static.c
 	gcc $(C_FLAGS) -c test_1-static.c -o test_1-static.o
 
 test_1: rose_test_1.o test_1-host-kernel.o test_1-threads-kernel.o test_1-static.o $(KLT_RTL)
-	libtool --mode=link gcc rose_test_1.o test_1-host-kernel.o test_1-threads-kernel.o test_1-static.o $(LD_FLAGS) -o test_1
+	libtool --mode=link gcc $(LD_FLAGS) rose_test_1.o test_1-host-kernel.o test_1-threads-kernel.o test_1-static.o $(EXTRA_LIBS) -o test_1
 
 check-test_1: test_1
 	source $(tilek_rc) ; ./test_1
