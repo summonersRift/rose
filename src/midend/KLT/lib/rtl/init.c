@@ -1,5 +1,6 @@
 
 #include "KLT/RTL/init.h"
+#include "KLT/RTL/io.h"
 
 #include "KLT/RTL/memory.h"
 #include "KLT/RTL/device.h"
@@ -91,30 +92,19 @@ char * klt_opencl_kernel_suffix = "-opencl-kernel.cl";
 
 void klt_opencl_init(void);
 void klt_opencl_init(void) {
-  if (klt_opencl_kernel_dir == NULL) {
-    char * env = getenv("KLT_OPENCL_KERNEL_DIR");
-    if (env != NULL && env[0] != '\0') {
-      klt_opencl_kernel_dir = malloc(strlen(env) + 1);
-      memset(klt_opencl_kernel_dir, 0, strlen(env) + 1);
-      strcat(klt_opencl_kernel_dir, env);
-    }
-    else {
-      klt_opencl_kernel_dir = malloc(3);
-      memset(klt_opencl_kernel_dir, 0, 3);
-      strcat(klt_opencl_kernel_dir, "./");
-    }
-  }
-
   size_t i, j;
-  cl_int status;
+
+  // Load environment variables
+
+  klt_opencl_kernel_dir = klt_getenv("KLT_OPENCL_KERNEL_DIR", "./");
 
   // Sources and Options
 
   char * options = NULL;
-  const char * sources[2] = { NULL , NULL };
+  char * sources[2] = { NULL , NULL };
   size_t num_sources = 0;
 
-  {
+  if (klt_file_stem != NULL && klt_file_stem[0] != '\0') {
     size_t length = strlen(klt_opencl_kernel_dir) + strlen(klt_file_stem) + strlen(klt_opencl_kernel_suffix) + 20; // 20 for margin...
     char * filename = malloc(length);
     memset(filename, 0, length * sizeof(char));
@@ -172,45 +162,29 @@ void klt_opencl_init(void) {
   // Iterate over OpenCL's Platforms & Devices
 
   cl_uint num_platforms;
-  status = clGetPlatformIDs(0, NULL, &num_platforms);
-  if (status != CL_SUCCESS) {
-    printf("[error]   clGetPlatformIDs return %u when looking for the number of platforms.\n", status);
-    return;
-  }
+  klt_opencl_assert(clGetPlatformIDs(0, NULL, &num_platforms), "clGetPlatformIDs (number)");
 
   cl_platform_id * platforms = (cl_platform_id *)malloc(num_platforms * sizeof(cl_platform_id));
-  assert(platforms != NULL);
+  if (platforms == NULL)
+    klt_fatal("Cannot allocate %d bytes!", num_platforms * sizeof(cl_platform_id));
 
-  status = clGetPlatformIDs(num_platforms, platforms, NULL);
-  if (status != CL_SUCCESS) {
-    printf("[error]   clGetPlatformIDs return %u when retrieving %u platforms.\n", status, num_platforms);
-    return;
-  }
+  klt_opencl_assert(clGetPlatformIDs(num_platforms, platforms, NULL), "clGetPlatformIDs (platforms)");
 
   for (i = 0; i < num_platforms; i++) {
     cl_uint num_devices = 0;
 
-    status = clGetDeviceIDs(platforms[i], CL_DEVICE_TYPE_ALL, 0, NULL, &num_devices);
-    if(status != CL_SUCCESS) {
-     printf("[warning] clGetDeviceIDs return %u when looking for number of devices for platform %zu\n", status, i);
-     continue;
-    }
+    klt_opencl_assert(clGetDeviceIDs(platforms[i], CL_DEVICE_TYPE_ALL, 0, NULL, &num_devices), "clGetDeviceIDs (numbers)");
 
     cl_device_id * devices = (cl_device_id *)malloc(num_devices * sizeof(cl_device_id));
     assert(devices != NULL);
 
-    status = clGetDeviceIDs(platforms[i], CL_DEVICE_TYPE_ALL, num_devices, devices, NULL);
-    if(status != CL_SUCCESS) {
-     printf("[warning] clGetDeviceIDs return %u when retrieving %u devices for platform %zu\n", status, num_devices, i);
-     free(devices);
-     continue;
-    }
+    klt_opencl_assert(clGetDeviceIDs(platforms[i], CL_DEVICE_TYPE_ALL, num_devices, devices, NULL), "clGetDeviceIDs (devices)");
 
     for (j = 0; j < num_devices; j++) {
       size_t device_idx, device_id, memloc_idx, memloc_id;
 
       /// platforms[i] / devices[j]
-      struct klt_opencl_device_t * opencl_device = klt_build_opencl_device(platforms[i], devices[j], num_sources, sources, options);
+      struct klt_opencl_device_t * opencl_device = klt_build_opencl_device(platforms[i], devices[j], num_sources, (const char **)sources, options);
 
       device_idx = iklt_device_increase_alloc_subdevices(klt_devices[0]);
       device_id = iklt_increase_alloc_devices();
@@ -272,28 +246,12 @@ void klt_cuda_init(void) {
 #endif /* KLT_CUDA_ENABLED */
 
 void klt_init(void) {
-  if (klt_runtime_incpath == NULL) {
-    char * env = getenv("KLT_INCPATH");
-    if (env != NULL && env[0] != '\0') {
-      klt_runtime_incpath = malloc(strlen(env) + 1);
-      memset(klt_runtime_incpath, 0, strlen(env) + 1);
-      strcat(klt_runtime_incpath, env);
-    }
-    else {
-      assert(0);
-    }
-  }
-  if (klt_runtime_libdir == NULL) {
-    char * env = getenv("KLT_LIBDIR");
-    if (env != NULL && env[0] != '\0') {
-      klt_runtime_libdir = malloc(strlen(env) + 1);
-      memset(klt_runtime_libdir, 0, strlen(env) + 1);
-      strcat(klt_runtime_libdir, env);
-    }
-    else {
-      assert(0);
-    }
-  }
+  klt_init_io();
+
+  klt_log("KLT starts...");
+
+  klt_runtime_incpath = klt_getenv_or_fail("KLT_INCPATH");
+  klt_runtime_libdir = klt_getenv_or_fail("KLT_LIBDIR");
 
   klt_host_init();
 
@@ -313,16 +271,12 @@ void klt_init(void) {
 void klt_host_exit(void);
 void klt_host_exit(void) {
   // TODO
-
-  printf("[Info] klt_host_exit\n");
 }
 
 #if KLT_THREADS_ENABLED
 void klt_threads_exit(void);
 void klt_threads_exit(void) {
   // TODO
-
-  printf("[Info] klt_threads_exit\n");
 }
 #endif /* KLT_THREADS_ENABLED */
 
@@ -334,13 +288,12 @@ void klt_opencl_exit(void) {
     if (klt_devices[i]->kind == e_klt_opencl) {
       clFinish(klt_devices[i]->descriptor.opencl->queue);
       if (klt_devices[i]->descriptor.opencl->context != NULL)
-        klt_check_opencl_status("[Error] clReleaseContext returns:", clReleaseContext(klt_devices[i]->descriptor.opencl->context));
+        klt_opencl_check(clReleaseContext(klt_devices[i]->descriptor.opencl->context), "clReleaseContext");
       if (klt_devices[i]->descriptor.opencl->queue != NULL)
-        klt_check_opencl_status("[Error] clReleaseCommandQueue returns:", clReleaseCommandQueue(klt_devices[i]->descriptor.opencl->queue));
+        klt_opencl_check(clReleaseCommandQueue(klt_devices[i]->descriptor.opencl->queue), "clReleaseCommandQueue");
       if (klt_devices[i]->descriptor.opencl->program != NULL)
-        klt_check_opencl_status("[Error] clReleaseProgram returns:", clReleaseProgram(klt_devices[i]->descriptor.opencl->program));
+        klt_opencl_check(clReleaseProgram(klt_devices[i]->descriptor.opencl->program), "clReleaseProgram");
     }
-  printf("[Info] klt_opencl_exit\n");
 }
 #endif /* KLT_OPENCL_ENABLED */
 
@@ -366,6 +319,8 @@ void klt_exit(void) {
 
   klt_host_exit();
 
-  printf("[Info] klt_exit\n");
+  klt_log("KLT stops...");
+
+  klt_exit_io();
 }
 

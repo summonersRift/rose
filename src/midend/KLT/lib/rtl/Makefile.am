@@ -4,13 +4,14 @@ include $(top_srcdir)/config/Makefile.for.ROSE.includes.and.libs
 lib_LTLIBRARIES=libKLT-RTL-Host.la libKLT-RTL-Threads.la libKLT-RTL-OpenCL.la libKLT-RTL.la
 
 KLT_RTL_sources= \
-  data-environment.c \
+  io.c \
+  init.c \
   device.c \
+  data-environment.c \
   memory.c \
   kernel.c \
   data.c \
   build-context.c \
-  init.c \
   context.c
 
 KLT_RTL_cflags=-g -O0 -I$(top_srcdir)/src/midend/KLT/include

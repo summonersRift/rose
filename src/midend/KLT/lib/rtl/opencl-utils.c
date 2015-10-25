@@ -1,4 +1,5 @@
 
+#include "KLT/RTL/io.h"
 #include "KLT/RTL/opencl-utils.h"
 
 #include <stdio.h>
@@ -85,6 +86,7 @@ struct klt_opencl_property_t klt_opencl_property[KLT_OPENCL_NUM_PROPERTIES] = {
   { "CL_DEVICE_HALF_FP_CONFIG" , 0 & CL_DEVICE_HALF_FP_CONFIG , e_klt_opencl_property_is_cl_device_fp_config }
 };
 
+void klt_opencl_property_to_JSON(struct klt_opencl_property_t * property, cl_device_id device, const char * indent);
 void klt_opencl_property_to_JSON(struct klt_opencl_property_t * property, cl_device_id device, const char * indent) {
   if (property->property == 0) {
     printf("\"\"");
@@ -96,13 +98,19 @@ void klt_opencl_property_to_JSON(struct klt_opencl_property_t * property, cl_dev
   size_t size;
 
   status = clGetDeviceInfo(device, property->property, 0, NULL, &size);
-  klt_check_opencl_status("[Error] clGetDeviceInfo (size) returns:", status);
+  if (klt_opencl_check(status, "clGetDeviceInfo (size)")) {
+    printf("\"\"");
+    return;
+  }
 
   void * value = malloc(size);
   assert(value != NULL);
 
   status = clGetDeviceInfo(device, property->property, size, value, NULL);
-  klt_check_opencl_status("[Error] clGetDeviceInfo (value) returns:", status);
+  if (klt_opencl_check(status, "clGetDeviceInfo (value)")) {
+    printf("\"\"");
+    return;
+  }
 
   switch (property->type) {
     case e_klt_opencl_property_is_cl_bool:    printf("%u"    , *(cl_bool * )value); break;
@@ -224,55 +232,6 @@ void klt_opencl_device_to_JSON(cl_platform_id platform, cl_device_id device, con
   printf("\n%s}", indent);
 }
 
-char * klt_read_file(const char * filename) {
-
-   FILE *fp;
-   int err;
-   int size;
-
-   char *source;
-
-   fp = fopen(filename, "rb");
-   if(fp == NULL) {
-      printf("[Error] Could not open kernel file: %s\n", filename);
-      return NULL;
-   }
-   
-   err = fseek(fp, 0, SEEK_END);
-   if(err != 0) {
-      printf("[Error] Seeking to end of file: %s\n", filename);
-      return NULL;
-   }
-
-   size = ftell(fp);
-   if(size < 0) {
-      printf("[Error] Getting position in file: %s\n", filename);
-      return NULL;
-   }
-
-   err = fseek(fp, 0, SEEK_SET);
-   if(err != 0) {
-      printf("[Error] Seeking to start of file: %s\n", filename);
-      return NULL;
-   }
-
-   source = (char*)malloc(size+1);
-   if(source == NULL) {
-      printf("[Error] Allocating %d bytes to read file: %s\n", size+1, filename);
-      assert(0);
-   }
-
-   err = fread(source, 1, size, fp);
-   if(err != size) {
-      printf("[Error] only read %d/%d bytes in file: %s\n", err, size, filename);
-      return NULL;
-   }
-
-   source[size] = '\0';
-
-   return source;
-}
-
 void klt_get_ocl_build_log(cl_device_id device, cl_program program) {
   char * build_log;
   size_t build_log_size;
@@ -291,7 +250,7 @@ void klt_get_ocl_build_log(cl_device_id device, cl_program program) {
     free(build_log);
   }
 }
-
+/*
 void klt_check_opencl_status(char * msg, cl_int status) {
   if (status != CL_SUCCESS) {
     printf("%s ", msg);
@@ -356,5 +315,93 @@ void klt_print_opencl_status(cl_int status) {
 #endif
       default:                                           printf("CL_UNKNOWN_ERROR_CODE");                        break;
     }
+}
+*/
+////////////////////////////////////////
+
+struct klt_opencl_status_t {
+  cl_int status;
+  const char * name;
+};
+
+#ifdef CL_VERSION_1_1
+#  define KLT_OPENCL_NUM_STATUS 49
+#else
+#  define KLT_OPENCL_NUM_STATUS 46
+#endif
+
+struct klt_opencl_status_t klt_opencl_status[KLT_OPENCL_NUM_STATUS] = {
+  { CL_SUCCESS                                   , "CL_SUCCESS" },
+  { CL_DEVICE_NOT_FOUND                          , "CL_DEVICE_NOT_FOUND" },
+  { CL_DEVICE_NOT_AVAILABLE                      , "CL_DEVICE_NOT_AVAILABLE" },
+  { CL_COMPILER_NOT_AVAILABLE                    , "CL_COMPILER_NOT_AVAILABLE" },
+  { CL_MEM_OBJECT_ALLOCATION_FAILURE             , "CL_MEM_OBJECT_ALLOCATION_FAILURE" },
+  { CL_OUT_OF_RESOURCES                          , "CL_OUT_OF_RESOURCES" },
+  { CL_OUT_OF_HOST_MEMORY                        , "CL_OUT_OF_HOST_MEMORY" },
+  { CL_PROFILING_INFO_NOT_AVAILABLE              , "CL_PROFILING_INFO_NOT_AVAILABLE" },
+  { CL_MEM_COPY_OVERLAP                          , "CL_MEM_COPY_OVERLAP" },
+  { CL_IMAGE_FORMAT_MISMATCH                     , "CL_IMAGE_FORMAT_MISMATCH" },
+  { CL_IMAGE_FORMAT_NOT_SUPPORTED                , "CL_IMAGE_FORMAT_NOT_SUPPORTED" },
+  { CL_BUILD_PROGRAM_FAILURE                     , "CL_BUILD_PROGRAM_FAILURE" },
+  { CL_MAP_FAILURE                               , "CL_MAP_FAILURE" },
+  { CL_INVALID_VALUE                             , "CL_INVALID_VALUE" },
+  { CL_INVALID_DEVICE_TYPE                       , "CL_INVALID_DEVICE_TYPE" },
+  { CL_INVALID_PLATFORM                          , "CL_INVALID_PLATFORM" },
+  { CL_INVALID_DEVICE                            , "CL_INVALID_DEVICE" },
+  { CL_INVALID_CONTEXT                           , "CL_INVALID_CONTEXT" },
+  { CL_INVALID_QUEUE_PROPERTIES                  , "CL_INVALID_QUEUE_PROPERTIES" },
+  { CL_INVALID_COMMAND_QUEUE                     , "CL_INVALID_COMMAND_QUEUE" },
+  { CL_INVALID_HOST_PTR                          , "CL_INVALID_HOST_PTR" },
+  { CL_INVALID_MEM_OBJECT                        , "CL_INVALID_MEM_OBJECT" },
+  { CL_INVALID_IMAGE_FORMAT_DESCRIPTOR           , "CL_INVALID_IMAGE_FORMAT_DESCRIPTOR" },
+  { CL_INVALID_IMAGE_SIZE                        , "CL_INVALID_IMAGE_SIZE" },
+  { CL_INVALID_SAMPLER                           , "CL_INVALID_SAMPLER" },
+  { CL_INVALID_BINARY                            , "CL_INVALID_BINARY" },
+  { CL_INVALID_BUILD_OPTIONS                     , "CL_INVALID_BUILD_OPTIONS" },
+  { CL_INVALID_PROGRAM                           , "CL_INVALID_PROGRAM" },
+  { CL_INVALID_PROGRAM_EXECUTABLE                , "CL_INVALID_PROGRAM_EXECUTABLE" },
+  { CL_INVALID_KERNEL_NAME                       , "CL_INVALID_KERNEL_NAME" },
+  { CL_INVALID_KERNEL_DEFINITION                 , "CL_INVALID_KERNEL_DEFINITION" },
+  { CL_INVALID_KERNEL                            , "CL_INVALID_KERNEL" },
+  { CL_INVALID_ARG_INDEX                         , "CL_INVALID_ARG_INDEX" },
+  { CL_INVALID_ARG_VALUE                         , "CL_INVALID_ARG_VALUE" },
+  { CL_INVALID_ARG_SIZE                          , "CL_INVALID_ARG_SIZE" },
+  { CL_INVALID_KERNEL_ARGS                       , "CL_INVALID_KERNEL_ARGS" },
+  { CL_INVALID_WORK_DIMENSION                    , "CL_INVALID_WORK_DIMENSION" },
+  { CL_INVALID_WORK_GROUP_SIZE                   , "CL_INVALID_WORK_GROUP_SIZE" },
+  { CL_INVALID_WORK_ITEM_SIZE                    , "CL_INVALID_WORK_ITEM_SIZE" },
+  { CL_INVALID_GLOBAL_OFFSET                     , "CL_INVALID_GLOBAL_OFFSET" },
+  { CL_INVALID_EVENT_WAIT_LIST                   , "CL_INVALID_EVENT_WAIT_LIST" },
+  { CL_INVALID_EVENT                             , "CL_INVALID_EVENT" },
+  { CL_INVALID_OPERATION                         , "CL_INVALID_OPERATION" },
+  { CL_INVALID_GL_OBJECT                         , "CL_INVALID_GL_OBJECT" },
+  { CL_INVALID_BUFFER_SIZE                       , "CL_INVALID_BUFFER_SIZE" },
+  { CL_INVALID_MIP_LEVEL                         , "CL_INVALID_MIP_LEVEL" },
+  { CL_INVALID_GLOBAL_WORK_SIZE                  , "CL_INVALID_GLOBAL_WORK_SIZE" }
+#ifdef CL_VERSION_1_1
+, { CL_MISALIGNED_SUB_BUFFER_OFFSET              , "CL_MISALIGNED_SUB_BUFFER_OFFSET" },
+  { CL_EXEC_STATUS_ERROR_FOR_EVENTS_IN_WAIT_LIST , "CL_EXEC_STATUS_ERROR_FOR_EVENTS_IN_WAIT_LIST" },
+  { CL_INVALID_PROPERTY                          , "CL_INVALID_PROPERTY" }
+#endif
+};
+
+const char * klt_opencl_unknown_status = "CL_UNKNOWN_ERROR_CODE";
+
+const char * klt_opencl_status_get_name(cl_int status) {
+  size_t i;
+  for (i = 0; i < KLT_OPENCL_NUM_STATUS; i++) {
+    if (klt_opencl_status[i].status == status)
+      return klt_opencl_status[i].name;
+  }
+  return klt_opencl_unknown_status;
+}
+
+void klt_opencl_assert(cl_int status, const char * opencl_function) {
+  if (status != CL_SUCCESS) klt_fatal("%s returns %s", opencl_function, klt_opencl_status_get_name(status));
+}
+
+int klt_opencl_check(cl_int status, const char * opencl_function) {
+  if (status != CL_SUCCESS) klt_warning("%s returns %s", opencl_function, klt_opencl_status_get_name(status));
+  return status != CL_SUCCESS;
 }
 

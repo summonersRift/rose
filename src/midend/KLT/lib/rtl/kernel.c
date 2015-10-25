@@ -274,26 +274,26 @@ void iklt_execute_subkernels(struct klt_kernel_t * kernel, struct klt_version_de
 //      printf("clCreateKernel: %s\n", subkernel->descriptor.accelerator);
 
         cl_kernel ocl_kernel = clCreateKernel(opencl_device->program, subkernel->descriptor.accelerator, &status);
-        klt_check_opencl_status("[Error] clCreateKernel returns:", status);
+        klt_opencl_check(status, "clCreateKernel");
 
         // Set kernel arguments
 
         size_t arg_cnt = 0;
         for (i = 0; i < subkernel->num_params; i++) {
           status = clSetKernelArg(ocl_kernel, arg_cnt++, kernel->desc->data.sizeof_param[subkernel->param_ids[i]], local_param[i]);
-          klt_check_opencl_status("[Error] clSetKernelArg (for parameter) returns:", status);
+          klt_opencl_check(status, "clSetKernelArg (for parameter)");
         }
 
         for (i = 0; i < subkernel->num_data; i++) {
           status = clSetKernelArg(ocl_kernel, arg_cnt++, sizeof(cl_mem), &(local_data[i]));
-          klt_check_opencl_status("[Error] clSetKernelArg (for data) returns:", status);
+          klt_opencl_check(status, "clSetKernelArg (for data)");
         }
 
         status = clSetKernelArg(ocl_kernel, arg_cnt++, sizeof(cl_mem), &ocl_loop_context);
-        klt_check_opencl_status("[Error] clSetKernelArg (for loop context) returns:", status);
+        klt_opencl_check(status, "clSetKernelArg (for loop context)");
 
         status = clSetKernelArg(ocl_kernel, arg_cnt++, sizeof(cl_mem), &ocl_data_context);
-        klt_check_opencl_status("[Error] clSetKernelArg (for data context) returns:", status);
+        klt_opencl_check(status, "clSetKernelArg (for data context)");
 
         // Contexts (loop and data) are freed at the end of this function so we need to wait for them to be copied
         clFinish(opencl_device->queue);
@@ -315,7 +315,7 @@ void iklt_execute_subkernels(struct klt_kernel_t * kernel, struct klt_version_de
 //      printf("local_work_size  = { %d , %d , %d }\n", local_work_size [0], local_work_size [1], local_work_size [2]);
 
         status = clEnqueueNDRangeKernel(opencl_device->queue, ocl_kernel, 3, NULL, global_work_size, local_work_size, 0, NULL, NULL);
-        klt_check_opencl_status("[Error] clEnqueueNDRangeKernel returns:", status);
+        klt_opencl_check(status, "clEnqueueNDRangeKernel");
 
         { /// FIXME create a list of mem object to be free'd
           clFinish(opencl_device->queue);

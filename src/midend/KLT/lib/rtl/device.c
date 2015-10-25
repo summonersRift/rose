@@ -217,10 +217,10 @@ struct klt_opencl_device_t * klt_build_opencl_device(cl_platform_id platform, cl
   res->device = device;
 
   res->context = clCreateContext(0, 1, &(res->device), NULL, NULL, &status);
-  klt_check_opencl_status("[Error] clCreateContext returns:", status);
+  klt_opencl_assert(status, "clCreateContext");
 
   res->queue = clCreateCommandQueue(res->context, device, 0, &status);
-  klt_check_opencl_status("[Error] clCreateCommandQueue returns:", status);
+  klt_opencl_assert(status, "clCreateCommandQueue");
 
 /*{
     printf("*******************************************\n");
@@ -235,13 +235,13 @@ struct klt_opencl_device_t * klt_build_opencl_device(cl_platform_id platform, cl
 
   if (num_sources > 1) {
     res->program = clCreateProgramWithSource(res->context, num_sources, sources, NULL, &status);
-    klt_check_opencl_status("[Error] clCreateProgramWithSource returns:", status);
+    klt_opencl_assert(status, "clCreateProgramWithSource");
 
     status = clBuildProgram(res->program, 1, &(res->device), options, NULL, NULL);
     if (status == CL_BUILD_PROGRAM_FAILURE) {
       klt_get_ocl_build_log(res->device, res->program);
     }
-    klt_check_opencl_status("[Error] clBuildProgram returns:", status);
+    klt_opencl_assert(status, "clBuildProgram");
   }
   else {
     res->program = NULL;
