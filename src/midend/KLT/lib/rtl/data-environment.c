@@ -14,7 +14,7 @@
 #include <assert.h>
 
 struct iklt_alloc_map_t {
-  struct klt_memloc_t * memloc;
+  size_t memloc_id;
   struct klt_allocation_t * allocation;
 };
 
@@ -51,7 +51,9 @@ void klt_clear_data_environment(struct klt_data_environment_t * data_env) {
   size_t i, j;
   for (i = 0; i < data_env->num_data; i++) {
     for (j = 0; j < data_env->allocations[i].num_allocations; j++) {
-      switch (data_env->allocations[i].allocations[j].memloc->device->kind) {
+      struct klt_memloc_t * memloc = klt_get_memloc_by_id(data_env->allocations[i].allocations[j].memloc_id);
+      struct klt_device_t * device = klt_get_device_by_id(memloc->device_id);
+      switch (device->kind) {
         case e_klt_host:
         {
           // NOP
@@ -73,7 +75,7 @@ void klt_clear_data_environment(struct klt_data_environment_t * data_env) {
           if (data_env->allocations[i].data->liveness == e_klt_live_out || data_env->allocations[i].data->liveness == e_klt_live_inout) {
             // if multiple allocation of one data, we cannot ensure which device allocation is written in original ptr !!! 
             status = clEnqueueReadBuffer(
-              data_env->allocations[i].allocations[j].memloc->device->descriptor.opencl->queue,
+              device->descriptor.opencl->queue,
               (cl_mem)data_env->allocations[i].allocations[j].allocation->descriptor,
               CL_TRUE,
               0,
@@ -84,10 +86,9 @@ void klt_clear_data_environment(struct klt_data_environment_t * data_env) {
               NULL
             ); /* TODO events chain */
             assert(status == CL_SUCCESS);
-            clFinish(data_env->allocations[i].allocations[j].memloc->device->descriptor.opencl->queue);
+            clFinish(device->descriptor.opencl->queue);
           }
           status = clReleaseMemObject((cl_mem)data_env->allocations[i].allocations[j].allocation->descriptor);
-//        printf("clReleaseMemObject: %p\n", data_env->allocations[i].allocations[j].allocation->descriptor);
           assert(status == CL_SUCCESS);
           break;
 #else /* KLT_OPENCL_ENABLED */
@@ -109,7 +110,7 @@ void klt_clear_data_environment(struct klt_data_environment_t * data_env) {
         }
       }
       free(data_env->allocations[i].allocations[j].allocation);
-      data_env->allocations[i].allocations[j].memloc = NULL;
+      data_env->allocations[i].allocations[j].memloc_id = -1;
       data_env->allocations[i].allocations[j].allocation = NULL;
     }
     data_env->allocations[i].data = NULL;
@@ -168,7 +169,7 @@ struct klt_allocation_t * iklt_get_data_from_map(struct klt_data_t * data, struc
 struct klt_allocation_t * iklt_get_data_from_map(struct klt_data_t * data, struct klt_memloc_t * memloc, struct iklt_data_map_t * data_map) {
   size_t i;
   for (i = 0; i < data_map->num_allocations; i++)
-    if (data_map->allocations[i].memloc->memloc_id == memloc->memloc_id)
+    if (data_map->allocations[i].memloc_id == memloc->memloc_id)
       return data_map->allocations[i].allocation;
 
   return NULL;
@@ -178,7 +179,7 @@ struct klt_allocation_t * klt_get_data(struct klt_data_t * data, size_t device_i
   struct iklt_data_map_t * data_map = iklt_lookup_data(data);
   if (data_map == NULL) return NULL;
 
-  struct klt_memloc_t * memloc = klt_get_matching_memloc(device_id, data->mode);
+  struct klt_memloc_t * memloc = klt_get_memloc_by_id(klt_get_matching_memloc(device_id, data->mode));
   assert(memloc != NULL);
 
   return iklt_get_data_from_map(data, memloc, data_map);
@@ -196,7 +197,7 @@ struct iklt_data_map_t * iklt_declare_data(struct klt_data_t * data) {
     data_map->data = data;
     data_map->num_allocations = 1;
     data_map->allocations = malloc(sizeof(struct iklt_alloc_map_t));
-    data_map->allocations[0].memloc = klt_get_matching_memloc(0, e_klt_read_write);
+    data_map->allocations[0].memloc_id = klt_get_matching_memloc(0, e_klt_read_write);
     data_map->allocations[0].allocation = malloc(sizeof(struct klt_allocation_t));
     data_map->allocations[0].allocation->mode = data->mode;
     data_map->allocations[0].allocation->size = 0;
@@ -210,7 +211,7 @@ void klt_allocate_data(struct klt_data_t * data, size_t device_id) {
   struct klt_data_environment_t * data_env = klt_data_environment;
   assert(data_env != NULL);
 
-  struct klt_memloc_t * memloc = klt_get_matching_memloc(device_id, data->mode);
+  struct klt_memloc_t * memloc = klt_get_memloc_by_id(klt_get_matching_memloc(device_id, data->mode));
   assert(memloc != NULL);
 
   // Look for existing allocation
@@ -242,8 +243,7 @@ void klt_allocate_data(struct klt_data_t * data, size_t device_id) {
 
   // Initialize allocation
   struct iklt_alloc_map_t * alloc = &(data_map->allocations[data_map->num_allocations - 1]);
-    alloc->memloc = klt_get_matching_memloc(device_id, data->mode);
-  assert(alloc->memloc != NULL);
+  alloc->memloc_id = klt_get_matching_memloc(device_id, data->mode);
 
   assert(data->sections != NULL);
 
@@ -256,7 +256,8 @@ void klt_allocate_data(struct klt_data_t * data, size_t device_id) {
   for (i = 0; i < data->num_sections; i++)
     alloc->allocation->size *= data->sections[i].length;
 
-  switch (alloc->memloc->device->kind) {
+  struct klt_device_t * device = klt_get_device_by_id(device_id);
+  switch (device->kind) {
     case e_klt_host:
     {
       assert(0); // Not reachable
@@ -276,7 +277,7 @@ void klt_allocate_data(struct klt_data_t * data, size_t device_id) {
 #if KLT_OPENCL_ENABLED
       cl_int status;
       alloc->allocation->descriptor = clCreateBuffer(
-        alloc->memloc->device->descriptor.opencl->context,
+        device->descriptor.opencl->context,
         CL_MEM_READ_WRITE, // TODO depends on memory location
         alloc->allocation->size,
         NULL,
@@ -301,7 +302,7 @@ void klt_allocate_data(struct klt_data_t * data, size_t device_id) {
 
   // Live-in data movement
   if (data->liveness == e_klt_live_in || data->liveness == e_klt_live_inout) {
-    switch (alloc->memloc->device->kind) {
+    switch (device->kind) {
       case e_klt_host:
       {
         assert(0); // Not reachable
@@ -320,7 +321,7 @@ void klt_allocate_data(struct klt_data_t * data, size_t device_id) {
       {
 #if KLT_OPENCL_ENABLED
         cl_int status = clEnqueueWriteBuffer(
-          alloc->memloc->device->descriptor.opencl->queue,
+          device->descriptor.opencl->queue,
           (cl_mem)alloc->allocation->descriptor,
           CL_TRUE,
           0,
@@ -330,7 +331,6 @@ void klt_allocate_data(struct klt_data_t * data, size_t device_id) {
           NULL,
           NULL
         ); /* TODO events chain */
-//      printf("clEnqueueWriteBuffer on device #%d: %x -> %x\n", alloc->memloc->device->device_id, data->ptr, alloc->allocation->descriptor);
         assert(status == CL_SUCCESS);
         break;
 #else /* KLT_OPENCL_ENABLED */

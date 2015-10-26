@@ -30,7 +30,7 @@ void klt_host_init(void) {
 
   device->device_id = device_id;
   device->kind = e_klt_host;
-  device->parent_id = 0; // Top device's parent is itself
+  device->parent_id = 0;
   device->num_subdevices = 0;
   device->subdevices = NULL;
   device->num_memlocs = 0;
@@ -42,12 +42,13 @@ void klt_host_init(void) {
   size_t memloc_id = iklt_increase_alloc_memlocs();
   assert(memloc_id == 0);
 
-  klt_memlocs[memloc_id] = &(device->memlocs[memloc_idx]);
-    klt_memlocs[memloc_id]->memloc_id = memloc_id;
-    klt_memlocs[memloc_id]->device = device;
-    klt_memlocs[memloc_id]->mode = e_klt_read_write;
-    klt_memlocs[memloc_id]->size = 0;
-    klt_memlocs[memloc_id]->descriptor = NULL;
+  device->memlocs[memloc_idx] = memloc_id;
+
+  klt_memlocs[memloc_id].memloc_id = memloc_id;
+  klt_memlocs[memloc_id].device_id = device_id;
+  klt_memlocs[memloc_id].mode = e_klt_read_write;
+  klt_memlocs[memloc_id].size = 0;
+  klt_memlocs[memloc_id].descriptor = NULL;
 }
 
 #if KLT_THREADS_ENABLED
@@ -64,8 +65,9 @@ void klt_threads_init(void) {
 
   klt_info(1, "Create Thread device: device_idx=%zd, device_id=%zd", device_idx, device_id);
 
+  klt_get_device_by_id(0)->subdevices[device_idx] = device_id;
+
   struct klt_device_t * device = klt_get_device_by_id(device_id);
-  klt_get_device_by_id(0)->subdevices[device_idx] = device;
 
   device->device_id = device_id;
   device->kind = e_klt_threads;
@@ -81,12 +83,13 @@ void klt_threads_init(void) {
   memloc_id = iklt_increase_alloc_memlocs();
   assert(memloc_id > 0);
 
-  klt_memlocs[memloc_id] = &(device->memlocs[memloc_idx]);
-    klt_memlocs[memloc_id]->memloc_id = memloc_id;
-    klt_memlocs[memloc_id]->device = device;
-    klt_memlocs[memloc_id]->mode = e_klt_read_write;
-    klt_memlocs[memloc_id]->size = 0;
-    klt_memlocs[memloc_id]->descriptor = NULL;
+  device->memlocs[memloc_idx] = memloc_id;
+
+  klt_memlocs[memloc_id].memloc_id = memloc_id;
+  klt_memlocs[memloc_id].device_id = device_id;
+  klt_memlocs[memloc_id].mode = e_klt_read_write;
+  klt_memlocs[memloc_id].size = 0;
+  klt_memlocs[memloc_id].descriptor = NULL;
 }
 #endif /* KLT_THREADS_ENABLED */
 
@@ -193,16 +196,15 @@ void klt_opencl_init(void) {
       /// platforms[i] / devices[j]
       struct klt_opencl_device_t * opencl_device = klt_build_opencl_device(platforms[i], devices[j], num_sources, (const char **)sources, options);
 
-      struct klt_device_t * parent_device = klt_get_device_by_id(0);
-
       device_idx = iklt_device_increase_alloc_subdevices(klt_get_device_by_id(0));
       device_id = iklt_increase_alloc_devices();
       assert(device_id > 0);
 
       klt_info(1, "Create OpenCL device: device_idx=%zd, device_id=%zd", device_idx, device_id);
 
+      klt_get_device_by_id(0)->subdevices[device_idx] = device_id;
+
       struct klt_device_t * device = klt_get_device_by_id(device_id);
-      klt_get_device_by_id(0)->subdevices[device_idx] = device;
 
       device->device_id = device_id;
       device->kind = e_klt_opencl;
@@ -218,24 +220,26 @@ void klt_opencl_init(void) {
       memloc_id = iklt_increase_alloc_memlocs();
       assert(memloc_id > 0);
 
-      klt_memlocs[memloc_id] = &(device->memlocs[memloc_idx]);
-        klt_memlocs[memloc_id]->memloc_id = memloc_id;
-        klt_memlocs[memloc_id]->device = device;
-        klt_memlocs[memloc_id]->mode = e_klt_read_write;
-        klt_memlocs[memloc_id]->size = 0;
-        klt_memlocs[memloc_id]->descriptor = NULL;
+      device->memlocs[memloc_idx] = memloc_id;
+
+      klt_memlocs[memloc_id].memloc_id = memloc_id;
+      klt_memlocs[memloc_id].device_id = device_id;
+      klt_memlocs[memloc_id].mode = e_klt_read_write;
+      klt_memlocs[memloc_id].size = 0;
+      klt_memlocs[memloc_id].descriptor = NULL;
 
       memloc_idx = iklt_device_increase_alloc_memlocs(device);
       assert(memloc_idx == 1);
       memloc_id = iklt_increase_alloc_memlocs();
       assert(memloc_id > 0);
 
-      klt_memlocs[memloc_id] = &(device->memlocs[memloc_idx]);
-        klt_memlocs[memloc_id]->memloc_id = memloc_id;
-        klt_memlocs[memloc_id]->device = device;
-        klt_memlocs[memloc_id]->mode = e_klt_read_only;
-        klt_memlocs[memloc_id]->size = 0;
-        klt_memlocs[memloc_id]->descriptor = NULL;
+      device->memlocs[memloc_idx] = memloc_id;
+
+      klt_memlocs[memloc_id].memloc_id = memloc_id;
+      klt_memlocs[memloc_id].device_id = device_id;
+      klt_memlocs[memloc_id].mode = e_klt_read_only;
+      klt_memlocs[memloc_id].size = 0;
+      klt_memlocs[memloc_id].descriptor = NULL;
 
       assert(device->num_memlocs == 2);
     }

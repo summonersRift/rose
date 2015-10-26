@@ -5,6 +5,7 @@
 #include "KLT/RTL/memory.h"
 #include "KLT/RTL/data.h"
 #include "KLT/RTL/kernel.h"
+#include "KLT/RTL/io.h"
 
 #include <unistd.h>
 
@@ -28,7 +29,7 @@ size_t iklt_increase_alloc_devices(void) {
 size_t iklt_device_increase_alloc_subdevices(struct klt_device_t * device) {
   size_t res = device->num_subdevices;
   device->num_subdevices += 1;
-  device->subdevices = realloc(device->subdevices, device->num_subdevices * sizeof(struct klt_device_t *));
+  device->subdevices = realloc(device->subdevices, device->num_subdevices * sizeof(size_t));
   assert(device->subdevices != NULL);
   return res;
 }
@@ -36,12 +37,12 @@ size_t iklt_device_increase_alloc_subdevices(struct klt_device_t * device) {
 size_t iklt_device_increase_alloc_memlocs(struct klt_device_t * device) {
   size_t res = device->num_memlocs;
   device->num_memlocs += 1;
-  device->memlocs = realloc(device->memlocs, device->num_memlocs * sizeof(struct klt_memloc_t));
+  device->memlocs = realloc(device->memlocs, device->num_memlocs * sizeof(size_t));
   assert(device->memlocs != NULL);
   return res;
 }
 
-struct klt_memloc_t * klt_get_matching_memloc(size_t device_id, enum klt_memory_mode_e mode) {
+size_t klt_get_matching_memloc(size_t device_id, enum klt_memory_mode_e mode) {
   assert(mode != e_klt_mode_unknown);
   assert(klt_devices != NULL && device_id < klt_devices_count);
 
@@ -50,15 +51,20 @@ struct klt_memloc_t * klt_get_matching_memloc(size_t device_id, enum klt_memory_
   assert(device->memlocs != NULL);
 
   size_t i;
-  for (i = 0; i < device->num_memlocs; i++)
-    if (device->memlocs[i].mode == mode)
-      return &(device->memlocs[i]);
+  for (i = 0; i < device->num_memlocs; i++) {
+    struct klt_memloc_t * memloc = klt_get_memloc_by_id(device->memlocs[i]);
+    if (memloc->mode == mode)
+      return device->memlocs[i];
+  }
 
-  for (i = 0; i < device->num_memlocs; i++)
-    if (device->memlocs[i].mode == e_klt_read_write)
-      return &(device->memlocs[i]);
+  for (i = 0; i < device->num_memlocs; i++) {
+    struct klt_memloc_t * memloc = klt_get_memloc_by_id(device->memlocs[i]);
+    if (memloc->mode == e_klt_read_write)
+      return device->memlocs[i];
+  }
 
-  return NULL;
+  klt_fatal("Cannot find matching memory: device #%zd (mode=%u)", device_id, mode);
+  return -1;
 }
 
 struct klt_device_t * klt_get_device_by_id(size_t id) {

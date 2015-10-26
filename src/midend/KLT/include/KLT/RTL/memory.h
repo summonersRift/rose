@@ -11,7 +11,7 @@ struct klt_allocation_t;
 struct klt_memloc_t {
   size_t memloc_id;
 
-  struct klt_device_t * device;
+  size_t device_id;
 
   enum klt_memory_mode_e mode;
 
@@ -21,13 +21,11 @@ struct klt_memloc_t {
 };
 
 extern size_t klt_memlocs_count;
-extern struct klt_memloc_t ** klt_memlocs;
+extern struct klt_memloc_t * klt_memlocs;
 
 size_t iklt_increase_alloc_memlocs(void);
 
 struct klt_memloc_t * klt_get_memloc_by_id(size_t id);
-
-struct klt_memloc_t * klt_create_memloc(size_t device_id, enum klt_memory_mode_e mode, size_t size);
 
 struct klt_allocation_t {
   enum klt_memory_mode_e mode;

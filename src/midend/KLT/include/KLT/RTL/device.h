@@ -74,10 +74,10 @@ struct klt_device_t {
   size_t parent_id;
 
   size_t num_subdevices;
-  struct klt_device_t ** subdevices;
+  size_t * subdevices;
 
   size_t num_memlocs;
-  struct klt_memloc_t * memlocs;
+  size_t * memlocs;
 
   union {
     void * host;
@@ -104,7 +104,7 @@ size_t iklt_device_increase_alloc_memlocs(struct klt_device_t * device);
 
 struct klt_device_t * klt_get_device_by_id(size_t id);
 
-struct klt_memloc_t * klt_get_matching_memloc(size_t device_id, enum klt_memory_mode_e mode);
+size_t klt_get_matching_memloc(size_t device_id, enum klt_memory_mode_e mode);
 
 //struct klt_device_t * klt_create_subdevice(size_t parent_id, enum klt_device_e kind);
 
