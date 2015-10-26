@@ -15,12 +15,12 @@
 #include <assert.h>
 
 size_t klt_devices_count = 0;
-struct klt_device_t ** klt_devices = NULL;
+struct klt_device_t * klt_devices = NULL;
 
 size_t iklt_increase_alloc_devices(void) {
   size_t res = klt_devices_count;
   klt_devices_count += 1;
-  klt_devices = realloc(klt_devices, klt_devices_count * sizeof(struct klt_device_t *));
+  klt_devices = realloc(klt_devices, klt_devices_count * sizeof(struct klt_device_t));
   assert(klt_devices != NULL);
   return res;
 }
@@ -28,7 +28,7 @@ size_t iklt_increase_alloc_devices(void) {
 size_t iklt_device_increase_alloc_subdevices(struct klt_device_t * device) {
   size_t res = device->num_subdevices;
   device->num_subdevices += 1;
-  device->subdevices = realloc(device->subdevices, device->num_subdevices * sizeof(struct klt_device_t));
+  device->subdevices = realloc(device->subdevices, device->num_subdevices * sizeof(struct klt_device_t *));
   assert(device->subdevices != NULL);
   return res;
 }
@@ -45,7 +45,7 @@ struct klt_memloc_t * klt_get_matching_memloc(size_t device_id, enum klt_memory_
   assert(mode != e_klt_mode_unknown);
   assert(klt_devices != NULL && device_id < klt_devices_count);
 
-  struct klt_device_t * device = klt_devices[device_id];
+  struct klt_device_t * device = klt_get_device_by_id(device_id);
   assert(device != NULL);
   assert(device->memlocs != NULL);
 
@@ -63,9 +63,9 @@ struct klt_memloc_t * klt_get_matching_memloc(size_t device_id, enum klt_memory_
 
 struct klt_device_t * klt_get_device_by_id(size_t id) {
   assert(id < klt_devices_count);
-  return klt_devices[id];
+  return &(klt_devices[id]);
 }
-
+/*
 struct klt_device_t * klt_create_subdevice(size_t parent_id, enum klt_device_e kind) {
   iklt_increase_alloc_devices();
 
@@ -84,7 +84,7 @@ struct klt_device_t * klt_create_subdevice(size_t parent_id, enum klt_device_e k
 
   return device;
 }
-
+*/
 #if KLT_THREADS_ENABLED
 void * iklt_threads_worker(void * arg);
 void * iklt_threads_worker(void * arg) {
@@ -255,7 +255,7 @@ struct klt_opencl_device_t * klt_build_opencl_device(cl_platform_id platform, cl
 #endif /* KLT_OPENCL_ENABLED */
 
 void klt_dbg_dump_device(size_t id) {
-  struct klt_device_t * device = klt_devices[id];
+  struct klt_device_t * device = klt_get_device_by_id(id);
   printf("  {");
   printf( "\n    \"id\":%zd", device->device_id);
   printf(",\n    \"kind\":%u", device->kind);

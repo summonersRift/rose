@@ -117,7 +117,7 @@ struct klt_threads_workload_t * klt_create_threads_workload(
 void iklt_execute_subkernels(struct klt_kernel_t * kernel, struct klt_version_desc_t * version);
 void iklt_execute_subkernels(struct klt_kernel_t * kernel, struct klt_version_desc_t * version) {
   assert(kernel->device_id < klt_devices_count);
-  struct klt_device_t * device = klt_devices[kernel->device_id];
+  struct klt_device_t * device = klt_get_device_by_id(kernel->device_id);
   assert(device != NULL);
 
   size_t i, j;
@@ -274,26 +274,26 @@ void iklt_execute_subkernels(struct klt_kernel_t * kernel, struct klt_version_de
 //      printf("clCreateKernel: %s\n", subkernel->descriptor.accelerator);
 
         cl_kernel ocl_kernel = clCreateKernel(opencl_device->program, subkernel->descriptor.accelerator, &status);
-        klt_opencl_check(status, "clCreateKernel");
+        klt_opencl_assert(status, "clCreateKernel");
 
         // Set kernel arguments
 
         size_t arg_cnt = 0;
         for (i = 0; i < subkernel->num_params; i++) {
           status = clSetKernelArg(ocl_kernel, arg_cnt++, kernel->desc->data.sizeof_param[subkernel->param_ids[i]], local_param[i]);
-          klt_opencl_check(status, "clSetKernelArg (for parameter)");
+          klt_opencl_assert(status, "clSetKernelArg (for parameter)");
         }
 
         for (i = 0; i < subkernel->num_data; i++) {
           status = clSetKernelArg(ocl_kernel, arg_cnt++, sizeof(cl_mem), &(local_data[i]));
-          klt_opencl_check(status, "clSetKernelArg (for data)");
+          klt_opencl_assert(status, "clSetKernelArg (for data)");
         }
 
         status = clSetKernelArg(ocl_kernel, arg_cnt++, sizeof(cl_mem), &ocl_loop_context);
-        klt_opencl_check(status, "clSetKernelArg (for loop context)");
+        klt_opencl_assert(status, "clSetKernelArg (for loop context)");
 
         status = clSetKernelArg(ocl_kernel, arg_cnt++, sizeof(cl_mem), &ocl_data_context);
-        klt_opencl_check(status, "clSetKernelArg (for data context)");
+        klt_opencl_assert(status, "clSetKernelArg (for data context)");
 
         // Contexts (loop and data) are freed at the end of this function so we need to wait for them to be copied
         clFinish(opencl_device->queue);
@@ -315,7 +315,7 @@ void iklt_execute_subkernels(struct klt_kernel_t * kernel, struct klt_version_de
 //      printf("local_work_size  = { %d , %d , %d }\n", local_work_size [0], local_work_size [1], local_work_size [2]);
 
         status = clEnqueueNDRangeKernel(opencl_device->queue, ocl_kernel, 3, NULL, global_work_size, local_work_size, 0, NULL, NULL);
-        klt_opencl_check(status, "clEnqueueNDRangeKernel");
+        klt_opencl_assert(status, "clEnqueueNDRangeKernel");
 
         { /// FIXME create a list of mem object to be free'd
           clFinish(opencl_device->queue);
@@ -358,7 +358,7 @@ void iklt_execute_subkernels(struct klt_kernel_t * kernel, struct klt_version_de
 
 void klt_execute_kernel(struct klt_kernel_t * kernel) {
   assert(kernel->device_id < klt_devices_count);
-  struct klt_device_t * device = klt_devices[kernel->device_id];
+  struct klt_device_t * device = klt_get_device_by_id(kernel->device_id);
   assert(device != NULL);
 
 //printf("Execute kernel on device #%d\n", kernel->device_id);

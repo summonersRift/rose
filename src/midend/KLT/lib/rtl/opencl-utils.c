@@ -325,9 +325,9 @@ struct klt_opencl_status_t {
 };
 
 #ifdef CL_VERSION_1_1
-#  define KLT_OPENCL_NUM_STATUS 49
+#  define KLT_OPENCL_NUM_STATUS 50
 #else
-#  define KLT_OPENCL_NUM_STATUS 46
+#  define KLT_OPENCL_NUM_STATUS 47
 #endif
 
 struct klt_opencl_status_t klt_opencl_status[KLT_OPENCL_NUM_STATUS] = {

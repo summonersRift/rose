@@ -24,24 +24,27 @@ void klt_host_init(void) {
   size_t device_id = iklt_increase_alloc_devices();
   assert(device_id == 0);
 
-  klt_devices[device_id] = malloc(sizeof(struct klt_device_t));
-    klt_devices[device_id]->device_id = device_id;
-    klt_devices[device_id]->kind = e_klt_host;
-    klt_devices[device_id]->parent = NULL;
-    klt_devices[device_id]->num_subdevices = 0;
-    klt_devices[device_id]->subdevices = NULL;
-    klt_devices[device_id]->num_memlocs = 0;
-    klt_devices[device_id]->memlocs = NULL;
-    klt_devices[device_id]->descriptor.host = NULL; // Unused
+  klt_info(1, "Create Host device: device_id=%zd", device_id);
 
-  size_t memloc_idx = iklt_device_increase_alloc_memlocs(klt_devices[device_id]);
+  struct klt_device_t * device = klt_get_device_by_id(device_id);
+
+  device->device_id = device_id;
+  device->kind = e_klt_host;
+  device->parent = NULL;
+  device->num_subdevices = 0;
+  device->subdevices = NULL;
+  device->num_memlocs = 0;
+  device->memlocs = NULL;
+  device->descriptor.host = NULL; // Unused
+
+  size_t memloc_idx = iklt_device_increase_alloc_memlocs(device);
   assert(memloc_idx == 0);
   size_t memloc_id = iklt_increase_alloc_memlocs();
   assert(memloc_id == 0);
 
-  klt_memlocs[memloc_id] = &(klt_devices[device_id]->memlocs[memloc_idx]);
+  klt_memlocs[memloc_id] = &(device->memlocs[memloc_idx]);
     klt_memlocs[memloc_id]->memloc_id = memloc_id;
-    klt_memlocs[memloc_id]->device = klt_devices[device_id];
+    klt_memlocs[memloc_id]->device = device;
     klt_memlocs[memloc_id]->mode = e_klt_read_write;
     klt_memlocs[memloc_id]->size = 0;
     klt_memlocs[memloc_id]->descriptor = NULL;
@@ -55,28 +58,34 @@ void klt_threads_init(void) {
 
   size_t device_idx, device_id, memloc_idx, memloc_id; 
 
-  device_idx = iklt_device_increase_alloc_subdevices(klt_devices[0]);
+  struct klt_device_t * parent_device = klt_get_device_by_id(0);
+
+  device_idx = iklt_device_increase_alloc_subdevices(parent_device);
   device_id = iklt_increase_alloc_devices();
   assert(device_id > 0);
 
-  klt_devices[device_id] = &(klt_devices[0]->subdevices[device_idx]);
-    klt_devices[device_id]->device_id = device_id;
-    klt_devices[device_id]->kind = e_klt_threads;
-    klt_devices[device_id]->parent = klt_devices[0];
-    klt_devices[device_id]->num_subdevices = 0;
-    klt_devices[device_id]->subdevices = NULL;
-    klt_devices[device_id]->num_memlocs = 0;
-    klt_devices[device_id]->memlocs = NULL;
-    klt_devices[device_id]->descriptor.threads = threads_device;
+  klt_info(1, "Create Thread device: device_idx=%zd, device_id=%zd", device_idx, device_id);
 
-  memloc_idx = iklt_device_increase_alloc_memlocs(klt_devices[device_id]);
+  struct klt_device_t * device = klt_get_device_by_id(device_id);
+  parent_device->subdevices[device_idx] = device;
+
+  device->device_id = device_id;
+  device->kind = e_klt_threads;
+  device->parent = parent_device;
+  device->num_subdevices = 0;
+  device->subdevices = NULL;
+  device->num_memlocs = 0;
+  device->memlocs = NULL;
+  device->descriptor.threads = threads_device;
+
+  memloc_idx = iklt_device_increase_alloc_memlocs(device);
   assert(memloc_idx == 0);
   memloc_id = iklt_increase_alloc_memlocs();
   assert(memloc_id > 0);
 
-  klt_memlocs[memloc_id] = &(klt_devices[device_id]->memlocs[memloc_idx]);
+  klt_memlocs[memloc_id] = &(device->memlocs[memloc_idx]);
     klt_memlocs[memloc_id]->memloc_id = memloc_id;
-    klt_memlocs[memloc_id]->device = klt_devices[device_id];
+    klt_memlocs[memloc_id]->device = device;
     klt_memlocs[memloc_id]->mode = e_klt_read_write;
     klt_memlocs[memloc_id]->size = 0;
     klt_memlocs[memloc_id]->descriptor = NULL;
@@ -186,45 +195,51 @@ void klt_opencl_init(void) {
       /// platforms[i] / devices[j]
       struct klt_opencl_device_t * opencl_device = klt_build_opencl_device(platforms[i], devices[j], num_sources, (const char **)sources, options);
 
-      device_idx = iklt_device_increase_alloc_subdevices(klt_devices[0]);
+      struct klt_device_t * parent_device = klt_get_device_by_id(0);
+
+      device_idx = iklt_device_increase_alloc_subdevices(parent_device);
       device_id = iklt_increase_alloc_devices();
       assert(device_id > 0);
 
-      klt_devices[device_id] = &(klt_devices[0]->subdevices[device_idx]);
-        klt_devices[device_id]->device_id = device_id;
-        klt_devices[device_id]->kind = e_klt_opencl;
-        klt_devices[device_id]->parent = klt_devices[0];
-        klt_devices[device_id]->num_subdevices = 0;
-        klt_devices[device_id]->subdevices = NULL;
-        klt_devices[device_id]->num_memlocs = 0;
-        klt_devices[device_id]->memlocs = NULL;
-        klt_devices[device_id]->descriptor.opencl = opencl_device;
+      klt_info(1, "Create OpenCL device: device_idx=%zd, device_id=%zd", device_idx, device_id);
 
-      memloc_idx = iklt_device_increase_alloc_memlocs(klt_devices[device_id]);
+      struct klt_device_t * device = klt_get_device_by_id(device_id);
+      parent_device->subdevices[device_idx] = device;
+
+      device->device_id = device_id;
+      device->kind = e_klt_opencl;
+      device->parent = parent_device;
+      device->num_subdevices = 0;
+      device->subdevices = NULL;
+      device->num_memlocs = 0;
+      device->memlocs = NULL;
+      device->descriptor.opencl = opencl_device;
+
+      memloc_idx = iklt_device_increase_alloc_memlocs(device);
       assert(memloc_idx == 0);
       memloc_id = iklt_increase_alloc_memlocs();
       assert(memloc_id > 0);
 
-      klt_memlocs[memloc_id] = &(klt_devices[device_id]->memlocs[memloc_idx]);
+      klt_memlocs[memloc_id] = &(device->memlocs[memloc_idx]);
         klt_memlocs[memloc_id]->memloc_id = memloc_id;
-        klt_memlocs[memloc_id]->device = klt_devices[device_id];
+        klt_memlocs[memloc_id]->device = device;
         klt_memlocs[memloc_id]->mode = e_klt_read_write;
         klt_memlocs[memloc_id]->size = 0;
         klt_memlocs[memloc_id]->descriptor = NULL;
 
-      memloc_idx = iklt_device_increase_alloc_memlocs(klt_devices[device_id]);
+      memloc_idx = iklt_device_increase_alloc_memlocs(device);
       assert(memloc_idx == 1);
       memloc_id = iklt_increase_alloc_memlocs();
       assert(memloc_id > 0);
 
-      klt_memlocs[memloc_id] = &(klt_devices[device_id]->memlocs[memloc_idx]);
+      klt_memlocs[memloc_id] = &(device->memlocs[memloc_idx]);
         klt_memlocs[memloc_id]->memloc_id = memloc_id;
-        klt_memlocs[memloc_id]->device = klt_devices[device_id];
+        klt_memlocs[memloc_id]->device = device;
         klt_memlocs[memloc_id]->mode = e_klt_read_only;
         klt_memlocs[memloc_id]->size = 0;
         klt_memlocs[memloc_id]->descriptor = NULL;
 
-      assert(klt_devices[device_id]->num_memlocs == 2);
+      assert(device->num_memlocs == 2);
     }
     free(devices);
   }
@@ -285,14 +300,14 @@ void klt_opencl_exit(void);
 void klt_opencl_exit(void) {
   size_t i;
   for (i = 0; i < klt_devices_count; i++)
-    if (klt_devices[i]->kind == e_klt_opencl) {
-      clFinish(klt_devices[i]->descriptor.opencl->queue);
-      if (klt_devices[i]->descriptor.opencl->context != NULL)
-        klt_opencl_check(clReleaseContext(klt_devices[i]->descriptor.opencl->context), "clReleaseContext");
-      if (klt_devices[i]->descriptor.opencl->queue != NULL)
-        klt_opencl_check(clReleaseCommandQueue(klt_devices[i]->descriptor.opencl->queue), "clReleaseCommandQueue");
-      if (klt_devices[i]->descriptor.opencl->program != NULL)
-        klt_opencl_check(clReleaseProgram(klt_devices[i]->descriptor.opencl->program), "clReleaseProgram");
+    if (klt_devices[i].kind == e_klt_opencl) {
+      clFinish(klt_devices[i].descriptor.opencl->queue);
+      if (klt_devices[i].descriptor.opencl->context != NULL)
+        klt_opencl_check(clReleaseContext(klt_devices[i].descriptor.opencl->context), "clReleaseContext");
+      if (klt_devices[i].descriptor.opencl->queue != NULL)
+        klt_opencl_check(clReleaseCommandQueue(klt_devices[i].descriptor.opencl->queue), "clReleaseCommandQueue");
+      if (klt_devices[i].descriptor.opencl->program != NULL)
+        klt_opencl_check(clReleaseProgram(klt_devices[i].descriptor.opencl->program), "clReleaseProgram");
     }
 }
 #endif /* KLT_OPENCL_ENABLED */
