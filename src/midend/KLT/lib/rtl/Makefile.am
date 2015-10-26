@@ -14,7 +14,7 @@ KLT_RTL_sources= \
   build-context.c \
   context.c
 
-KLT_RTL_cflags=-g -O0 -I$(top_srcdir)/src/midend/KLT/include
+KLT_RTL_cflags=-g -O0 -I$(top_srcdir)/src/midend/KLT/include -DKLT_SUBKERNEL_TIMING=1
 
 libKLT_RTL_Host_la_SOURCES=$(KLT_RTL_sources)
 libKLT_RTL_Host_la_CFLAGS=$(KLT_RTL_cflags)

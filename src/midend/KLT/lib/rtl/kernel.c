@@ -7,6 +7,7 @@
 #include "KLT/RTL/context.h"
 #include "KLT/RTL/build-context.h"
 #include "KLT/RTL/data-environment.h"
+#include "KLT/RTL/io.h"
 
 #if KLT_OPENCL_ENABLED
 #  include "KLT/RTL/opencl-utils.h"
@@ -15,6 +16,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <time.h>
 #include <assert.h>
 
 #ifndef KLT_EXPORT_LOOP_CTX_TO_JSON
@@ -234,8 +236,6 @@ void iklt_execute_subkernels(struct klt_kernel_t * kernel, struct klt_version_de
         for (tid = 0; tid < num_threads; tid++)
           klt_threads_submit_workload(threads_device, tid, workloads[tid]);
 
-//      sleep(10);
-
 #if KLT_SUBKERNEL_TIMING
         klt_threads_wait_for_completion(threads_device);
         clock_gettime(CLOCK_REALTIME, &timer_stop);
@@ -270,8 +270,6 @@ void iklt_execute_subkernels(struct klt_kernel_t * kernel, struct klt_version_de
         assert(status == CL_SUCCESS);
 
         // Create OpenCL kernel
-
-//      printf("clCreateKernel: %s\n", subkernel->descriptor.accelerator);
 
         cl_kernel ocl_kernel = clCreateKernel(opencl_device->program, subkernel->descriptor.accelerator, &status);
         klt_opencl_assert(status, "clCreateKernel");
@@ -314,8 +312,17 @@ void iklt_execute_subkernels(struct klt_kernel_t * kernel, struct klt_version_de
 //      printf("global_work_size = { %d , %d , %d }\n", global_work_size[0], global_work_size[1], global_work_size[2]);
 //      printf("local_work_size  = { %d , %d , %d }\n", local_work_size [0], local_work_size [1], local_work_size [2]);
 
+#if KLT_SUBKERNEL_TIMING
+        clock_gettime(CLOCK_REALTIME, &timer_start);
+#endif /* KLT_SUBKERNEL_TIMING */
+
         status = clEnqueueNDRangeKernel(opencl_device->queue, ocl_kernel, 3, NULL, global_work_size, local_work_size, 0, NULL, NULL);
         klt_opencl_assert(status, "clEnqueueNDRangeKernel");
+
+#if KLT_SUBKERNEL_TIMING
+        clFinish(opencl_device->queue);
+        clock_gettime(CLOCK_REALTIME, &timer_stop);
+#endif /* KLT_SUBKERNEL_TIMING */
 
         { /// FIXME create a list of mem object to be free'd
           clFinish(opencl_device->queue);
@@ -346,7 +353,7 @@ void iklt_execute_subkernels(struct klt_kernel_t * kernel, struct klt_version_de
       timer_delta += (timer_stop.tv_sec - timer_start.tv_sec) * 1000;
     else
       timer_delta = (timer_stop.tv_sec - timer_start.tv_sec) * 1000 - timer_delta;
-    printf("%d", timer_delta);
+    klt_log("Subkernel #%zd %d", subkernel->id, timer_delta);
 #endif /* KLT_SUBKERNEL_TIMING */
 
     free(klt_loop_context);
