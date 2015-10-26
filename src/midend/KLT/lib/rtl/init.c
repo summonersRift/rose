@@ -30,7 +30,7 @@ void klt_host_init(void) {
 
   device->device_id = device_id;
   device->kind = e_klt_host;
-  device->parent = NULL;
+  device->parent_id = 0; // Top device's parent is itself
   device->num_subdevices = 0;
   device->subdevices = NULL;
   device->num_memlocs = 0;
@@ -56,22 +56,20 @@ void klt_threads_init(void) {
   size_t num_threads = 8; // TODO get number from environment or system-call
   struct klt_threads_device_t * threads_device = iklt_build_threads_device(num_threads);
 
-  size_t device_idx, device_id, memloc_idx, memloc_id; 
+  size_t device_idx, device_id, memloc_idx, memloc_id;
 
-  struct klt_device_t * parent_device = klt_get_device_by_id(0);
-
-  device_idx = iklt_device_increase_alloc_subdevices(parent_device);
+  device_idx = iklt_device_increase_alloc_subdevices(klt_get_device_by_id(0));
   device_id = iklt_increase_alloc_devices();
   assert(device_id > 0);
 
   klt_info(1, "Create Thread device: device_idx=%zd, device_id=%zd", device_idx, device_id);
 
   struct klt_device_t * device = klt_get_device_by_id(device_id);
-  parent_device->subdevices[device_idx] = device;
+  klt_get_device_by_id(0)->subdevices[device_idx] = device;
 
   device->device_id = device_id;
   device->kind = e_klt_threads;
-  device->parent = parent_device;
+  device->parent_id = 0;
   device->num_subdevices = 0;
   device->subdevices = NULL;
   device->num_memlocs = 0;
@@ -197,18 +195,18 @@ void klt_opencl_init(void) {
 
       struct klt_device_t * parent_device = klt_get_device_by_id(0);
 
-      device_idx = iklt_device_increase_alloc_subdevices(parent_device);
+      device_idx = iklt_device_increase_alloc_subdevices(klt_get_device_by_id(0));
       device_id = iklt_increase_alloc_devices();
       assert(device_id > 0);
 
       klt_info(1, "Create OpenCL device: device_idx=%zd, device_id=%zd", device_idx, device_id);
 
       struct klt_device_t * device = klt_get_device_by_id(device_id);
-      parent_device->subdevices[device_idx] = device;
+      klt_get_device_by_id(0)->subdevices[device_idx] = device;
 
       device->device_id = device_id;
       device->kind = e_klt_opencl;
-      device->parent = parent_device;
+      device->parent_id = 0;
       device->num_subdevices = 0;
       device->subdevices = NULL;
       device->num_memlocs = 0;

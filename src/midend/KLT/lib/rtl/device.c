@@ -65,26 +65,7 @@ struct klt_device_t * klt_get_device_by_id(size_t id) {
   assert(id < klt_devices_count);
   return &(klt_devices[id]);
 }
-/*
-struct klt_device_t * klt_create_subdevice(size_t parent_id, enum klt_device_e kind) {
-  iklt_increase_alloc_devices();
 
-  struct klt_device_t * parent = klt_get_device_by_id(parent_id);
-  iklt_device_increase_alloc_subdevices(parent);
-  
-  struct klt_device_t * device = &(parent->subdevices[parent->num_subdevices - 1]);
-    device->device_id = klt_devices_count - 1;
-    device->kind = kind;
-    device->parent = parent;
-    device->num_subdevices = 0;
-    device->subdevices = NULL;
-    device->num_memlocs = 0;
-    device->memlocs = NULL;
-    device->descriptor.host = NULL;
-
-  return device;
-}
-*/
 #if KLT_THREADS_ENABLED
 void * iklt_threads_worker(void * arg);
 void * iklt_threads_worker(void * arg) {

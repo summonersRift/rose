@@ -71,7 +71,7 @@ struct klt_device_t {
   size_t device_id;
   enum klt_device_e kind;
 
-  struct klt_device_t * parent;
+  size_t parent_id;
 
   size_t num_subdevices;
   struct klt_device_t ** subdevices;
