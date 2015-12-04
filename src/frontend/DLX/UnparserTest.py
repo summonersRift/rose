@@ -22,10 +22,10 @@ result = unparser.typedef("A", "B")
 assert result == "typedef A B"
 
 result = unparser.stmt("A")
-assert result == "A;"
+assert result == "A;\n"
 
 result = unparser.stmt(unparser.typedef("A", "B"))
-assert result == "typedef A B;"
+assert result == "typedef A B;\n"
 
 result = unparser.enum("test", ["one", "two"])
 assert result == "enum test {\none,\ntwo\n}"

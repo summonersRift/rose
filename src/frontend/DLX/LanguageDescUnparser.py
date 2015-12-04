@@ -79,9 +79,7 @@ class HeaderUnparser(DLXUnparser):
 
         out += self.namespace("Directives", directivesNSBody)
 
-
         return "\n" + out + "\n"
-
 
     def unparse(self):
         out = ""
@@ -104,5 +102,52 @@ class HeaderUnparser(DLXUnparser):
 
 
 class SourceUnparser(DLXUnparser):
-    def foo(self):
+
+    def buildClauseFunctionBody(self):
+        out = ""
+        out += "switch(kind) {"
+        for cl in self.lD_.clauses_:
+            tStr = ""
+            tStr += self.langTmplSpecialization() + "::" + cl + ":\n"
+            # TODO Continue to implement
+            tStr += "return new " + self.
+
+        out += "}"
+
+        return out
+
+    def generateBuildClauseSource(self):
+        out = ""
+        langTmplStr = self.langTmplSpecialization()
+        tStr = self.tmpSpcz_ + " " + self.templatize(self.genClause_t_, langTmplStr)
+        tStr += " * " + self.templatize("buildClause", langTmplStr)
+        tStr += "(" + langTmplStr + "::" + self.clauseKinds_e_ + " kind)"
+
+        body = ""
+        body += self.buildClauseFunctionBody()
+
+        out += tStr + "{\n" + body + "}\n"
+        return out
+
+    def buildClauses(self):
+        out = ""
+        out += self.userInclude("sage3basic.h")
+        for incl in self.DLXIncludes:
+            out += self.userInclude("DLX/Core/" + incl) + "\n"
+        out += self.systemInclude("cassert")
+
+        out += self.stmt("class SgLocatedNode")
+
+        dlxNS = ""
+        dlxNS += self.generateBuildClauseSource()
+
+        directivesNS = self.namespace("DLX", dlxNS)
+        out += self.namespace("Directives", directivesNS)
+
+        return out
+
+
+    def unparse(self):
+        clausesStr = ""
+        clausesStr += buildIncludes()
         return ""
