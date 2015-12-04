@@ -106,10 +106,10 @@ class SourceUnparser(DLXUnparser):
         out = ""
         out += "switch(kind) {"
         for cl in self.lD_.clauses_:
-            tStr = self.case_ + ""
-            tStr += self.langTmplSpecialization() + "::" + cl + ":\n"
+            tStr = ""
+            tStr += self.case(self.langTmplSpecialization() + "::" + cl) + "\n"
             templateStr = self.lD_.name_ +"::"+ self.lang_t_ +","+ self.lD_.name_ +"::"+ self.lang_t_ +"::"+ cl
-            tStr += self.stmt("return new " + self.templatize(self.clause_t, templateStr))
+            tStr += self.stmt("return new " + self.templatize(self.clause_t, templateStr) + "()")
             out += tStr
         out += "default: assert(false);"
 
@@ -130,6 +130,30 @@ class SourceUnparser(DLXUnparser):
         out += tStr + "{\n" + body + "}\n"
         return out
 
+    def generateFrontendBody(self):
+        out = ""
+        out += "switch (" + "clause->kind" + ") {"
+        for cl in self.lD_.clauses_:
+            caseStr = self.case(self.langTmplSpecialization() + "::" + cl)
+            retStr = "return " + self.templatize(self.frontend_, self.langTmplSpecialization()) +"::"
+            retStr += self.templatize("parseClauseParameters", self.langTmplSpecialization() +"::"+ cl)
+            retStr += "(" + self.directives_ +"::" 
+            tmplArg = self.langTmplSpecialization() +","+ self.langTmplSpecialization() +"::"+cl 
+            retStr += self.templatize(self.clause_t, tmplArg) + " * " + ")" + "clause" + ")"
+            out += caseStr + self.stmt(retStr)
+        out += self.stmt("default: assert(false)") + "\n}\n"
+        return out
+
+    def generateBuildFrontendSource(self):
+        out = ""
+        templStr = self.tmpSpcz_ + "bool " + self.templatize(self.frontend_, self.langTmplSpecialization())
+        templStr += "::" + "parseClauseParameters_tpl" + "("
+        templStr += self.templatize(self.directives_ +"::"+self.genClause_t_, self.langTmplSpecialization())
+        out += templStr + " * " + "clause )"
+        out += "{\n" + self.generateFrontendBody() + "\n}\n"
+
+        return out
+
     def buildClauses(self):
         out = ""
         out += self.userInclude("sage3basic.h")
@@ -144,6 +168,8 @@ class SourceUnparser(DLXUnparser):
 
         directivesNS = self.namespace("DLX", dlxNS)
         out += self.namespace("Directives", directivesNS)
+        out += "\n"
+        out += self.generateBuildFrontendSource()
 
         return out
 
