@@ -5,7 +5,7 @@
 # when unparsing DLX
 class DLXUnparser:
 
-    def __init__(self):
+    def __init__(self, languageDesc):
         self.lang_t_ = "language_t"
         self.tmpSpcz_ = "template <>"
         self.genCons_t_ = "generic_construct_t"
@@ -15,6 +15,9 @@ class DLXUnparser:
         self.relKinds_e_= "relation_kinds_e"
         self.assocNodes_t_ = "assoc_nodes_t"
         self.params_t_ = "parameters_t"
+        self.clause_t = "clause_t"
+        self.lD_ = languageDesc
+        self.case_ = "case: "
 
     def namespace(self, name, content):
         return "namespace " + name + " {\n" + content + "\n}"
@@ -27,6 +30,9 @@ class DLXUnparser:
 
     def templatize(self, iden, tmplArg):
         return iden + "<" + tmplArg + ">"
+
+    def langTmplSpecialization(self):
+        return self.lD_.name_ + "::" + self.lang_t_
 
     # XXX does it make sense to always return this as statement?
     def enum(self, name, values):

@@ -18,6 +18,10 @@ lInclAndTypes = {'includes':aIncludes, 'types':aTypes}
 
 testLang = LanguageDesc.Language(lName, lConstructs, lClauses, lDirectives, lRelations, lInclAndTypes)
 
-unparser = LanguageDescUnparser.HeaderUnparser(testLang)
+headerUnparser = LanguageDescUnparser.HeaderUnparser(testLang)
 
-unparser.unparse()
+headerUnparser.unparse()
+
+sourceUnparser = LanguageDescUnparser.SourceUnparser(testLang);
+
+sourceUnparser.unparse()

@@ -4,15 +4,11 @@ import LanguageDesc
 # The class unparses the (specialized) language.hpp file
 class HeaderUnparser(DLXUnparser):
     def __init__(self, languageDesc):
-        DLXUnparser.__init__(self)
+        DLXUnparser.__init__(self, languageDesc)
         self.DLXIncludes_ = ["directives.hpp", "constructs.hpp", "clauses.hpp", "parser.hpp", "frontend.hpp", "compiler.hpp"]
-        self.lD_ = languageDesc
 
     def includeGuard(self):
         return "__DLX_INSTANCE_GENERATED_" + self.lD_.name_.upper() + "_H\n"
-
-    def langTmplSpecialization(self):
-        return self.lD_.name_ + "::" + self.lang_t_
 
 
     def generateLanguageStructDefinition(self):
@@ -102,15 +98,20 @@ class HeaderUnparser(DLXUnparser):
 
 
 class SourceUnparser(DLXUnparser):
+    def __init__(self, languageDesc):
+        DLXUnparser.__init__(self, languageDesc)
+        self.DLXIncludes_ = ["directives.hpp", "constructs.hpp", "clauses.hpp", "parser.hpp", "frontend.hpp", "compiler.hpp"]
 
     def buildClauseFunctionBody(self):
         out = ""
         out += "switch(kind) {"
         for cl in self.lD_.clauses_:
-            tStr = ""
+            tStr = self.case_ + ""
             tStr += self.langTmplSpecialization() + "::" + cl + ":\n"
-            # TODO Continue to implement
-            tStr += "return new " + self.
+            templateStr = self.lD_.name_ +"::"+ self.lang_t_ +","+ self.lD_.name_ +"::"+ self.lang_t_ +"::"+ cl
+            tStr += self.stmt("return new " + self.templatize(self.clause_t, templateStr))
+            out += tStr
+        out += "default: assert(false);"
 
         out += "}"
 
@@ -132,9 +133,9 @@ class SourceUnparser(DLXUnparser):
     def buildClauses(self):
         out = ""
         out += self.userInclude("sage3basic.h")
-        for incl in self.DLXIncludes:
+        for incl in self.DLXIncludes_:
             out += self.userInclude("DLX/Core/" + incl) + "\n"
-        out += self.systemInclude("cassert")
+        out += self.sysInclude("cassert")
 
         out += self.stmt("class SgLocatedNode")
 
@@ -149,5 +150,6 @@ class SourceUnparser(DLXUnparser):
 
     def unparse(self):
         clausesStr = ""
-        clausesStr += buildIncludes()
-        return ""
+        clausesStr += self.buildClauses()
+        print(clausesStr)
+        return clausesStr
