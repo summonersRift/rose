@@ -130,10 +130,16 @@ for arg in $(cat $args); do
 
   export KLT_OPENCL_KERNEL_DIR=$(readlink -f $bindir/$stem/$config)
 
-  for i in $(seq 1 $reps); do
+  b=0
+  if [ -e $stem-$config-$tag-0.log ]; then
+    b=$(ls $stem-$config-$tag-*.log | cut -d- -f5 | cut -d. -f1 | sort -r | head -n1)
+  fi
+
+  for i in $(seq $b $((b+reps-1))); do
     echo -ne "\r                                                   \rEvaluate \"$config\" \"$tag\" $i/$reps"
+    export KLT_STREAM_LOG=$stem-$config-$tag-$i.log
     set +e
-    timeout $timeout $binary $arguments > $stem-$config-$tag-$i.log
+    timeout $timeout $binary $arguments
     set -e
   done
 
