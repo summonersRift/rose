@@ -268,16 +268,19 @@ void Compiler<language_tpl>::extractDirectives(
           break;
         case ::DLX::e_target_threads:     
           language_tpl::collectKernelNumThreads(directive->clause_list, kernel_directive.first->num_threads);
+          assert(threads_target != ::KLT::Descriptor::e_target_unknown);
           kernel_directive.first->target = threads_target;
           break;
         case ::DLX::e_target_accelerator:
           language_tpl::collectKernelNumGangsAndWorkers(directive->clause_list, kernel_directive.first->num_gangs, kernel_directive.first->num_workers);
+          assert(accelerator_target != ::KLT::Descriptor::e_target_unknown);
           kernel_directive.first->target = accelerator_target;
           break;
         default:
           assert(false);
       }
       kernel_directive.first->device_id = dev_info.second;
+      assert(kernel_directive.first->target != ::KLT::Descriptor::e_target_unknown);
     }
     else if (loop_construct != NULL) {
       loop_directive_map.insert(std::pair<directive_t *, SgForStatement *>(directive, language_tpl::getLoopStatement(loop_construct)));
