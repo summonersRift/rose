@@ -97,7 +97,7 @@ dump_test_1: klt-dump-static.o test_1-host-kernel.o test_1-static.o $(KLT_RTL)
 	libtool --mode=link gcc $(LD_FLAGS) klt-dump-static.o test_1-host-kernel.o test_1-static.o $(EXTRA_LIBS) -o dump_test_1
 
 check-dump_test_1: dump_test_1
-	./dump_test_1
+	source $(tilek_rc) ; ./dump_test_1
 
 ##################################
 
