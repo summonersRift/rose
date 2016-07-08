@@ -364,6 +364,7 @@ void Compiler<language_tpl>::splitKernelRoot(Kernel::kernel_t * kernel, const ti
 
   // if root is a block containing more than one loop-nest, it could be splitted in multiple subkernels
   Kernel::kernel_t * res = kernel->copy(root);
+    res->target = kernel->target;
   kernels.push_back(res);
 }
 

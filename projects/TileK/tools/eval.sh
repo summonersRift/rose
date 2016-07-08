@@ -136,7 +136,7 @@ for arg in $(cat $args); do
   fi
 
   for i in $(seq $b $((b+reps-1))); do
-    echo -ne "\r                                                   \rEvaluate \"$config\" \"$tag\" $i/$reps"
+    echo -ne "\r                                                   \rEvaluate \"$config\" \"$tag\" $i/$((b+reps-1))"
     export KLT_STREAM_LOG=$stem-$config-$tag-$i.log
     set +e
     timeout $timeout $binary $arguments
