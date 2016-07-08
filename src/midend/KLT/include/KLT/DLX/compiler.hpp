@@ -416,6 +416,7 @@ void Compiler<language_tpl>::generateAllKernels(
 
     KLT::Kernel::kernel_t * kernel = it_kernel_directive->second.first;
     assert(kernel != NULL);
+    assert(kernel->target != ::KLT::Descriptor::e_target_unknown);
 
     std::map<size_t, KLT::Kernel::kernel_t *> & kernel_subkernels = all_subkernels.insert(std::pair<size_t, std::map<size_t, KLT::Kernel::kernel_t *> >(
                                                                         generator.getKernelID(kernel), std::map<size_t, KLT::Kernel::kernel_t *>()
