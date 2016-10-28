@@ -514,10 +514,10 @@ if USE_HASKELL
 else
 	@echo "Automake conditional USE_HASKELL: NOT defined"
 endif
-if USE_CUDA
-	@echo "Automake conditional USE_CUDA: DEFINED"
+if USE_ROSE_CUDA_SUPPORT
+	@echo "Automake conditional USE_ROSE_CUDA_SUPPORT: DEFINED"
 else
-	@echo "Automake conditional USE_CUDA: NOT defined"
+	@echo "Automake conditional USE_ROSE_CUDA_SUPPORT: NOT defined"
 endif
 if USE_ROSE_IN_BUILD_TREE_VAR
 	@echo "Automake conditional USE_ROSE_IN_BUILD_TREE_VAR: DEFINED"

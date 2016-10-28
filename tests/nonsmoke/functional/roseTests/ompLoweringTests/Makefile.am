@@ -301,7 +301,7 @@ $(OMP_ACC_DIFF_FILES):$(PASSING_OMP_ACC_TEST_CUDA_Files)
 # We cannot run the diff since the function names of an outlined function has a random integer numbers
 ompacc_diff_check: $(OMP_ACC_DIFF_FILES)
 
-if USE_CUDA
+if USE_ROSE_CUDA_SUPPORT
 
 if WITH_GOMP_OPENMP_LIB
 # we need both cuda and libgomp to run the CUDA code generated from OpenMP 4.0 code	
@@ -324,14 +324,14 @@ MY_FINAL_LINK = -L$(top_builddir)/src/midend -lxomp $(GOMP_PATH)/libgomp.a -lpth
 # build executables using nvcc
 $(PASSING_OMP_ACC_TEST_EXE_Files): %.out: rose_%.cu
 	@$(RTH_RUN) \
-		TITLE="$(NVCCBIN)/nvcc $(notdir $<) [$@.passed]" \
-		CMD="$(NVCCBIN)/nvcc $< $(TEST_INCLUDES) $(top_srcdir)/src/midend/programTransformation/ompLowering/xomp.c $(top_srcdir)/src/midend/programTransformation/ompLowering/xomp_cuda_lib.cu -o $@ $(GOMP_PATH)/libgomp.a -lpthread -lm" \
+		TITLE="$(CUDA_BIN_PATH)/nvcc $(notdir $<) [$@.passed]" \
+		CMD="$(CUDA_BIN_PATH)/nvcc $< $(TEST_INCLUDES) $(top_srcdir)/src/midend/programTransformation/ompLowering/xomp.c $(top_srcdir)/src/midend/programTransformation/ompLowering/xomp_cuda_lib.cu -o $@ $(GOMP_PATH)/libgomp.a -lpthread -lm" \
 		$(TEST_EXIT_STATUS) $@.passed
 
 $(PASSING_OMP_ACC_TEST_CXX_EXE_Files): %.out: rose_%.cu
 	@$(RTH_RUN) \
-		TITLE="$(NVCCBIN)/nvcc $(notdir $<) [$@.passed]" \
-		CMD="$(NVCCBIN)/nvcc $< $(TEST_INCLUDES) $(top_srcdir)/src/midend/programTransformation/ompLowering/xomp.c $(top_srcdir)/src/midend/programTransformation/ompLowering/xomp_cuda_lib.cu -o $@ $(GOMP_PATH)/libgomp.a -lpthread -lm" \
+		TITLE="$(CUDA_BIN_PATH)/nvcc $(notdir $<) [$@.passed]" \
+		CMD="$(CUDA_BIN_PATH)/nvcc $< $(TEST_INCLUDES) $(top_srcdir)/src/midend/programTransformation/ompLowering/xomp.c $(top_srcdir)/src/midend/programTransformation/ompLowering/xomp_cuda_lib.cu -o $@ $(GOMP_PATH)/libgomp.a -lpthread -lm" \
 		$(TEST_EXIT_STATUS) $@.passed
 
 

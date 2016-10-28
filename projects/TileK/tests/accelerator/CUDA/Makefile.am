@@ -23,22 +23,13 @@ LD_FLAGS=-lrt $(TILEK_RTL) $(KLT_RTL)
 klt_context=$(top_srcdir)/src/midend/KLT/lib/rtl/context.c
 
 CHECK_TARGET=
-if ROSE_HAVE_CUDA_INC
-if ROSE_HAVE_CUDA_LIB
-if ROSE_HAVE_CUDA_BIN
+if USE_ROSE_CUDA_SUPPORT
 CHECK_TARGET+=check-test_1 check-test_2
 
-C_FLAGS+=-I@CUDA_INC_DIR@
-LD_FLAGS+=-L@CUDA_LIB_DIR@ -lcuda -lcudart
+C_FLAGS+=-I@CUDA_INCLUDE_PATH@
+LD_FLAGS+=-L@CUDA_LIB_PATH@ -lcuda -lcudart
 
-NVCC=@CUDA_BIN_DIR@/nvcc
-#NVCC_FLAGS+=--compiler-bindir=@CUDA_BIN_DIR@/gcc-4.4
-else
-CHECK_TARGET+=rose_test_1.c rose_test_2.c
-endif
-else
-CHECK_TARGET+=rose_test_1.c rose_test_2.c
-endif
+NVCC=@CUDA_BIN_PATH@/nvcc
 else
 CHECK_TARGET+=rose_test_1.c rose_test_2.c
 endif

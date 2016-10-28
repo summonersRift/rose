@@ -64,7 +64,7 @@ echo "CUDA_INCLUDE_PATH = "$CUDA_INCLUDE_PATH
   #============================================================================
   # Set Automake Conditionals and Substitutions
   #============================================================================
-  AM_CONDITIONAL(ROSE_WITH_CUDA,         [test "x$CUDA_BIN_PATH" != "x" && test "x$CUDA_LIBRARY_PATH" != "x" && test "x$CUDA_INCLUDE_PATH" != "x"])
+  AM_CONDITIONAL(USE_ROSE_CUDA_SUPPORT,  [test "x$CUDA_BIN_PATH" != "x" && test "x$CUDA_LIBRARY_PATH" != "x" && test "x$CUDA_INCLUDE_PATH" != "x"])
   AM_CONDITIONAL(ROSE_WITH_CUDA_BIN,     [test "x$CUDA_BIN_PATH" != "x"])
   AM_CONDITIONAL(ROSE_WITH_CUDA_LIB,     [test "x$CUDA_LIBRARY_PATH" != "x"])
   AM_CONDITIONAL(ROSE_WITH_CUDA_INCLUDE, [test "x$CUDA_INCLUDE_PATH" != "x"])
@@ -88,10 +88,5 @@ echo "CUDA_INCLUDE_PATH = "$CUDA_INCLUDE_PATH
     CUDA_INCLUDE_PATH,
     ["$CUDA_INCLUDE_PATH"],
     [Absolute path of the CUDA installation include directory])
-
-if test "x$CUDA_BIN_PATH" != "x" && test "x$CUDA_LIBRARY_PATH" != "x" && test "x$CUDA_INCLUDE_PATH" != "x"; then
-   AC_DEFINE([USE_ROSE_CUDA_SUPPORT], [1], [Controls use of ROSE support for CUDA.])
-fi
-
 ])
 

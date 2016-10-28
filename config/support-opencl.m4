@@ -64,7 +64,7 @@ echo "OPENCL_INCLUDE_PATH = "$OPENCL_INCLUDE_PATH
   #============================================================================
   # Set Automake Conditionals and Substitutions
   #============================================================================
-  AM_CONDITIONAL(ROSE_WITH_OPENCL,         [test "x$OPENCL_BIN_PATH" != "x" && test "x$OPENCL_LIBRARY_PATH" != "x" && test "x$OPENCL_INCLUDE_PATH" != "x"])
+  AM_CONDITIONAL(USE_ROSE_OPENCL_SUPPORT,  [test "x$OPENCL_BIN_PATH" != "x" && test "x$OPENCL_LIBRARY_PATH" != "x" && test "x$OPENCL_INCLUDE_PATH" != "x"])
   AM_CONDITIONAL(ROSE_WITH_OPENCL_BIN,     [test "x$OPENCL_BIN_PATH" != "x"])
   AM_CONDITIONAL(ROSE_WITH_OPENCL_LIB,     [test "x$OPENCL_LIBRARY_PATH" != "x"])
   AM_CONDITIONAL(ROSE_WITH_OPENCL_INCLUDE, [test "x$OPENCL_INCLUDE_PATH" != "x"])
@@ -88,10 +88,5 @@ echo "OPENCL_INCLUDE_PATH = "$OPENCL_INCLUDE_PATH
     OPENCL_INCLUDE_PATH,
     ["$OPENCL_INCLUDE_PATH"],
     [Absolute path of the OPENCL installation include directory])
-
-if test "x$OPENCL_BIN_PATH" != "x" && test "x$OPENCL_LIBRARY_PATH" != "x" && test "x$OPENCL_INCLUDE_PATH" != "x"; then
-   AC_DEFINE([USE_ROSE_OPENCL_SUPPORT], [1], [Controls use of ROSE support for OpenCL.])
-fi
-
 ])
 

@@ -7,11 +7,11 @@ lib_LTLIBRARIES= \
   libDLX-TileK-accelerator.la libKLT-TileK-opencl.la  \
                               libKLT-TileK-cuda.la
 
-if ROSE_HAVE_OPENCL_INC
+if USE_ROSE_OPENCL_SUPPORT
 lib_LTLIBRARIES+=libTileK-RTL-opencl.la
 endif
 
-if ROSE_HAVE_CUDA_INC
+if USE_ROSE_CUDA_SUPPORT
 lib_LTLIBRARIES+=libTileK-RTL-cuda.la
 endif
 
@@ -100,21 +100,21 @@ libTileK_RTL_threads_la_CFLAGS= \
   -I$(srcdir)/../include \
   $(ROSE_INCLUDES)
 
-if ROSE_HAVE_OPENCL_INC
+if USE_ROSE_OPENCL_SUPPORT
 libTileK_RTL_opencl_la_SOURCES=tilek-rtl.c tilek-rtl-accelerator.c tilek-rtl-opencl.c
 libTileK_RTL_opencl_la_CFLAGS= \
   -g -DTILEK_ACCELERATOR -DTILEK_TARGET_OPENCL -DCOMPILE_OPENCL_KERNEL_WITH_DEBUG=0 \
-  -I@OPENCL_INC_DIR@ \
+  -I@OPENCL_INCLUDE_PATH@ \
   -I$(top_srcdir)/src/midend/KLT/include \
   -I$(srcdir)/../include \
   $(ROSE_INCLUDES)
 endif
 
-if ROSE_HAVE_CUDA_INC
+if USE_ROSE_CUDA_SUPPORT
 libTileK_RTL_cuda_la_SOURCES=tilek-rtl.c tilek-rtl-accelerator.c tilek-rtl-cuda.c
 libTileK_RTL_cuda_la_CFLAGS= \
   -g -DTILEK_ACCELERATOR -DTILEK_TARGET_CUDA \
-  -I@CUDA_INC_DIR@ \
+  -I@CUDA_INCLUDE_PATH@ \
   -I$(top_srcdir)/src/midend/KLT/include \
   -I$(srcdir)/../include \
   $(ROSE_INCLUDES)
