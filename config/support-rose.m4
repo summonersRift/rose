@@ -1113,9 +1113,9 @@ AC_SUBST(CANDL_PATH)
 # *****************************************************************
 
 # Check: --with-cuda-inc, --with-cuda-lib, and  --with-cuda-bin
-ROSE_CHECK_CUDA
-# Check: --with-opencl-inc, --with-opencl-lib
-ROSE_CHECK_OPENCL
+ROSE_SUPPORT_CUDA
+# Check: --with-opencl-inc, --with-opencl-lib, and  --with-opencl-bin
+ROSE_SUPPORT_OPENCL
 
 # *****************************************************************
 #            Option to define DOXYGEN SUPPORT

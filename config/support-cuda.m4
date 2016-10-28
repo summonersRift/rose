@@ -1,89 +1,97 @@
-# m4 macro to detect CUDA support (nvcc)
-# This is used to support code generation for GPUs.
-#  The conditional variable set for automake is USE_CUDA =0 or 1
-#
-# Liao 5/23/2014
-#
+
+AC_DEFUN([GENERATE_CUDA_SPECIFIC_HEADERS],
+[
+   mkdir -p "./include-staging/cuda_HEADERS"
+   cp ${srcdir}/config/preinclude-cuda.h ./include-staging/cuda_HEADERS
+])
+
 AC_DEFUN([ROSE_SUPPORT_CUDA],
 [
+  ROSE_CONFIGURE_SECTION([CUDA Environment])
 
-AC_MSG_CHECKING(for NVIDIA CUDA)
+  ROSE_ARG_WITH(
+    [cuda],
+    [for an installation of the CUDA library],
+    [support the CUDA library],
+    []
+  )
+  if test "x$CONFIG_HAS_ROSE_WITH_CUDA" != "xno"; then
+    CUDA_BIN_PATH="${ROSE_WITH_CUDA}/bin"
+    CUDA_LIBRARY_PATH="${ROSE_WITH_CUDA}/lib"
+    CUDA_INCLUDE_PATH="${ROSE_WITH_CUDA}/include"
+  else
+    CUDA_BIN_PATH=
+    CUDA_LIBRARY_PATH=
+    CUDA_INCLUDE_PATH=
+  fi
 
-AC_ARG_WITH([cuda],
-	AS_HELP_STRING([--with-cuda=PATH],
-		[use nvcc for CUDA support (default autodetect).  PATH is bin directory containing nvcc if given]),
-	[cudasetting=$withval],
-	[cudasetting=try])
+  ROSE_ARG_WITH(
+    [cuda-bin],
+    [if the CUDA runtime bin directory was specified],
+    [use this CUDA bin directory],
+    []
+  )
+  if test "x$CONFIG_HAS_ROSE_WITH_CUDA_BIN" != "xno"; then
+      CUDA_BIN_PATH="$ROSE_WITH_CUDA_BIN"
+  fi
 
-USE_CUDA=0
+  ROSE_ARG_WITH(
+    [cuda-lib],
+    [if the CUDA runtime library directory was specified],
+    [use this CUDA runtime library directory],
+    []
+  )
+  if test "x$CONFIG_HAS_ROSE_WITH_CUDA_LIB" != "xno"; then
+      CUDA_LIBRARY_PATH="$ROSE_WITH_CUDA_LIB"
+  fi
 
-if test "x$cudasetting" != xno; then
-	if test "x$cudasetting" = xtry -o "x$cudasetting" = xyes ; then
-# autodetect the NVCC bin PATH
-		if which nvcc > /dev/null 2> /dev/null; then
-			NVCC="`which nvcc`"
-			NVCCBIN="`dirname $NVCC`"
-			USE_CUDA=1
-		elif test -d "/usr/local/cuda/bin" ; then
-                        NVCCBIN="/usr/local/cuda/bin"
-                        USE_CUDA=1
-		elif test "x$cudasetting" = xyes ; then
-			AC_MSG_ERROR([--with-cuda set but nvcc command not found in PATH])
-		fi
+  ROSE_ARG_WITH(
+    [cuda-include],
+    [if the CUDA runtime header directory was specified],
+    [use this CUDA runtime header directory],
+    []
+  )
+  if test "x$CONFIG_HAS_ROSE_WITH_CUDA_INCLUDE" != "xno"; then
+      CUDA_LIBRARY_PATH="$ROSE_WITH_CUDA_INCLUDE"
+  fi
 
-	else
-		if test -d "$cudasetting"; then
-#Verification of the bin directory containing nvcc is deferred later
-			NVCCBIN="$cudasetting"
-			USE_CUDA=1
-		else
-			AC_MSG_ERROR([Argument to --with-cuda must be path to bin directory, but argument is not a directory])
-		fi
-	fi
+echo "CUDA_BIN_PATH     = "$CUDA_BIN_PATH
+echo "CUDA_LIBRARY_PATH = "$CUDA_LIBRARY_PATH
+echo "CUDA_INCLUDE_PATH = "$CUDA_INCLUDE_PATH
+
+  # TODO check directories
+
+  #============================================================================
+  # Set Automake Conditionals and Substitutions
+  #============================================================================
+  AM_CONDITIONAL(ROSE_WITH_CUDA,         [test "x$CUDA_BIN_PATH" != "x" && test "x$CUDA_LIBRARY_PATH" != "x" && test "x$CUDA_INCLUDE_PATH" != "x"])
+  AM_CONDITIONAL(ROSE_WITH_CUDA_BIN,     [test "x$CUDA_BIN_PATH" != "x"])
+  AM_CONDITIONAL(ROSE_WITH_CUDA_LIB,     [test "x$CUDA_LIBRARY_PATH" != "x"])
+  AM_CONDITIONAL(ROSE_WITH_CUDA_INCLUDE, [test "x$CUDA_INCLUDE_PATH" != "x"])
+
+  AC_SUBST(CUDA_BIN_PATH)
+  AC_SUBST(CUDA_LIBRARY_PATH)
+  AC_SUBST(CUDA_INCLUDE_PATH)
+
+  #============================================================================
+  # Set CPP #defines
+  #============================================================================
+  AC_DEFINE_UNQUOTED(
+    CUDA_BIN_PATH,
+    ["$CUDA_BIN_PATH"],
+    [Absolute path of the CUDA installation binary directory])
+  AC_DEFINE_UNQUOTED(
+    CUDA_LIBRARY_PATH,
+    ["$CUDA_LIBRARY_PATH"],
+    [Absolute path of the CUDA installation library directory])
+  AC_DEFINE_UNQUOTED(
+    CUDA_INCLUDE_PATH,
+    ["$CUDA_INCLUDE_PATH"],
+    [Absolute path of the CUDA installation include directory])
+
+if test "x$CUDA_BIN_PATH" != "x" && test "x$CUDA_LIBRARY_PATH" != "x" && test "x$CUDA_INCLUDE_PATH" != "x"; then
+   AC_DEFINE([USE_ROSE_CUDA_SUPPORT], [1], [Controls use of ROSE support for CUDA.])
 fi
-
-if test $USE_CUDA = 1; then
-	if test ! -x "$NVCCBIN/nvcc" ; then
-		AC_MSG_ERROR([nvcc could not be found in CUDA bin directory $NVCCBIN])
-	fi
-	AC_MSG_RESULT([$NVCCBIN])
-
-#We don't concern about nvcc version for now
-# DQ (5/27/2010): We only support a specific version of GHC, since version 6.12 does not
-# include the required packages.
-#   echo "ghc_version = "`ghc --version`
-#   ghc_major_version_number=`ghc --version | tr -d \ | cut -d\n -f3 | cut -d\. -f1`
-#   ghc_minor_version_number=`ghc --version | tr -d \ | cut -d\n -f3 | cut -d\. -f2`
-#   ghc_patch_version_number=`ghc --version | tr -d \ | cut -d\n -f3 | cut -d\. -f3`
-#
-#   echo "ghc_major_version_number = $ghc_major_version_number"
-#   echo "ghc_minor_version_number = $ghc_minor_version_number"
-#   echo "ghc_patch_version_number = $ghc_patch_version_number"
-#
-#   echo "*************************************"
-#   echo "ghc packages required in ROSE: base, haskell98, syb, mtl, containers (see the Build-Depends entry in projects/haskellport/rose.cabal.in.in)."
-#   echo "ghc packages supported:"
-#   ghc -v
-#   echo "*************************************"
-#
-#   if test "x$ghc_major_version_number" = "x6"; then
-#      echo "Recognized an accepted major version number."
-#      if test "x$ghc_minor_version_number" = "x10"; then
-#         echo "Recognized an accepted minor version number."
-#      else
-#         echo "ERROR: Could not identify an acceptable Haskell gch minor version number (ROSE requires 6.10.x)."
-#         exit 1
-#      fi
-#   else
-#      echo "ERROR: Could not identify an acceptable Haskell gch major version number (ROSE requires 6.10.x)."
-#      exit 1
-#   fi
-
-else
-	AC_MSG_RESULT([no])
-fi
-
-AC_SUBST(NVCCBIN)
-AM_CONDITIONAL(USE_CUDA,test "$USE_CUDA" = 1)
 
 ])
+
