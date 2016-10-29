@@ -16,13 +16,9 @@ AC_DEFUN([ROSE_SUPPORT_CUDA],
     []
   )
   if test "x$CONFIG_HAS_ROSE_WITH_CUDA" != "xno"; then
-    CUDA_BIN_PATH="${ROSE_WITH_CUDA}/bin"
-    CUDA_LIBRARY_PATH="${ROSE_WITH_CUDA}/lib"
-    CUDA_INCLUDE_PATH="${ROSE_WITH_CUDA}/include"
+    CUDA_PATH="${ROSE_WITH_CUDA}"
   else
-    CUDA_BIN_PATH=
-    CUDA_LIBRARY_PATH=
-    CUDA_INCLUDE_PATH=
+    CUDA_PATH=
   fi
 
   ROSE_ARG_WITH(
@@ -55,19 +51,90 @@ AC_DEFUN([ROSE_SUPPORT_CUDA],
       CUDA_LIBRARY_PATH="$ROSE_WITH_CUDA_INCLUDE"
   fi
 
-echo "CUDA_BIN_PATH     = "$CUDA_BIN_PATH
-echo "CUDA_LIBRARY_PATH = "$CUDA_LIBRARY_PATH
-echo "CUDA_INCLUDE_PATH = "$CUDA_INCLUDE_PATH
+  echo "From configuration options:"
+  echo "  CUDA_PATH         = "$CUDA_PATH
+  echo "  CUDA_BIN_PATH     = "$CUDA_BIN_PATH
+  echo "  CUDA_LIBRARY_PATH = "$CUDA_LIBRARY_PATH
+  echo "  CUDA_INCLUDE_PATH = "$CUDA_INCLUDE_PATH
 
-  # TODO check directories
+  USE_ROSE_CUDA_SUPPORT=1
+
+  #============================================================================
+  # Set binary, library, and include path
+  #============================================================================
+  if test "x$CUDA_BIN_PATH" == "x"; then
+    if test "x$CUDA_PATH" != "x"; then
+      CUDA_BIN_PATH="$CUDA_PATH/bin"
+    elif which nvcc > /dev/null 2> /dev/null; then
+      CUDA_BIN_PATH="`dirname `which nvcc``"
+      CUDA_PATH="`dirname $CUDA_BIN_PATH`"
+    elif test -d "/usr/local/cuda/bin"; then
+      CUDA_BIN_PATH="/usr/local/cuda/bin"
+      CUDA_PATH="`dirname $CUDA_BIN_PATH`"
+    else
+      USE_ROSE_CUDA_SUPPORT=0
+    fi
+  fi
+  if test "x$CUDA_LIBRARY_PATH" == "x"; then
+    if test "x$CUDA_PATH" != "x"; then
+      if test -d "$CUDA_PATH/lib64"; then
+        CUDA_LIBRARY_PATH="$CUDA_PATH/lib64"
+      else
+        CUDA_LIBRARY_PATH="$CUDA_PATH/lib"
+      fi
+    else
+      USE_ROSE_CUDA_SUPPORT=0
+    fi
+  fi
+  if test "x$CUDA_INCLUDE_PATH" == "x"; then
+    if test "x$CUDA_PATH" != "x"; then
+      CUDA_INCLUDE_PATH="$CUDA_PATH/include"
+    else
+      USE_ROSE_CUDA_SUPPORT=0
+    fi
+  fi
+
+  echo "After completion:"
+  echo "  CUDA_BIN_PATH         = "$CUDA_BIN_PATH
+  echo "  CUDA_LIBRARY_PATH     = "$CUDA_LIBRARY_PATH
+  echo "  CUDA_INCLUDE_PATH     = "$CUDA_INCLUDE_PATH
+  echo "  USE_ROSE_CUDA_SUPPORT = "$USE_ROSE_CUDA_SUPPORT
+
+  #============================================================================
+  # Check binary, library, and include path
+  #============================================================================
+  if test "x$CUDA_BIN_PATH" != "x"; then
+    if test ! -x "$CUDA_BIN_PATH/nvcc"; then
+      AC_MSG_ERROR([Invalid directory for CUDA binaries: $CUDA_BIN_PATH])
+      CUDA_BIN_PATH=
+      USE_ROSE_CUDA_SUPPORT=0
+    fi
+  fi
+  if test "x$CUDA_LIBRARY_PATH" != "x"; then
+    if test ! -e "$CUDA_LIBRARY_PATH/libcudart.so"; then
+      AC_MSG_ERROR([Invalid directory for CUDA libraries: $CUDA_LIBRARY_PATH])
+      CUDA_LIBRARY_PATH=
+      USE_ROSE_CUDA_SUPPORT=0
+    fi
+  fi
+  if test "x$CUDA_INCLUDE_PATH" != "x"; then
+    if test ! -e "$CUDA_INCLUDE_PATH/cuda.h"; then
+      AC_MSG_ERROR([Invalid directory for CUDA includes: $CUDA_INCLUDE_PATH])
+      CUDA_INCLUDE_PATH=
+      USE_ROSE_CUDA_SUPPORT=0
+    fi
+  fi
+
+  echo "After verification:"
+  echo "  CUDA_BIN_PATH         = "$CUDA_BIN_PATH
+  echo "  CUDA_LIBRARY_PATH     = "$CUDA_LIBRARY_PATH
+  echo "  CUDA_INCLUDE_PATH     = "$CUDA_INCLUDE_PATH
+  echo "  USE_ROSE_CUDA_SUPPORT = "$USE_ROSE_CUDA_SUPPORT
 
   #============================================================================
   # Set Automake Conditionals and Substitutions
   #============================================================================
-  AM_CONDITIONAL(USE_ROSE_CUDA_SUPPORT,  [test "x$CUDA_BIN_PATH" != "x" && test "x$CUDA_LIBRARY_PATH" != "x" && test "x$CUDA_INCLUDE_PATH" != "x"])
-  AM_CONDITIONAL(ROSE_WITH_CUDA_BIN,     [test "x$CUDA_BIN_PATH" != "x"])
-  AM_CONDITIONAL(ROSE_WITH_CUDA_LIB,     [test "x$CUDA_LIBRARY_PATH" != "x"])
-  AM_CONDITIONAL(ROSE_WITH_CUDA_INCLUDE, [test "x$CUDA_INCLUDE_PATH" != "x"])
+  AM_CONDITIONAL(USE_ROSE_CUDA_SUPPORT,  [$USE_ROSE_CUDA_SUPPORT])
 
   AC_SUBST(CUDA_BIN_PATH)
   AC_SUBST(CUDA_LIBRARY_PATH)
