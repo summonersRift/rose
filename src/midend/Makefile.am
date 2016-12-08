@@ -60,8 +60,7 @@ mProgramTransformationPath=programTransformation#
 SUBDIRS = \
 	binaryAnalyses \
 	programTransformation/extractFunctionArgumentsNormalization \
-	programTransformation/singleStatementToBlockNormalization \
-        MFB MDCG KLT
+	programTransformation/singleStatementToBlockNormalization
 
 if !ROSE_USE_INTERNAL_FRONTEND_DEVELOPMENT
 SUBDIRS += \
